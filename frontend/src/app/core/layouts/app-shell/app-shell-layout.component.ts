@@ -4,19 +4,18 @@ import {
   LucideCircleUserRound,
   LucideClipboardList,
   LucideLayoutDashboard,
+  LucideLeaf,
+  LucideMessageSquare,
   LucideMenu,
   LucidePackagePlus,
   LucideSearch,
   LucideSettings,
-  LucideSlidersHorizontal,
   LucideSparkles,
   LucideStore
 } from '@lucide/angular';
 import { NgClass } from '@angular/common';
 import { AuthFacade } from '../../../features/auth/services/auth.facade';
 import { SIDEBAR_NAV_ITEMS } from '../../constants/sidebar-nav.constants';
-import { ICON_REGISTRY } from '../../constants/icon-registry.constants';
-import { APP_NAME } from '../../constants/app.constants';
 
 @Component({
   selector: 'app-shell-layout',
@@ -27,12 +26,13 @@ import { APP_NAME } from '../../constants/app.constants';
     NgClass,
     LucideMenu,
     LucideSearch,
+    LucideLeaf,
     LucideCircleUserRound,
     LucideLayoutDashboard,
     LucidePackagePlus,
     LucideStore,
     LucideClipboardList,
-    LucideSlidersHorizontal,
+    LucideMessageSquare,
     LucideSparkles,
     LucideSettings
   ],
@@ -43,10 +43,7 @@ import { APP_NAME } from '../../constants/app.constants';
 export class AppShellLayoutComponent {
   private readonly authFacade = inject(AuthFacade);
 
-  protected readonly appName = APP_NAME;
-  protected readonly icons = ICON_REGISTRY;
   protected readonly isSidebarCollapsed = signal(false);
-  protected readonly currentUser = this.authFacade.user;
   protected readonly navItems = computed(() =>
     SIDEBAR_NAV_ITEMS.filter((item) => {
       if (!item.permissions?.length) {
@@ -56,12 +53,14 @@ export class AppShellLayoutComponent {
       return item.permissions.every((permission) => this.authFacade.hasPermission(permission));
     })
   );
+  protected readonly mainNavItems = computed(() =>
+    this.navItems().filter((item) => item.group !== 'Account')
+  );
+  protected readonly accountNavItems = computed(() =>
+    this.navItems().filter((item) => item.group === 'Account')
+  );
 
   protected toggleSidebar(): void {
     this.isSidebarCollapsed.update((value) => !value);
-  }
-
-  protected logout(): void {
-    this.authFacade.logout();
   }
 }

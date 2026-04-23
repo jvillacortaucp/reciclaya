@@ -10,32 +10,25 @@ export const SIDEBAR_NAV_ITEMS: readonly SidebarNavItem[] = [
     permissions: [PERMISSIONS.VIEW_DASHBOARD]
   },
   {
-    label: 'Publicar Residuo',
+    label: 'Registrar residuo',
     group: 'Marketplace',
     icon: 'package-plus',
     route: APP_ROUTES.wasteSell,
     permissions: [PERMISSIONS.MANAGE_WASTE]
   },
   {
-    label: 'Marketplace',
+    label: 'Mis publicaciones',
     group: 'Marketplace',
     icon: 'store',
-    route: APP_ROUTES.marketplace,
-    permissions: [PERMISSIONS.VIEW_MARKETPLACE]
+    route: APP_ROUTES.myListings,
+    permissions: [PERMISSIONS.VIEW_MY_LISTINGS]
   },
   {
-    label: 'Pre-ordenes',
+    label: 'Solicitudes',
     group: 'Marketplace',
     icon: 'clipboard-list',
-    route: APP_ROUTES.preOrders,
-    permissions: [PERMISSIONS.CREATE_PRE_ORDER]
-  },
-  {
-    label: 'Preferencias',
-    group: 'Intelligence',
-    icon: 'sliders-horizontal',
-    route: APP_ROUTES.preferences,
-    permissions: [PERMISSIONS.MANAGE_PREFERENCES]
+    route: APP_ROUTES.requests,
+    permissions: [PERMISSIONS.VIEW_REQUESTS]
   },
   {
     label: 'Recomendaciones',
@@ -43,6 +36,13 @@ export const SIDEBAR_NAV_ITEMS: readonly SidebarNavItem[] = [
     icon: 'sparkles',
     route: APP_ROUTES.recommendations,
     permissions: [PERMISSIONS.VIEW_RECOMMENDATIONS]
+  },
+  {
+    label: 'Mensajes',
+    group: 'Intelligence',
+    icon: 'messages',
+    route: APP_ROUTES.messages,
+    permissions: [PERMISSIONS.VIEW_MESSAGES]
   },
   {
     label: 'Perfil',

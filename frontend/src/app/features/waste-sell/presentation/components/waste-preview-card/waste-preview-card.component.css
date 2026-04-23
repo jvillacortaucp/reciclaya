@@ -1,0 +1,135 @@
+.preview-card {
+  border: 1px solid #e5e7eb;
+  background: #f8fafc;
+  border-radius: 0.95rem;
+  padding: 0.7rem;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
+}
+
+.listing-card {
+  overflow: hidden;
+  border-radius: 0.85rem;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+}
+
+.listing-hero {
+  position: relative;
+  min-height: 9rem;
+  padding: 0.6rem;
+  background:
+    radial-gradient(circle at 75% 30%, rgba(255, 196, 0, 0.46), transparent 22%),
+    linear-gradient(145deg, #0f172a, #1f4d3c);
+}
+
+.premium-pill {
+  display: inline-flex;
+  border-radius: 9999px;
+  background: #0ea76d;
+  color: #eafff5;
+  font-size: 0.56rem;
+  letter-spacing: 0.11em;
+  padding: 0.18rem 0.45rem;
+  font-weight: 700;
+}
+
+.hero-values {
+  position: absolute;
+  left: 0.55rem;
+  right: 0.55rem;
+  bottom: 0.55rem;
+  background: rgba(248, 250, 252, 0.92);
+  backdrop-filter: blur(6px);
+  border-radius: 0.65rem;
+  border: 1px solid #d1d5db;
+  padding: 0.35rem 0.45rem;
+  display: flex;
+  justify-content: space-between;
+}
+
+.hero-values p {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.52rem;
+  letter-spacing: 0.11em;
+}
+
+.hero-values strong {
+  display: block;
+  margin-top: 0.1rem;
+  color: #065f46;
+  font-size: 1.14rem;
+  line-height: 1;
+}
+
+.listing-content {
+  padding: 0.72rem;
+}
+
+.chips {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.chips span {
+  border-radius: 0.28rem;
+  background: #dcfce7;
+  color: #065f46;
+  font-size: 0.52rem;
+  letter-spacing: 0.07em;
+  font-weight: 700;
+  padding: 0.18rem 0.35rem;
+}
+
+.listing-content h3 {
+  margin: 0.5rem 0 0;
+  font-size: 0.97rem;
+  color: #1e293b;
+  font-weight: 500;
+}
+
+.meta {
+  margin: 0.35rem 0 0;
+  font-size: 0.69rem;
+  color: #64748b;
+  display: flex;
+  gap: 0.25rem;
+  align-items: center;
+}
+
+.listing-footer {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+  margin-top: 0.7rem;
+}
+
+.listing-footer p {
+  margin: 0;
+  font-size: 0.55rem;
+  letter-spacing: 0.1em;
+  color: #94a3b8;
+}
+
+.listing-footer strong {
+  display: block;
+  margin-top: 0.16rem;
+  font-size: 0.69rem;
+  color: #0f172a;
+  font-weight: 500;
+}
+
+.preview-btn {
+  margin-top: 0.75rem;
+  width: 100%;
+  border: 1px solid #10b981;
+  border-radius: 0.62rem;
+  padding: 0.45rem 0.65rem;
+  background: #f0fdf4;
+  color: #047857;
+  font-size: 0.76rem;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.35rem;
+}

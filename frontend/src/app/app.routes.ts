@@ -25,6 +25,15 @@ export const appRoutes: AppRoute[] = [
         loadChildren: () => import('./features/waste-sell/waste-sell.routes').then((m) => m.WASTE_SELL_ROUTES)
       },
       {
+        path: 'my-listings',
+        loadChildren: () =>
+          import('./features/my-listings/my-listings.routes').then((m) => m.MY_LISTINGS_ROUTES)
+      },
+      {
+        path: 'requests',
+        loadChildren: () => import('./features/requests/requests.routes').then((m) => m.REQUESTS_ROUTES)
+      },
+      {
         path: 'purchase-preferences',
         loadChildren: () =>
           import('./features/purchase-preferences/purchase-preferences.routes').then(
@@ -54,6 +63,10 @@ export const appRoutes: AppRoute[] = [
         path: 'recommendations',
         loadChildren: () =>
           import('./features/recommendations/recommendations.routes').then((m) => m.RECOMMENDATIONS_ROUTES)
+      },
+      {
+        path: 'messages',
+        loadChildren: () => import('./features/messages/messages.routes').then((m) => m.MESSAGES_ROUTES)
       },
       {
         path: 'profile',
