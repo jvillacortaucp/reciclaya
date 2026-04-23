@@ -1,0 +1,10 @@
+<ui-section-header title="Dashboard" subtitle="Monitorea el rendimiento del marketplace circular" />
+<section class="grid gap-4 md:grid-cols-3">
+  <ui-stat-card label="Listados Activos" value="128" deltaText="+12% vs semana pasada" />
+  <ui-stat-card label="Pre-ordenes" value="36" deltaText="+8 nuevas hoy" />
+  <ui-stat-card label="Coincidencias IA" value="74" deltaText="89% precision" />
+</section>
+<section class="mt-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-soft card-reveal">
+  <h3 class="mb-3 text-base font-semibold text-slate-900">Volumen de residuos transados</h3>
+  <apx-chart [series]="chartOptions.series" [chart]="chartOptions.chart" [stroke]="chartOptions.stroke" [xaxis]="chartOptions.xaxis" />
+</section>

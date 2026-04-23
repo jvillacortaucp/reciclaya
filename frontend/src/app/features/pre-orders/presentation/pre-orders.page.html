@@ -1,0 +1,18 @@
+<ui-section-header title="Pre-ordenes" subtitle="Gestiona solicitudes y estado de aprobacion" />
+@if (loading()) {
+  <p class="text-sm text-slate-500">Cargando pre-ordenes...</p>
+} @else {
+  <section class="grid gap-3">
+    @for (item of preOrders(); track item.id) {
+      <ui-card>
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <p class="text-sm text-slate-500">{{ item.id }} · Listing {{ item.listingId }}</p>
+            <h3 class="text-base font-semibold text-slate-900">{{ item.pricing.currency }} {{ item.pricing.total }}</h3>
+          </div>
+          <ui-badge [text]="item.status" [status]="item.status === 'submitted' ? 'info' : 'success'" />
+        </div>
+      </ui-card>
+    }
+  </section>
+}

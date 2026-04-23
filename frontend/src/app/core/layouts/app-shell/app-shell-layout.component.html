@@ -1,0 +1,58 @@
+<div class="layout-shell">
+  <aside
+    class="layout-sidebar"
+    [ngClass]="{ 'layout-sidebar-collapsed': isSidebarCollapsed() }"
+  >
+    <div class="sidebar-brand">
+      <span class="brand-dot"></span>
+      <span class="brand-text" [class.opacity-0]="isSidebarCollapsed()">{{ appName }}</span>
+    </div>
+
+    <nav class="sidebar-nav">
+      @for (item of navItems(); track item.route) {
+        <a
+          [routerLink]="item.route"
+          routerLinkActive="sidebar-link-active"
+          class="sidebar-link"
+          [title]="item.label"
+        >
+          <span class="sidebar-link-icon">
+            @switch (item.icon) {
+              @case ('layout-dashboard') { <svg lucideLayoutDashboard size="18"></svg> }
+              @case ('package-plus') { <svg lucidePackagePlus size="18"></svg> }
+              @case ('store') { <svg lucideStore size="18"></svg> }
+              @case ('clipboard-list') { <svg lucideClipboardList size="18"></svg> }
+              @case ('sliders-horizontal') { <svg lucideSlidersHorizontal size="18"></svg> }
+              @case ('sparkles') { <svg lucideSparkles size="18"></svg> }
+              @case ('circle-user-round') { <svg lucideCircleUserRound size="18"></svg> }
+              @default { <svg lucideSettings size="18"></svg> }
+            }
+          </span>
+          <span [class.opacity-0]="isSidebarCollapsed()">{{ item.label }}</span>
+        </a>
+      }
+    </nav>
+  </aside>
+
+  <div class="layout-main">
+    <header class="layout-topbar">
+      <button type="button" class="icon-btn" (click)="toggleSidebar()">
+        <svg lucideMenu size="18"></svg>
+      </button>
+
+      <div class="topbar-search">
+        <svg lucideSearch size="16"></svg>
+        <input type="text" placeholder="Buscar listados, empresas o materiales" />
+      </div>
+
+      <button type="button" class="topbar-user" (click)="logout()">
+        <svg lucideCircleUserRound size="18"></svg>
+        <span>{{ currentUser()?.fullName ?? 'Invitado' }}</span>
+      </button>
+    </header>
+
+    <main class="layout-content page-enter">
+      <router-outlet />
+    </main>
+  </div>
+</div>

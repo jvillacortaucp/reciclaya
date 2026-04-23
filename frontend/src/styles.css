@@ -1,0 +1,139 @@
+@import "tailwindcss";
+@source "./**/*.{html,ts}";
+@source "../node_modules/flowbite";
+@plugin "flowbite/plugin";
+
+:root {
+  --color-primary-50: #ecfdf5;
+  --color-primary-500: #10b981;
+  --color-primary-600: #059669;
+  --color-primary-700: #047857;
+
+  --color-trust-900: #102a43;
+  --color-trust-700: #1f3a56;
+  --color-surface: #f8fafc;
+
+  --color-amber-soft: #fef3c7;
+  --color-status-success: #16a34a;
+  --color-status-warning: #d97706;
+  --color-status-danger: #dc2626;
+
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+
+  --shadow-soft: 0 4px 20px rgba(15, 23, 42, 0.08);
+  --shadow-lifted: 0 16px 35px rgba(15, 23, 42, 0.14);
+}
+
+@theme {
+  --color-primary-50: var(--color-primary-50);
+  --color-primary-500: var(--color-primary-500);
+  --color-primary-600: var(--color-primary-600);
+  --color-primary-700: var(--color-primary-700);
+  --color-surface: var(--color-surface);
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  color: #0f172a;
+  background:
+    radial-gradient(circle at 10% 10%, rgba(16, 185, 129, 0.08), transparent 45%),
+    radial-gradient(circle at 90% 0%, rgba(245, 158, 11, 0.08), transparent 35%),
+    var(--color-surface);
+  font-family: "Plus Jakarta Sans", "Segoe UI", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.shadow-soft {
+  box-shadow: var(--shadow-soft);
+}
+
+.page-enter {
+  animation: pageEnter 220ms ease-out;
+}
+
+.card-reveal {
+  animation: cardReveal 250ms ease-out;
+}
+
+.chip-active {
+  animation: chipPulse 160ms ease-out;
+}
+
+.fade-in {
+  animation: fadeIn 160ms ease-out;
+}
+
+.fade-out {
+  animation: fadeOut 140ms ease-in;
+}
+
+@keyframes pageEnter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes cardReveal {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes chipPulse {
+  from {
+    transform: scale(0.96);
+  }
+
+  to {
+    transform: scale(1);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
