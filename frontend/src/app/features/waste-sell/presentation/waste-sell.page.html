@@ -1,18 +1,18 @@
-<ui-section-header [title]="copy.title" [subtitle]="copy.subtitle">
-  <div class="header-actions">
-    <button type="button" class="action-btn" (click)="previewNow()" [disabled]="previewLoading() || loading()">
-      @if (previewLoading()) { <svg lucideLoaderCircle size="15" class="spin"></svg> } @else { Vista previa }
-    </button>
-    <button type="button" class="action-btn" (click)="saveDraft()" [disabled]="draftLoading() || loading()">
-      <svg lucideSave size="15"></svg>
-      {{ draftLoading() ? 'Guardando...' : copy.saveDraft }}
-    </button>
-    <button type="button" class="action-btn-primary" (click)="publish()" [disabled]="publishLoading() || loading()">
-      <svg lucideSendHorizontal size="15"></svg>
-      {{ publishLoading() ? 'Publicando...' : copy.publish }}
-    </button>
-  </div>
-</ui-section-header>
+<div class="screen-actions">
+  <button type="button" class="action-btn" (click)="previewNow()" [disabled]="previewLoading() || loading()">
+    @if (previewLoading()) { <svg lucideLoaderCircle size="15" class="spin"></svg> } @else { Vista previa }
+  </button>
+  <button type="button" class="action-btn" (click)="saveDraft()" [disabled]="draftLoading() || loading()">
+    <svg lucideSave size="15"></svg>
+    {{ draftLoading() ? 'Guardando...' : copy.saveDraft }}
+  </button>
+  <button type="button" class="action-btn-primary" (click)="publish()" [disabled]="publishLoading() || loading()">
+    <svg lucideSendHorizontal size="15"></svg>
+    {{ publishLoading() ? 'Publicando...' : copy.publish }}
+  </button>
+</div>
+
+<ui-section-header [title]="copy.title" [subtitle]="copy.subtitle" />
 
 @if (toastMessage()) {
   <div class="toast" animate.enter="fade-in" (click)="dismissToast()">
@@ -21,42 +21,37 @@
   </div>
 }
 
-<section class="completion-card card-reveal">
-  <div>
-    <p class="label">Estado del registro</p>
-    <strong>{{ statusLabel() }}</strong>
-  </div>
-  <div class="completion-right">
-    <p>Completitud del perfil <strong>{{ completion() }}%</strong></p>
-    <div class="bar"><span [style.width.%]="completion()"></span></div>
-  </div>
-</section>
-
 <section class="operational-layout">
   <form class="form-stack" [formGroup]="form">
     <article class="form-card card-reveal">
-      <header><svg lucideInfo size="16"></svg><h3>Informacion General</h3></header>
+      <header class="card-header">
+        <span class="card-icon"><svg lucideInfo size="15"></svg></span>
+        <h3>Información General</h3>
+      </header>
       <div class="grid-2">
         <label class="field"><span>Tipo de Residuo</span><select class="field-input" formControlName="residueType">@for (option of residueTypes; track option.value) { <option [value]="option.value">{{ option.label }}</option> }</select></label>
         <label class="field"><span>Sector</span><select class="field-input" formControlName="sector">@for (option of sectors; track option.value) { <option [value]="option.value">{{ option.label }}</option> }</select></label>
       </div>
       <div class="grid-2">
-        <label class="field"><span>Producto Relacionado</span><select class="field-input" formControlName="productType">@for (option of productTypes; track option.value) { <option [value]="option.value">{{ option.label }}</option> }</select></label>
-        <label class="field"><span>Residuo Especifico</span><input class="field-input" formControlName="specificResidue" placeholder="Ej. Cascara de mango" /></label>
+        <label class="field"><span>Producto Relacionado</span><input class="field-input" formControlName="productType" placeholder="Ej. Mango" /></label>
+        <label class="field"><span>Residuo Específico</span><input class="field-input" formControlName="specificResidue" placeholder="Ej. Cáscara de mango" /></label>
       </div>
       @if (fieldError('specificResidue')) { <p class="field-error">{{ fieldError('specificResidue') }}</p> }
-      <label class="field"><span>Descripcion Detallada</span><textarea class="field-input" rows="4" formControlName="shortDescription" placeholder="Describa caracteristicas fisicas, estado y posibles usos..."></textarea></label>
+      <label class="field"><span>Descripción Detallada</span><textarea class="field-input" rows="4" formControlName="shortDescription" placeholder="Describa las características físicas, estado y posibles usos del residuo..."></textarea></label>
       @if (fieldError('shortDescription')) { <p class="field-error">{{ fieldError('shortDescription') }}</p> }
     </article>
 
     <article class="form-card card-reveal">
-      <header><svg lucideCircleDollarSign size="16"></svg><h3>Volumen y Generacion</h3></header>
+      <header class="card-header">
+        <span class="card-icon"><svg lucideCircleDollarSign size="15"></svg></span>
+        <h3>Volumen y Generación</h3>
+      </header>
       <div class="grid-3">
         <label class="field"><span>Cantidad</span><input class="field-input" type="number" formControlName="quantity" /></label>
         <label class="field"><span>Unidad</span><select class="field-input" formControlName="unit">@for (option of unitOptions; track option.value) { <option [value]="option.value">{{ option.label }}</option> }</select></label>
         <label class="field"><span>Frecuencia</span><select class="field-input" formControlName="generationFrequency">@for (option of frequencyOptions; track option.value) { <option [value]="option.value">{{ option.label }}</option> }</select></label>
       </div>
-      <div class="grid-2">
+      <div class="grid-2 mt-4">
         <label class="field"><span>Costo Unitario (USD)</span><input class="field-input" type="number" formControlName="estimatedCostPerUnit" /></label>
         <article class="total-card">
           <p>Precio total calculado</p>
@@ -66,19 +61,27 @@
     </article>
 
     <article class="form-card card-reveal">
-      <header><svg lucideTruck size="16"></svg><h3>Logistica</h3></header>
-      <label class="field"><span>Ubicacion de Recogida</span><div class="with-icon"><input class="field-input" formControlName="warehouseAddress" /><span><svg lucideMapPin size="15"></svg></span></div></label>
+      <header class="card-header">
+        <span class="card-icon"><svg lucideTruck size="15"></svg></span>
+        <h3>Logística</h3>
+      </header>
+      <label class="field"><span>Ubicación de Recogida</span><div class="with-icon"><input class="field-input" formControlName="warehouseAddress" /><span><svg lucideMapPin size="15"></svg></span></div></label>
       @if (fieldError('warehouseAddress')) { <p class="field-error">{{ fieldError('warehouseAddress') }}</p> }
-      <div class="grid-3">
+      <div class="grid-2 mt-4">
         <label class="field"><span>Max. Tiempo Almacenamiento</span><select class="field-input" formControlName="maxStorageTime">@for (option of storageTimeOptions; track option.value) { <option [value]="option.value">{{ option.label }}</option> }</select></label>
         <label class="field"><span>Tipo de Intercambio</span><select class="field-input" formControlName="exchangeType">@for (option of exchangeTypeOptions; track option.value) { <option [value]="option.value">{{ option.label }}</option> }</select></label>
+      </div>
+      <div class="grid-2 mt-4">
         <label class="field"><span>Modalidad de Entrega</span><select class="field-input" formControlName="deliveryMode">@for (option of deliveryModeOptions; track option.value) { <option [value]="option.value">{{ option.label }}</option> }</select></label>
       </div>
-      <label class="check-field"><input type="checkbox" formControlName="immediateAvailability" />Disponibilidad inmediata</label>
     </article>
 
     <article class="form-card card-reveal">
-      <header><svg lucideImage size="16"></svg><h3>Evidencia Visual</h3></header>
+      <header class="card-header">
+        <span class="card-icon"><svg lucideImage size="15"></svg></span>
+        <h3>Evidencia Visual</h3>
+        <small>Máximo 5 fotos de alta resolución</small>
+      </header>
       <app-waste-upload-zone
         [mediaUploads]="mediaUploads()"
         [maxFiles]="5"
@@ -92,10 +95,13 @@
     </article>
 
     <article class="form-card card-reveal">
-      <header><svg lucideEllipsis size="16"></svg><h3>Informacion Adicional</h3></header>
+      <header class="card-header">
+        <span class="card-icon"><svg lucideEllipsis size="15"></svg></span>
+        <h3>Información Adicional</h3>
+      </header>
       <div class="grid-2">
-        <label class="field"><span>Condicion del Residuo</span><select class="field-input" formControlName="condition">@for (option of conditionOptions; track option.value) { <option [value]="option.value">{{ option.label }}</option> }</select></label>
-        <label class="field"><span>Proxima Fecha de Disponibilidad</span><input class="field-input" formControlName="nextAvailabilityDate" type="date" /></label>
+        <label class="field"><span>Condición del Residuo</span><select class="field-input" formControlName="condition">@for (option of conditionOptions; track option.value) { <option [value]="option.value">{{ option.label }}</option> }</select></label>
+        <label class="field"><span>Próxima Fecha de Disponibilidad</span><input class="field-input" formControlName="nextAvailabilityDate" type="date" /></label>
       </div>
       @if (fieldError('nextAvailabilityDate')) { <p class="field-error">{{ fieldError('nextAvailabilityDate') }}</p> }
       <label class="field"><span>Restricciones o Normativas</span><textarea class="field-input" rows="3" formControlName="restrictionsNotes" placeholder="Especifique requisitos de manejo, permisos o transporte..."></textarea></label>
@@ -108,6 +114,22 @@
   </form>
 
   <aside class="summary-panel">
+    <article class="status-card">
+      <div class="status-head">
+        <p>Estado del Registro</p>
+        <span>BORRADOR</span>
+      </div>
+      <p class="status-progress">
+        Completitud del perfil
+        <strong>{{ completion() }}%</strong>
+      </p>
+      <div class="bar"><span [style.width.%]="completion()"></span></div>
+      <div class="status-alert">
+        <svg lucideInfo size="13"></svg>
+        <p>Agregue una fecha de disponibilidad exacta para aumentar la visibilidad en un 20%.</p>
+      </div>
+    </article>
+
     <app-waste-preview-card [summary]="preview()" [loading]="previewLoading()" />
     <article class="tip-card">
       <h4>Consejo EcoValor</h4>

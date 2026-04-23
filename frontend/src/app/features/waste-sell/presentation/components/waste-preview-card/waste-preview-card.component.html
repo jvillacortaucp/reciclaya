@@ -4,26 +4,45 @@
   } @else if (!summary) {
     <p class="text-sm text-slate-500">Complete el formulario para ver vista previa.</p>
   } @else {
-    <header class="preview-header">
-      <p>Estado del registro</p>
-      <span>{{ summary.statusLabel }}</span>
-    </header>
-
-    <div class="preview-progress">
-      <div class="progress-label">
-        <p>Completitud del perfil</p>
-        <strong>{{ summary.completionPercentage }}%</strong>
+    <article class="listing-card">
+      <div class="listing-hero">
+        <span class="premium-pill">PREMIUM LIST</span>
+        <div class="hero-values">
+          <div>
+            <p>PRECIO LOTE</p>
+            <strong>{{ summary.estimatedValueLabel }}</strong>
+          </div>
+          <div>
+            <p>CANTIDAD</p>
+            <strong>{{ summary.volumeLabel }}</strong>
+          </div>
+        </div>
       </div>
-      <div class="progress-bar"><span [style.width.%]="summary.completionPercentage"></span></div>
-    </div>
 
-    <article class="preview-tile">
-      <p class="tag"><svg lucideTag size="14"></svg> {{ summary.residueTypeLabel }}</p>
-      <h3>{{ summary.title }}</h3>
-      <p class="price">{{ summary.estimatedValueLabel }}</p>
-      <p class="meta">{{ summary.volumeLabel }} · {{ summary.sectorLabel }}</p>
-      <p class="meta"><svg lucideMapPin size="13"></svg> {{ summary.locationLabel }}</p>
-      <p class="meta">{{ summary.availabilityLabel }}</p>
+      <div class="listing-content">
+        <div class="chips">
+          <span>{{ summary.residueTypeLabel }}</span>
+          <span>{{ summary.availabilityLabel }}</span>
+        </div>
+        <h3>{{ summary.title }}</h3>
+        <p class="meta"><svg lucideMapPin size="13"></svg> {{ summary.locationLabel }}</p>
+
+        <div class="listing-footer">
+          <div>
+            <p>FRECUENCIA</p>
+            <strong>Lote único</strong>
+          </div>
+          <div>
+            <p>LOGÍSTICA</p>
+            <strong>Vendedor entrega</strong>
+          </div>
+        </div>
+
+        <button type="button" class="preview-btn">
+          <svg lucideEye size="14"></svg>
+          Ver anuncio completo
+        </button>
+      </div>
     </article>
   }
 </aside>

@@ -4,12 +4,15 @@
     [ngClass]="{ 'layout-sidebar-collapsed': isSidebarCollapsed() }"
   >
     <div class="sidebar-brand">
-      <span class="brand-dot"></span>
-      <span class="brand-text" [class.opacity-0]="isSidebarCollapsed()">{{ appName }}</span>
+      <span class="brand-icon"><svg lucideLeaf size="16"></svg></span>
+      <div class="brand-copy" [class.opacity-0]="isSidebarCollapsed()">
+        <strong>Valoriza SaaS</strong>
+        <span>WASTE TO RESOURCE</span>
+      </div>
     </div>
 
-    <nav class="sidebar-nav">
-      @for (item of navItems(); track item.route) {
+    <nav class="sidebar-nav sidebar-nav-main">
+      @for (item of mainNavItems(); track item.route) {
         <a
           [routerLink]="item.route"
           routerLinkActive="sidebar-link-active"
@@ -32,23 +35,37 @@
         </a>
       }
     </nav>
+
+    <nav class="sidebar-nav sidebar-nav-account">
+      @for (item of accountNavItems(); track item.route) {
+        <a
+          [routerLink]="item.route"
+          routerLinkActive="sidebar-link-active"
+          class="sidebar-link"
+          [title]="item.label"
+        >
+          <span class="sidebar-link-icon">
+            @switch (item.icon) {
+              @case ('circle-user-round') { <svg lucideCircleUserRound size="18"></svg> }
+              @default { <svg lucideSettings size="18"></svg> }
+            }
+          </span>
+          <span [class.opacity-0]="isSidebarCollapsed()">{{ item.label }}</span>
+        </a>
+      }
+    </nav>
   </aside>
 
   <div class="layout-main">
     <header class="layout-topbar">
-      <button type="button" class="icon-btn" (click)="toggleSidebar()">
+      <button type="button" class="icon-btn only-mobile" (click)="toggleSidebar()">
         <svg lucideMenu size="18"></svg>
       </button>
 
       <div class="topbar-search">
         <svg lucideSearch size="16"></svg>
-        <input type="text" placeholder="Buscar listados, empresas o materiales" />
+        <input type="text" placeholder="Buscar en la plataforma..." />
       </div>
-
-      <button type="button" class="topbar-user" (click)="logout()">
-        <svg lucideCircleUserRound size="18"></svg>
-        <span>{{ currentUser()?.fullName ?? 'Invitado' }}</span>
-      </button>
     </header>
 
     <main class="layout-content page-enter">

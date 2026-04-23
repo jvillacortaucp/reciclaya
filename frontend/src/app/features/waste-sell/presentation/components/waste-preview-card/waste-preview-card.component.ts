@@ -1,10 +1,10 @@
 import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
-import { LucideMapPin, LucideTag } from '@lucide/angular';
+import { LucideEye, LucideMapPin } from '@lucide/angular';
 import { ListingPreviewSummary } from '../../../domain/waste-sell.models';
 
 @Component({
   selector: 'app-waste-preview-card',
-  imports: [LucideMapPin, LucideTag],
+  imports: [LucideMapPin, LucideEye],
   templateUrl: './waste-preview-card.component.html',
   styleUrl: './waste-preview-card.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush
