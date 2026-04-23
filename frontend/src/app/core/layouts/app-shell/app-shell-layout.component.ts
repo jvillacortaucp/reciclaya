@@ -4,11 +4,11 @@ import {
   LucideCircleUserRound,
   LucideClipboardList,
   LucideLayoutDashboard,
+  LucideMessageSquare,
   LucideMenu,
   LucidePackagePlus,
   LucideSearch,
   LucideSettings,
-  LucideSlidersHorizontal,
   LucideSparkles,
   LucideStore
 } from '@lucide/angular';
@@ -32,7 +32,7 @@ import { APP_NAME } from '../../constants/app.constants';
     LucidePackagePlus,
     LucideStore,
     LucideClipboardList,
-    LucideSlidersHorizontal,
+    LucideMessageSquare,
     LucideSparkles,
     LucideSettings
   ],

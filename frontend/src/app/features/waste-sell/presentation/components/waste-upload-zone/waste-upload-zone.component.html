@@ -1,0 +1,36 @@
+<section class="upload-wrapper">
+  <label
+    class="upload-dropzone"
+    [class.upload-dropzone-active]="dragActive()"
+    (dragover)="onDragOver($event)"
+    (dragleave)="onDragLeave($event)"
+    (drop)="onDrop($event)"
+  >
+    <input type="file" accept="image/*" class="hidden" [disabled]="disabled" (change)="onFileInput($event)" multiple />
+    <span class="upload-icon"><svg lucideImageUp size="18"></svg></span>
+    <p class="upload-text">Arrastre fotos aqui o <span>busque en su equipo</span></p>
+    <p class="upload-helper">Formatos aceptados: JPG, PNG (min. 800x600)</p>
+  </label>
+
+  @if (!mediaUploads.length) {
+    <p class="text-xs text-slate-500" animate.enter="fade-in">Sin imagenes cargadas todavia.</p>
+  } @else {
+    <div class="thumb-grid" animate.enter="fade-in">
+      @for (media of mediaUploads; track media.id) {
+        <article class="thumb-card">
+          <img [src]="media.previewUrl" [alt]="media.name" />
+          <button type="button" class="thumb-remove" (click)="removeFile(media.id)" [disabled]="disabled" aria-label="Eliminar imagen">
+            <svg lucideTrash2 size="14"></svg>
+          </button>
+        </article>
+      }
+
+      @if (mediaUploads.length < maxFiles) {
+        <label class="thumb-add">
+          <input type="file" accept="image/*" class="hidden" [disabled]="disabled" (change)="onFileInput($event)" multiple />
+          <svg lucidePlus size="16"></svg>
+        </label>
+      }
+    </div>
+  }
+</section>
