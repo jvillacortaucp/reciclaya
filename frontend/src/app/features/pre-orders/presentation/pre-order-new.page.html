@@ -1,0 +1,8 @@
+<ui-section-header title="Nueva pre-orden" subtitle="Confirma volumen, fecha y metodo de pago" />
+<form class="grid max-w-2xl gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-soft" [formGroup]="form" (ngSubmit)="submit()">
+  <p class="text-sm text-slate-600">Listing objetivo: {{ listingId }}</p>
+  <label class="grid gap-1 text-sm"><span>Cantidad</span><input type="number" formControlName="quantity" class="rounded-xl border border-slate-300 px-3 py-2" /></label>
+  <label class="grid gap-1 text-sm"><span>Fecha deseada</span><input type="date" formControlName="desiredDate" class="rounded-xl border border-slate-300 px-3 py-2" /></label>
+  <label class="grid gap-1 text-sm"><span>Metodo de pago</span><select formControlName="paymentMethod" class="rounded-xl border border-slate-300 px-3 py-2"><option value="transfer">Transferencia</option><option value="cash">Contado</option><option value="credit">Credito</option></select></label>
+  <button type="submit" class="rounded-xl bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700">Enviar pre-orden</button>
+</form>

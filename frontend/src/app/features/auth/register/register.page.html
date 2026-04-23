@@ -1,0 +1,45 @@
+<ui-card>
+  <h2 class="text-2xl font-semibold text-slate-900">Crear cuenta</h2>
+  <p class="mt-1 text-sm text-slate-500">Registra tu empresa o perfil personal.</p>
+
+  <form class="mt-6 grid gap-4" [formGroup]="form" (ngSubmit)="submit()">
+    <label class="grid gap-1 text-sm">
+      <span>Nombre completo</span>
+      <input class="rounded-xl border border-slate-300 px-3 py-2" formControlName="fullName" />
+    </label>
+
+    <label class="grid gap-1 text-sm">
+      <span>Correo</span>
+      <input class="rounded-xl border border-slate-300 px-3 py-2" type="email" formControlName="email" />
+    </label>
+
+    <label class="grid gap-1 text-sm">
+      <span>Contrasena</span>
+      <input class="rounded-xl border border-slate-300 px-3 py-2" type="password" formControlName="password" />
+    </label>
+
+    <label class="grid gap-1 text-sm">
+      <span>Tipo de perfil</span>
+      <select class="rounded-xl border border-slate-300 px-3 py-2" formControlName="profileType">
+        <option value="company">Empresa</option>
+        <option value="person">Persona natural</option>
+      </select>
+    </label>
+
+    <label class="grid gap-1 text-sm">
+      <span>Rol principal</span>
+      <select class="rounded-xl border border-slate-300 px-3 py-2" formControlName="role">
+        @for (role of roles; track role) {
+          <option [value]="role">{{ role }}</option>
+        }
+      </select>
+    </label>
+
+    <ui-button type="submit" [disabled]="loading()">{{ loading() ? 'Creando...' : 'Crear cuenta' }}</ui-button>
+  </form>
+
+  <p class="mt-4 text-sm text-slate-600">
+    Ya tienes cuenta?
+    <a class="text-primary-700 hover:underline" routerLink="/auth/login">Inicia sesion</a>
+  </p>
+</ui-card>

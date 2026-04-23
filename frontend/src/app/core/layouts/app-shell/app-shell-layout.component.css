@@ -1,0 +1,121 @@
+.layout-shell {
+  display: grid;
+  grid-template-columns: 288px 1fr;
+  min-height: 100vh;
+}
+
+.layout-sidebar {
+  background: linear-gradient(175deg, var(--color-trust-900), #0f2a38);
+  color: #e2e8f0;
+  border-right: 1px solid rgba(148, 163, 184, 0.12);
+  padding: 1rem;
+  transition: width 180ms ease, padding 180ms ease;
+}
+
+.layout-sidebar-collapsed {
+  width: 86px;
+  padding-inline: 0.75rem;
+}
+
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-weight: 600;
+  margin-bottom: 1.25rem;
+}
+
+.brand-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 9999px;
+  background: var(--color-primary-500);
+  box-shadow: 0 0 0 6px rgba(16, 185, 129, 0.15);
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border-radius: 0.625rem;
+  padding: 0.65rem 0.75rem;
+  color: #cbd5e1;
+  transition: background-color 140ms ease, transform 140ms ease, color 140ms ease;
+}
+
+.sidebar-link:hover {
+  background: rgba(15, 23, 42, 0.38);
+  color: #f8fafc;
+  transform: translateX(2px);
+}
+
+.sidebar-link-active {
+  color: #f8fafc;
+  background: linear-gradient(160deg, rgba(16, 185, 129, 0.26), rgba(15, 23, 42, 0.26));
+}
+
+.layout-main {
+  min-width: 0;
+}
+
+.layout-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: rgba(248, 250, 252, 0.85);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid #e2e8f0;
+  padding: 0.75rem 1rem;
+}
+
+.topbar-search {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid #cbd5e1;
+  background: white;
+  border-radius: 0.75rem;
+  padding: 0.5rem 0.75rem;
+}
+
+.topbar-search input {
+  border: 0;
+  width: 100%;
+  outline: none;
+  font-size: 0.875rem;
+}
+
+.topbar-user,
+.icon-btn {
+  border: 1px solid #cbd5e1;
+  background: white;
+  border-radius: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.layout-content {
+  padding: 1rem;
+}
+
+@media (max-width: 1024px) {
+  .layout-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .layout-sidebar {
+    display: none;
+  }
+}

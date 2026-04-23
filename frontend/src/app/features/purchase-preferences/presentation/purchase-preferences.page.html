@@ -1,0 +1,26 @@
+<ui-section-header title="Preferencias de compra" subtitle="Configura demanda, presupuesto y cobertura" />
+<section class="grid gap-4 lg:grid-cols-[1.1fr,0.9fr]">
+  <ui-card>
+    <form class="grid gap-3" [formGroup]="form" (ngSubmit)="save()">
+      <label class="grid gap-1 text-sm"><span>Material</span><input class="rounded-xl border border-slate-300 px-3 py-2" formControlName="material" /></label>
+      <div class="grid gap-3 md:grid-cols-2">
+        <label class="grid gap-1 text-sm"><span>Demanda mensual</span><input class="rounded-xl border border-slate-300 px-3 py-2" type="number" formControlName="monthlyDemand" /></label>
+        <label class="grid gap-1 text-sm"><span>Unidad</span><select class="rounded-xl border border-slate-300 px-3 py-2" formControlName="unit"><option value="kg">kg</option><option value="ton">ton</option></select></label>
+      </div>
+      <label class="grid gap-1 text-sm"><span>Presupuesto maximo</span><input class="rounded-xl border border-slate-300 px-3 py-2" type="number" formControlName="maxBudget" /></label>
+      <label class="grid gap-1 text-sm"><span>Ubicacion preferida</span><input class="rounded-xl border border-slate-300 px-3 py-2" formControlName="location" /></label>
+      <button class="inline-flex rounded-xl bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700" type="submit">Guardar preferencia</button>
+    </form>
+  </ui-card>
+  <ui-card>
+    <h3 class="text-base font-semibold text-slate-900">Preferencias guardadas</h3>
+    <div class="mt-3 grid gap-2">
+      @for (item of preferences(); track item.id) {
+        <article class="rounded-xl border border-slate-200 p-3 text-sm">
+          <p class="font-medium text-slate-900">{{ item.material }}</p>
+          <p class="text-slate-600">{{ item.monthlyDemand.amount }} {{ item.monthlyDemand.unit }} / mes · {{ item.location }}</p>
+        </article>
+      }
+    </div>
+  </ui-card>
+</section>

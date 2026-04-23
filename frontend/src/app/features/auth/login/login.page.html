@@ -1,0 +1,28 @@
+<ui-card>
+  <h2 class="text-2xl font-semibold text-slate-900">Inicia sesion</h2>
+  <p class="mt-1 text-sm text-slate-500">Accede a tu panel de economia circular.</p>
+
+  <form class="mt-6 grid gap-4" [formGroup]="form" (ngSubmit)="submit()">
+    <label class="grid gap-1 text-sm">
+      <span>Correo</span>
+      <input class="rounded-xl border border-slate-300 px-3 py-2" formControlName="email" type="email" />
+    </label>
+
+    <label class="grid gap-1 text-sm">
+      <span>Contrasena</span>
+      <input class="rounded-xl border border-slate-300 px-3 py-2" formControlName="password" type="password" />
+    </label>
+
+    <label class="inline-flex items-center gap-2 text-sm text-slate-600">
+      <input type="checkbox" formControlName="rememberMe" />
+      Recordar sesion
+    </label>
+
+    <ui-button type="submit" [disabled]="loading()">{{ loading() ? 'Ingresando...' : 'Ingresar' }}</ui-button>
+  </form>
+
+  <p class="mt-4 text-sm text-slate-600">
+    No tienes cuenta?
+    <a class="text-primary-700 hover:underline" routerLink="/auth/register">Registrate</a>
+  </p>
+</ui-card>
