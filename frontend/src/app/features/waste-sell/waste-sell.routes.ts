@@ -8,8 +8,8 @@ export const WASTE_SELL_ROUTES: Route[] = [
     canDeactivate: [pendingChangesGuard],
     data: {
       meta: {
-        title: 'Publicar residuo',
-        breadcrumb: 'Publicar residuo',
+        title: 'Registrar residuo para venta',
+        breadcrumb: 'Registrar residuo',
         icon: 'package-plus',
         permissions: ['manage:waste']
       }

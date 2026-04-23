@@ -1,35 +1,33 @@
 export enum ResidueType {
   Organic = 'organic',
-  Plastic = 'plastic',
-  Textile = 'textile',
-  Metal = 'metal',
-  Paper = 'paper',
-  Glass = 'glass'
+  Inorganic = 'inorganic'
 }
 
 export enum SectorType {
   Agriculture = 'agriculture',
   Agroindustry = 'agroindustry',
-  Manufacturing = 'manufacturing',
-  Retail = 'retail'
+  Metallurgical = 'metallurgical',
+  Food = 'food',
+  Industrial = 'industrial'
 }
 
 export enum ProductCategory {
-  Waste = 'waste',
-  Byproduct = 'byproduct',
-  NonStandardLot = 'non_standard_lot'
+  Mango = 'mango',
+  Coffee = 'coffee',
+  Cacao = 'cacao',
+  Grape = 'grape'
 }
 
 export enum ExchangeType {
   Sale = 'sale',
-  Donation = 'donation',
-  Swap = 'swap'
+  Barter = 'barter',
+  Pickup = 'pickup'
 }
 
 export enum DeliveryMode {
-  Pickup = 'pickup',
-  Delivery = 'delivery',
-  Hybrid = 'hybrid'
+  WarehousePickup = 'warehouse_pickup',
+  CoordinatedDelivery = 'coordinated_delivery',
+  ThirdPartyTransport = 'third_party_transport'
 }
 
 export enum PaymentMode {
