@@ -99,7 +99,7 @@
         <span class="card-icon"><svg lucideEllipsis size="15"></svg></span>
         <h3>Información Adicional</h3>
       </header>
-      <div class="grid-2">
+      <div class="grid-2 mb-4">
         <label class="field"><span>Condición del Residuo</span><select class="field-input" formControlName="condition">@for (option of conditionOptions; track option.value) { <option [value]="option.value">{{ option.label }}</option> }</select></label>
         <label class="field"><span>Próxima Fecha de Disponibilidad</span><input class="field-input" formControlName="nextAvailabilityDate" type="date" /></label>
       </div>
