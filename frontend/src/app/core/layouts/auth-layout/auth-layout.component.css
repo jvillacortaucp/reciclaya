@@ -1,36 +1,7 @@
-.auth-layout {
+.auth-layout-shell {
   min-height: 100vh;
-  display: grid;
-  grid-template-columns: minmax(240px, 0.95fr) minmax(360px, 1fr);
-}
-
-.auth-brand-panel {
-  background: radial-gradient(circle at 20% 20%, rgba(16, 185, 129, 0.35), rgba(2, 6, 23, 0.95));
-  color: #f8fafc;
-  padding: 3rem;
-  display: grid;
-  align-content: end;
-  gap: 1rem;
-}
-
-.auth-brand-panel h1 {
-  font-size: clamp(2rem, 3vw, 2.6rem);
-  font-weight: 700;
-}
-
-.auth-form-panel {
-  display: grid;
-  align-items: center;
-  padding: 2rem;
-  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-}
-
-@media (max-width: 900px) {
-  .auth-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .auth-brand-panel {
-    display: none;
-  }
+  background:
+    radial-gradient(circle at 6% 8%, rgba(16, 185, 129, 0.08), transparent 30%),
+    radial-gradient(circle at 94% 4%, rgba(245, 158, 11, 0.09), transparent 26%),
+    linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
 }

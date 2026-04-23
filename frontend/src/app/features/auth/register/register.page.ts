@@ -1,39 +1,55 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { UserRole } from '../../../core/models/app.models';
-import { ButtonComponent } from '../../../shared/ui/button/button.component';
-import { CardComponent } from '../../../shared/ui/card/card.component';
-import { passwordStrengthValidator } from '../../../shared/helpers/validators';
+import { LucideSparkles } from '@lucide/angular';
+import { ACCOUNT_TYPE_OPTIONS, REGISTER_PAGE_COPY } from '../data/register.constants';
+import {
+  AccountType,
+  CompanyRegistrationPayload,
+  NaturalPersonRegistrationPayload
+} from '../domain/register.models';
 import { AuthFacade } from '../services/auth.facade';
+import { AccountTypeSelectorComponent } from './components/account-type-selector/account-type-selector.component';
+import { CompanyRegisterFormComponent } from './components/company-register-form/company-register-form.component';
+import { NaturalPersonRegisterFormComponent } from './components/natural-person-register-form/natural-person-register-form.component';
 
 @Component({
   selector: 'app-register-page',
-  imports: [ReactiveFormsModule, RouterLink, ButtonComponent, CardComponent],
+  imports: [
+    RouterLink,
+    LucideSparkles,
+    AccountTypeSelectorComponent,
+    CompanyRegisterFormComponent,
+    NaturalPersonRegisterFormComponent
+  ],
   templateUrl: './register.page.html',
+  styleUrl: './register.page.css',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class RegisterPageComponent {
-  private readonly fb = inject(FormBuilder);
   private readonly authFacade = inject(AuthFacade);
 
+  protected readonly copy = REGISTER_PAGE_COPY;
+  protected readonly accountType = AccountType;
+  protected readonly accountTypeOptions = ACCOUNT_TYPE_OPTIONS;
   protected readonly loading = this.authFacade.isLoading;
-  protected readonly form = this.fb.nonNullable.group({
-    fullName: ['', [Validators.required]],
-    email: ['', [Validators.required, Validators.email]],
-    password: ['', [Validators.required, passwordStrengthValidator]],
-    profileType: ['company' as const, [Validators.required]],
-    role: [UserRole.Buyer, [Validators.required]]
-  });
+  protected readonly authError = this.authFacade.authError;
 
-  protected readonly roles = Object.values(UserRole);
+  protected readonly selectedAccountType = signal<AccountType>(AccountType.Company);
+  protected readonly selectedAccountTypeDescription = computed(
+    () =>
+      this.accountTypeOptions.find((item) => item.value === this.selectedAccountType())?.description ?? ''
+  );
 
-  protected submit(): void {
-    if (this.form.invalid) {
-      this.form.markAllAsTouched();
-      return;
-    }
+  protected onAccountTypeChange(type: AccountType): void {
+    this.authFacade.clearError();
+    this.selectedAccountType.set(type);
+  }
 
-    this.authFacade.register(this.form.getRawValue());
+  protected submitCompany(payload: CompanyRegistrationPayload): void {
+    this.authFacade.registerCompany(payload);
+  }
+
+  protected submitNaturalPerson(payload: NaturalPersonRegistrationPayload): void {
+    this.authFacade.registerNaturalPerson(payload);
   }
 }

@@ -1,10 +1,17 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { tap } from 'rxjs';
+import { catchError, EMPTY, finalize, tap } from 'rxjs';
 import { APP_ROUTES } from '../../../core/constants/app.constants';
 import { UserRole } from '../../../core/models/app.models';
 import { SessionStorageService } from '../../../core/services/session-storage.service';
-import { LoginPayload, RegisterPayload } from '../models/auth.models';
+import { LOGIN_VALIDATION_MESSAGES } from '../data/login.constants';
+import { LoginPayload } from '../domain/login-screen.models';
+import {
+  AccountType,
+  CompanyRegistrationPayload,
+  NaturalPersonRegistrationPayload,
+  RegisterPayload
+} from '../domain/register.models';
 import { MockAuthService } from './mock-auth.service';
 
 @Injectable({ providedIn: 'root' })
@@ -13,43 +20,99 @@ export class AuthFacade {
   private readonly sessionStorage = inject(SessionStorageService);
   private readonly router = inject(Router);
 
-  readonly isLoading = signal(false);
+  readonly emailLoginLoading = signal(false);
+  readonly socialLoginLoading = signal(false);
+  readonly authError = signal<string | null>(null);
+
   readonly session = this.sessionStorage.session;
   readonly user = computed(() => this.session()?.user ?? null);
   readonly isAuthenticated = computed(() => !!this.session());
   readonly permissions = computed(() => this.session()?.permissions ?? []);
+  readonly isLoading = computed(() => this.emailLoginLoading() || this.socialLoginLoading());
 
   login(payload: LoginPayload): void {
-    this.isLoading.set(true);
+    this.authError.set(null);
+    this.emailLoginLoading.set(true);
+
     this.authService
-      .login(payload)
+      .loginWithEmail(payload)
       .pipe(
         tap((session) => {
-          this.sessionStorage.set(session);
-          if (!payload.rememberMe) {
-            sessionStorage.setItem('volatile.session', JSON.stringify(session));
-          }
-        })
+          this.persistSession(session, payload.rememberMe);
+        }),
+        catchError(() => {
+          this.authError.set(LOGIN_VALIDATION_MESSAGES.invalidCredentials);
+          return EMPTY;
+        }),
+        finalize(() => this.emailLoginLoading.set(false))
       )
-      .subscribe({
-        next: () => {
-          this.isLoading.set(false);
-          void this.router.navigateByUrl(APP_ROUTES.dashboard);
-        },
-        error: () => this.isLoading.set(false)
+      .subscribe(() => {
+        void this.router.navigateByUrl(APP_ROUTES.dashboard);
+      });
+  }
+
+  loginWithGoogle(): void {
+    this.authError.set(null);
+    this.socialLoginLoading.set(true);
+
+    this.authService
+      .loginWithGoogle()
+      .pipe(
+        tap((session) => this.persistSession(session, true)),
+        catchError(() => {
+          this.authError.set(LOGIN_VALIDATION_MESSAGES.socialDisabled);
+          return EMPTY;
+        }),
+        finalize(() => this.socialLoginLoading.set(false))
+      )
+      .subscribe(() => {
+        void this.router.navigateByUrl(APP_ROUTES.dashboard);
       });
   }
 
   register(payload: RegisterPayload): void {
-    this.isLoading.set(true);
-    this.authService.register(payload).subscribe({
-      next: (session) => {
-        this.sessionStorage.set(session);
-        this.isLoading.set(false);
-        void this.router.navigateByUrl(APP_ROUTES.dashboard);
-      },
-      error: () => this.isLoading.set(false)
-    });
+    if (payload.accountType === AccountType.Company) {
+      this.registerCompany(payload);
+      return;
+    }
+
+    this.registerNaturalPerson(payload);
+  }
+
+  registerCompany(payload: CompanyRegistrationPayload): void {
+    this.authError.set(null);
+    this.emailLoginLoading.set(true);
+
+    this.authService
+      .registerCompany(payload)
+      .pipe(finalize(() => this.emailLoginLoading.set(false)))
+      .subscribe({
+        next: (session) => {
+          this.persistSession(session, true);
+          void this.router.navigateByUrl(APP_ROUTES.dashboard);
+        },
+        error: () => this.authError.set('No se pudo completar el registro de empresa.')
+      });
+  }
+
+  registerNaturalPerson(payload: NaturalPersonRegistrationPayload): void {
+    this.authError.set(null);
+    this.emailLoginLoading.set(true);
+
+    this.authService
+      .registerNaturalPerson(payload)
+      .pipe(finalize(() => this.emailLoginLoading.set(false)))
+      .subscribe({
+        next: (session) => {
+          this.persistSession(session, true);
+          void this.router.navigateByUrl(APP_ROUTES.dashboard);
+        },
+        error: () => this.authError.set('No se pudo completar el registro de persona natural.')
+      });
+  }
+
+  clearError(): void {
+    this.authError.set(null);
   }
 
   hasPermission(permission: string): boolean {
@@ -78,5 +141,12 @@ export class AuthFacade {
         role
       }
     });
+  }
+
+  private persistSession(session: NonNullable<ReturnType<typeof this.session>>, rememberSession: boolean): void {
+    this.sessionStorage.set(session);
+    if (!rememberSession) {
+      sessionStorage.setItem('volatile.session', JSON.stringify(session));
+    }
   }
 }

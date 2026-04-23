@@ -1,0 +1,95 @@
+<div class="stepper-row" role="list" aria-label="Progreso de registro de empresa">
+  @for (step of steps; track step.index) {
+    <div class="step-item" [class.step-item-active]="activeStep() === step.index" role="listitem">
+      <span class="step-index">{{ step.index + 1 }}</span>
+      <div>
+        <p class="step-title">{{ step.title }}</p>
+        <p class="step-subtitle">{{ step.subtitle }}</p>
+      </div>
+    </div>
+  }
+</div>
+
+@if (activeStep() === 0) {
+  <form class="form-grid" [formGroup]="companyForm" animate.enter="page-enter">
+    <label class="field"><span>RUC</span><input class="field-input" formControlName="ruc" /></label>
+    @if (fieldError('company', 'ruc')) { <p class="field-error">{{ fieldError('company', 'ruc') }}</p> }
+
+    <label class="field"><span>Business name / Razon social</span><input class="field-input" formControlName="businessName" /></label>
+    @if (fieldError('company', 'businessName')) { <p class="field-error">{{ fieldError('company', 'businessName') }}</p> }
+
+    <div class="two-cols">
+      <div>
+        <label class="field"><span>Mobile phone</span><input class="field-input" formControlName="mobilePhone" /></label>
+        @if (fieldError('company', 'mobilePhone')) { <p class="field-error">{{ fieldError('company', 'mobilePhone') }}</p> }
+      </div>
+      <div>
+        <label class="field"><span>Postal code</span><input class="field-input" formControlName="postalCode" /></label>
+        @if (fieldError('company', 'postalCode')) { <p class="field-error">{{ fieldError('company', 'postalCode') }}</p> }
+      </div>
+    </div>
+
+    <label class="field"><span>Address</span><input class="field-input" formControlName="address" /></label>
+    @if (fieldError('company', 'address')) { <p class="field-error">{{ fieldError('company', 'address') }}</p> }
+
+    <div class="two-cols">
+      <div>
+        <label class="field"><span>Legal representative</span><input class="field-input" formControlName="legalRepresentative" /></label>
+        @if (fieldError('company', 'legalRepresentative')) { <p class="field-error">{{ fieldError('company', 'legalRepresentative') }}</p> }
+      </div>
+      <div>
+        <label class="field"><span>Position / Cargo</span><input class="field-input" formControlName="position" /></label>
+        @if (fieldError('company', 'position')) { <p class="field-error">{{ fieldError('company', 'position') }}</p> }
+      </div>
+    </div>
+
+    <div class="actions">
+      <button type="button" class="btn-primary" (click)="goNext()">{{ copy.continueLabel }}</button>
+    </div>
+  </form>
+}
+
+@if (activeStep() === 1) {
+  <form class="form-grid" [formGroup]="credentialsForm" animate.enter="page-enter" (ngSubmit)="submit()">
+    <label class="field">
+      <span>Intent</span>
+      <select class="field-input" formControlName="intent">
+        @for (intent of intents; track intent.value) {
+          <option [value]="intent.value">{{ intent.label }}</option>
+        }
+      </select>
+    </label>
+
+    <label class="field"><span>Email</span><input class="field-input" formControlName="email" type="email" /></label>
+    @if (fieldError('credentials', 'email')) { <p class="field-error">{{ fieldError('credentials', 'email') }}</p> }
+
+    <label class="field"><span>Password</span>
+      <div class="password-wrap">
+        <input class="field-input" [type]="showPassword() ? 'text' : 'password'" formControlName="password" />
+        <button type="button" class="icon-btn" (click)="togglePassword()">
+          @if (showPassword()) { <svg lucideEyeOff size="16"></svg> } @else { <svg lucideEye size="16"></svg> }
+        </button>
+      </div>
+    </label>
+    @if (fieldError('credentials', 'password')) { <p class="field-error">{{ fieldError('credentials', 'password') }}</p> }
+
+    <label class="field"><span>Confirm password</span>
+      <div class="password-wrap">
+        <input class="field-input" [type]="showConfirmPassword() ? 'text' : 'password'" formControlName="confirmPassword" />
+        <button type="button" class="icon-btn" (click)="toggleConfirmPassword()">
+          @if (showConfirmPassword()) { <svg lucideEyeOff size="16"></svg> } @else { <svg lucideEye size="16"></svg> }
+        </button>
+      </div>
+    </label>
+    @if (passwordMismatch()) { <p class="field-error">{{ messages.passwordMismatch }}</p> }
+
+    @if (errorMessage) {
+      <p class="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800" animate.enter="fade-in">{{ errorMessage }}</p>
+    }
+
+    <div class="actions">
+      <button type="button" class="btn-secondary" (click)="goBack()">{{ copy.backLabel }}</button>
+      <button type="submit" class="btn-primary" [disabled]="loading">{{ loading ? 'Creando...' : copy.createAccountLabel }}</button>
+    </div>
+  </form>
+}

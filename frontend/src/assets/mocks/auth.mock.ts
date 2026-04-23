@@ -1,7 +1,17 @@
+import { Permission } from '../../app/core/constants/app.constants';
 import { AuthSession, UserRole } from '../../app/core/models/app.models';
-import { PERMISSIONS } from '../../app/core/constants/app.constants';
 
-export const MOCK_SESSION: AuthSession = {
+export interface MockAuthUserRecord {
+  readonly id: string;
+  readonly email: string;
+  readonly password: string;
+  readonly fullName: string;
+  readonly role: UserRole;
+  readonly profileType: 'company' | 'person';
+  readonly permissions: readonly Permission[];
+}
+
+export const MOCK_DEFAULT_SESSION: AuthSession = {
   token: 'mock-jwt-token',
   refreshToken: 'mock-refresh-token',
   expiresAt: '2026-12-31T23:59:59.000Z',
@@ -12,12 +22,44 @@ export const MOCK_SESSION: AuthSession = {
     role: UserRole.Buyer,
     profileType: 'company'
   },
-  permissions: [
-    PERMISSIONS.VIEW_DASHBOARD,
-    PERMISSIONS.MANAGE_PREFERENCES,
-    PERMISSIONS.VIEW_MARKETPLACE,
-    PERMISSIONS.CREATE_PRE_ORDER,
-    PERMISSIONS.VIEW_RECOMMENDATIONS,
-    PERMISSIONS.MANAGE_PROFILE
-  ]
+  permissions: []
 };
+
+export const MOCK_AUTH_USERS: readonly MockAuthUserRecord[] = [
+  {
+    id: 'usr-001',
+    email: 'compras@ecopartner.pe',
+    password: 'ReciclaYa2026',
+    fullName: 'Camila Rojas',
+    role: UserRole.Buyer,
+    profileType: 'company',
+    permissions: [
+      'view:dashboard',
+      'manage:preferences',
+      'view:marketplace',
+      'create:preorder',
+      'view:recommendations',
+      'manage:profile'
+    ]
+  },
+  {
+    id: 'usr-002',
+    email: 'ventas@agroloop.pe',
+    password: 'ReciclaYa2026',
+    fullName: 'Diego Salazar',
+    role: UserRole.Seller,
+    profileType: 'company',
+    permissions: [
+      'view:dashboard',
+      'manage:waste',
+      'view:marketplace',
+      'create:preorder',
+      'manage:profile'
+    ]
+  }
+];
+
+export const MOCK_GOOGLE_PROFILE = {
+  email: 'compras@ecopartner.pe',
+  displayName: 'Camila Rojas'
+} as const;

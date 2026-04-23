@@ -1,0 +1,75 @@
+<form class="form-grid" [formGroup]="form" (ngSubmit)="submit()" animate.enter="page-enter">
+  <div class="two-cols">
+    <div>
+      <label class="field"><span>First name</span><input class="field-input" formControlName="firstName" /></label>
+      @if (fieldError('firstName')) { <p class="field-error">{{ fieldError('firstName') }}</p> }
+    </div>
+    <div>
+      <label class="field"><span>Last name</span><input class="field-input" formControlName="lastName" /></label>
+      @if (fieldError('lastName')) { <p class="field-error">{{ fieldError('lastName') }}</p> }
+    </div>
+  </div>
+
+  <div class="two-cols">
+    <div>
+      <label class="field"><span>DNI or document number</span><input class="field-input" formControlName="documentNumber" /></label>
+      @if (fieldError('documentNumber')) { <p class="field-error">{{ fieldError('documentNumber') }}</p> }
+    </div>
+    <div>
+      <label class="field"><span>Mobile phone</span><input class="field-input" formControlName="mobilePhone" /></label>
+      @if (fieldError('mobilePhone')) { <p class="field-error">{{ fieldError('mobilePhone') }}</p> }
+    </div>
+  </div>
+
+  <label class="field"><span>Address</span><input class="field-input" formControlName="address" /></label>
+  @if (fieldError('address')) { <p class="field-error">{{ fieldError('address') }}</p> }
+
+  <label class="field"><span>Postal code</span><input class="field-input" formControlName="postalCode" /></label>
+  @if (fieldError('postalCode')) { <p class="field-error">{{ fieldError('postalCode') }}</p> }
+
+  <label class="field">
+    <span>Intent</span>
+    <select class="field-input" formControlName="intent">
+      @for (intent of intents; track intent.value) {
+        <option [value]="intent.value">{{ intent.label }}</option>
+      }
+    </select>
+  </label>
+
+  <label class="field"><span>Email</span><input class="field-input" type="email" formControlName="email" /></label>
+  @if (fieldError('email')) { <p class="field-error">{{ fieldError('email') }}</p> }
+
+  <div class="two-cols">
+    <div>
+      <label class="field"><span>Password</span>
+        <div class="password-wrap">
+          <input class="field-input" [type]="showPassword() ? 'text' : 'password'" formControlName="password" />
+          <button type="button" class="icon-btn" (click)="togglePassword()">
+            @if (showPassword()) { <svg lucideEyeOff size="16"></svg> } @else { <svg lucideEye size="16"></svg> }
+          </button>
+        </div>
+      </label>
+      @if (fieldError('password')) { <p class="field-error">{{ fieldError('password') }}</p> }
+    </div>
+    <div>
+      <label class="field"><span>Confirm password</span>
+        <div class="password-wrap">
+          <input class="field-input" [type]="showConfirmPassword() ? 'text' : 'password'" formControlName="confirmPassword" />
+          <button type="button" class="icon-btn" (click)="toggleConfirmPassword()">
+            @if (showConfirmPassword()) { <svg lucideEyeOff size="16"></svg> } @else { <svg lucideEye size="16"></svg> }
+          </button>
+        </div>
+      </label>
+    </div>
+  </div>
+
+  @if (passwordMismatch()) { <p class="field-error">{{ messages.passwordMismatch }}</p> }
+
+  @if (errorMessage) {
+    <p class="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800" animate.enter="fade-in">{{ errorMessage }}</p>
+  }
+
+  <div class="actions">
+    <button type="submit" class="btn-primary" [disabled]="loading">{{ loading ? 'Creando...' : copy.createAccountLabel }}</button>
+  </div>
+</form>

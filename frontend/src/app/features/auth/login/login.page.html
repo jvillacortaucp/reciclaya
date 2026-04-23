@@ -1,28 +1,153 @@
-<ui-card>
-  <h2 class="text-2xl font-semibold text-slate-900">Inicia sesion</h2>
-  <p class="mt-1 text-sm text-slate-500">Accede a tu panel de economia circular.</p>
+<section class="login-shell page-enter">
+  <div class="login-brand-panel card-reveal">
+    <span class="brand-badge">{{ copy.badge }}</span>
+    <h1 class="brand-headline">{{ copy.headline }}</h1>
+    <p class="brand-supporting">{{ copy.supportingText }}</p>
 
-  <form class="mt-6 grid gap-4" [formGroup]="form" (ngSubmit)="submit()">
-    <label class="grid gap-1 text-sm">
-      <span>Correo</span>
-      <input class="rounded-xl border border-slate-300 px-3 py-2" formControlName="email" type="email" />
-    </label>
+    <ul class="feature-list" aria-label="Beneficios principales">
+      @for (feature of featureItems; track feature.id) {
+        <li class="feature-item">
+          <span class="feature-icon" aria-hidden="true">
+            @switch (feature.icon) {
+              @case ('recycle') { <svg lucideRecycle size="18"></svg> }
+              @case ('chart-no-axes-column-increasing') { <svg lucideChartNoAxesColumnIncreasing size="18"></svg> }
+              @default { <svg lucideTruck size="18"></svg> }
+            }
+          </span>
+          <div>
+            <p class="feature-title">{{ feature.title }}</p>
+            <p class="feature-description">{{ feature.description }}</p>
+          </div>
+        </li>
+      }
+    </ul>
 
-    <label class="grid gap-1 text-sm">
-      <span>Contrasena</span>
-      <input class="rounded-xl border border-slate-300 px-3 py-2" formControlName="password" type="password" />
-    </label>
+    <div class="abstract-visual" aria-hidden="true">
+      <span class="orb orb-primary"></span>
+      <span class="orb orb-accent"></span>
+      <span class="grid-pattern"></span>
+    </div>
+  </div>
 
-    <label class="inline-flex items-center gap-2 text-sm text-slate-600">
-      <input type="checkbox" formControlName="rememberMe" />
-      Recordar sesion
-    </label>
+  <div class="login-form-panel">
+    <article class="login-card card-reveal" animate.enter="page-enter">
+      <div class="mb-5 flex items-center gap-2 text-sm text-slate-500">
+        <svg lucideShieldCheck size="16"></svg>
+        <span>Acceso seguro para operadores verificados</span>
+      </div>
 
-    <ui-button type="submit" [disabled]="loading()">{{ loading() ? 'Ingresando...' : 'Ingresar' }}</ui-button>
-  </form>
+      <h2 class="text-2xl font-semibold text-slate-900">{{ copy.signInLabel }}</h2>
+      <p class="mt-2 text-sm text-slate-500">Ingresa para continuar en tu panel de marketplace circular.</p>
 
-  <p class="mt-4 text-sm text-slate-600">
-    No tienes cuenta?
-    <a class="text-primary-700 hover:underline" routerLink="/auth/register">Registrate</a>
-  </p>
-</ui-card>
+      @if (authError()) {
+        <div class="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800" animate.enter="fade-in" animate.leave="fade-out">
+          {{ authError() }}
+        </div>
+      }
+
+      <form class="mt-6 space-y-4" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+        <div>
+          <label for="login-email" class="mb-1.5 block text-sm font-medium text-slate-700">{{ copy.emailLabel }}</label>
+          <div class="relative">
+            <span class="input-icon" aria-hidden="true"><svg lucideMail size="16"></svg></span>
+            <input
+              id="login-email"
+              type="email"
+              formControlName="email"
+              autocomplete="email"
+              class="flow-input"
+              placeholder="empresa@correo.com"
+              [attr.aria-invalid]="!!emailError()"
+            />
+          </div>
+          @if (emailError()) {
+            <p class="mt-1 text-xs text-rose-600" animate.enter="fade-in" animate.leave="fade-out">{{ emailError() }}</p>
+          }
+        </div>
+
+        <div>
+          <label for="login-password" class="mb-1.5 block text-sm font-medium text-slate-700">{{ copy.passwordLabel }}</label>
+          <div class="relative">
+            <span class="input-icon" aria-hidden="true"><svg lucideLockKeyhole size="16"></svg></span>
+            <input
+              id="login-password"
+              [type]="showPassword() ? 'text' : 'password'"
+              formControlName="password"
+              autocomplete="current-password"
+              class="flow-input pr-11"
+              placeholder="Ingresa tu contrasena"
+              [attr.aria-invalid]="!!passwordError()"
+            />
+            <button
+              type="button"
+              class="password-toggle"
+              (click)="togglePasswordVisibility()"
+              [attr.aria-label]="showPassword() ? 'Ocultar contrasena' : 'Mostrar contrasena'"
+            >
+              @if (showPassword()) {
+                <svg lucideEyeOff size="16"></svg>
+              } @else {
+                <svg lucideEye size="16"></svg>
+              }
+            </button>
+          </div>
+          @if (passwordError()) {
+            <p class="mt-1 text-xs text-rose-600" animate.enter="fade-in" animate.leave="fade-out">{{ passwordError() }}</p>
+          }
+        </div>
+
+        <div class="flex items-center justify-between gap-3 text-sm">
+          <label class="inline-flex cursor-pointer items-center gap-2 text-slate-600">
+            <input type="checkbox" class="rounded border-slate-300 text-primary-600 focus:ring-primary-500" formControlName="rememberMe" />
+            <span>Recordarme</span>
+          </label>
+          <a class="font-medium text-primary-700 transition hover:text-primary-800 hover:underline" href="#">{{ copy.forgotPasswordLabel }}</a>
+        </div>
+
+        <button
+          type="submit"
+          class="primary-submit"
+          [disabled]="emailLoading() || socialLoading() || form.invalid"
+        >
+          @if (emailLoading()) {
+            <span class="inline-flex items-center gap-2">
+              <span class="h-4 w-4 animate-spin rounded-full border-2 border-white/25 border-t-white"></span>
+              Iniciando sesion...
+            </span>
+          } @else {
+            <span class="inline-flex items-center gap-2">Sign in <svg lucideArrowRight size="16"></svg></span>
+          }
+        </button>
+
+        @if (googleOption(); as google) {
+          <button
+            type="button"
+            class="secondary-submit"
+            [disabled]="!google.enabled || socialLoading() || emailLoading()"
+            (click)="continueWithGoogle()"
+          >
+            @if (socialLoading()) {
+              <span class="inline-flex items-center gap-2">
+                <span class="h-4 w-4 animate-spin rounded-full border-2 border-slate-400/50 border-t-slate-700"></span>
+                Conectando Google...
+              </span>
+            } @else {
+              {{ google.label }}
+            }
+          </button>
+        }
+
+        @if (!hasSocialOptions()) {
+          <p class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500" animate.enter="fade-in">
+            {{ messages.socialDisabled }}
+          </p>
+        }
+      </form>
+
+      <p class="mt-6 text-sm text-slate-600">
+        {{ copy.createAccountLabel }}
+        <a routerLink="/auth/register" class="font-semibold text-primary-700 hover:underline">{{ copy.createAccountCta }}</a>
+      </p>
+    </article>
+  </div>
+</section>
