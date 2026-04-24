@@ -8,7 +8,9 @@ import { MyListing } from '../../domain/my-listing.model';
   standalone: true,
   imports: [RouterLink, LucideBan, LucideEye, LucidePencil, LucideRotateCcw],
   template: `
-    <article class="flex h-full min-h-[430px] min-w-0 flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+    <article
+      class="flex h-full min-h-[430px] min-w-0 flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+      [attr.data-tour]="tourTarget ? 'first-listing-card' : null">
       <div class="relative h-52 overflow-hidden bg-slate-200">
         @if (listing.imageUrl) {
           <img [src]="listing.imageUrl" [alt]="listing.specificResidue" class="h-full w-full object-cover" />
@@ -107,6 +109,7 @@ import { MyListing } from '../../domain/my-listing.model';
 })
 export class MyListingCardComponent {
   @Input({ required: true }) listing!: MyListing;
+  @Input() tourTarget = false;
   @Output() readonly edit = new EventEmitter<string>();
   @Output() readonly deactivate = new EventEmitter<string>();
   @Output() readonly restore = new EventEmitter<string>();

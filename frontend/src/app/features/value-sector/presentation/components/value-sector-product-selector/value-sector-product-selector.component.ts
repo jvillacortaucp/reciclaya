@@ -18,6 +18,7 @@ import { ValueSectorProduct } from '../../../models/value-sector.model';
 export class ValueSectorProductSelectorComponent {
   products = input.required<readonly ValueSectorProduct[]>();
   selectedProductId = input<string | null>(null);
+  tourFirstRoute = input<boolean>(false);
   productSelected = output<string>();
 
   protected readonly complexityLabel = VALUE_SECTOR_COMPLEXITY_LABEL;
