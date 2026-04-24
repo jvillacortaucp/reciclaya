@@ -61,7 +61,8 @@ export const MOCK_AUTH_USERS: readonly MockAuthUserRecord[] = [
       'view:marketplace',
       'create:preorder',
       'view:messages',
-      'manage:profile'
+      'view:recommendations',
+      'manage:profile',
     ]
   }
 ];

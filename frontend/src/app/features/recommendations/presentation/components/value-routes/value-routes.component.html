@@ -1,0 +1,23 @@
+@if (featuredRoute(); as route) {
+  <div class="mb-5">
+    <app-value-route-card
+      [route]="route"
+      [expanded]="true"
+      [selected]="selectedRouteId() === route.id"
+      [selectedProductId]="selectedProductId()"
+      (routeSelected)="onSelectRoute($event)"
+      (productSelected)="onSelectProduct($event)" />
+  </div>
+}
+
+<div class="grid grid-cols-1 gap-5 lg:grid-cols-2">
+  @for (route of secondaryRoutes(); track route.id) {
+    <app-value-route-card
+      [route]="route"
+      [expanded]="false"
+      [selected]="selectedRouteId() === route.id"
+      [selectedProductId]="selectedRouteId() === route.id ? selectedProductId() : null"
+      (routeSelected)="onSelectRoute($event)"
+      (productSelected)="onSelectProduct($event)" />
+  }
+</div>
