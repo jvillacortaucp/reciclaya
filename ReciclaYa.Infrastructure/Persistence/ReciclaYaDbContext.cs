@@ -25,11 +25,17 @@ public sealed class ReciclaYaDbContext(DbContextOptions<ReciclaYaDbContext> opti
 
     public DbSet<PreOrder> PreOrders => Set<PreOrder>();
 
+    public DbSet<PurchaseOrder> PurchaseOrders => Set<PurchaseOrder>();
+
+    public DbSet<PaymentTransaction> PaymentTransactions => Set<PaymentTransaction>();
+
     public DbSet<CommercialRequest> CommercialRequests => Set<CommercialRequest>();
 
     public DbSet<MessageThread> MessageThreads => Set<MessageThread>();
 
     public DbSet<Message> Messages => Set<Message>();
+
+    public DbSet<ValorizationIdea> ValorizationIdeas => Set<ValorizationIdea>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -37,8 +37,18 @@ import { ListingDetailEntity } from '../../../domain/listing-detail.models';
           </div>
         </div>
 
-        @if (showPrimaryAction || showSecondaryAction) {
+        @if (showBuyAction || showPrimaryAction || showSecondaryAction) {
           <div class="mt-4 space-y-2">
+            @if (showBuyAction) {
+              <button
+                type="button"
+                class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-base font-semibold text-white transition hover:bg-slate-800"
+                (click)="buy.emit()"
+              >
+                <svg lucideSend size="16"></svg>
+                {{ buyActionLabel }}
+              </button>
+            }
             @if (showPrimaryAction) {
               <button
                 type="button"
@@ -68,8 +78,11 @@ import { ListingDetailEntity } from '../../../domain/listing-detail.models';
 export class ListingSummaryCardComponent {
   @Input() detail: ListingDetailEntity | null = null;
   @Input() primaryActionLabel = 'Contactar vendedor';
-  @Input() secondaryActionLabel = 'Solicitar información';
+  @Input() secondaryActionLabel = 'Solicitar informacion';
+  @Input() buyActionLabel = 'Comprar ahora';
   @Input() showPrimaryAction = true;
   @Input() showSecondaryAction = true;
+  @Input() showBuyAction = false;
   @Output() readonly contact = new EventEmitter<void>();
+  @Output() readonly buy = new EventEmitter<void>();
 }

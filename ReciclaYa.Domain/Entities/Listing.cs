@@ -70,7 +70,13 @@ public sealed class Listing
 
     public ICollection<PreOrder> PreOrders { get; set; } = new List<PreOrder>();
 
+    public ICollection<PurchaseOrder> PurchaseOrders { get; set; } = new List<PurchaseOrder>();
+
+    public ICollection<PaymentTransaction> PaymentTransactions { get; set; } = new List<PaymentTransaction>();
+
     public ICollection<CommercialRequest> CommercialRequests { get; set; } = new List<CommercialRequest>();
 
     public ICollection<MessageThread> MessageThreads { get; set; } = new List<MessageThread>();
+
+    public ICollection<ValorizationIdea> ValorizationIdeas { get; set; } = new List<ValorizationIdea>();
 }

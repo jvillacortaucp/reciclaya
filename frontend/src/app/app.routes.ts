@@ -60,6 +60,14 @@ export const appRoutes: AppRoute[] = [
         loadChildren: () => import('./features/pre-orders/pre-orders.routes').then((m) => m.PRE_ORDERS_ROUTES)
       },
       {
+        path: 'checkout',
+        loadChildren: () => import('./features/checkout/checkout.routes').then((m) => m.CHECKOUT_ROUTES)
+      },
+      {
+        path: 'orders',
+        loadChildren: () => import('./features/orders/orders.routes').then((m) => m.ORDERS_ROUTES)
+      },
+      {
         path: 'recommendations',
         loadChildren: () =>
           import('./features/recommendations/recommendations.routes').then((m) => m.RECOMMENDATIONS_ROUTES)

@@ -125,5 +125,20 @@ public sealed class ListingConfiguration : IEntityTypeConfiguration<Listing>
             .WithOne(preOrder => preOrder.Listing)
             .HasForeignKey(preOrder => preOrder.ListingId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasMany(listing => listing.PurchaseOrders)
+            .WithOne(order => order.Listing)
+            .HasForeignKey(order => order.ListingId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasMany(listing => listing.PaymentTransactions)
+            .WithOne(transaction => transaction.Listing)
+            .HasForeignKey(transaction => transaction.ListingId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasMany(listing => listing.ValorizationIdeas)
+            .WithOne(idea => idea.Listing)
+            .HasForeignKey(idea => idea.ListingId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

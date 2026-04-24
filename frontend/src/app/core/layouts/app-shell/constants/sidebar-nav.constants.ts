@@ -58,6 +58,30 @@ export const SIDEBAR_NAV_ITEMS: readonly SidebarNavItem[] = [
     roles: ['buyer']
   },
   {
+    label: 'Mis compras',
+    group: 'Marketplace',
+    icon: 'clipboard-list',
+    route: APP_ROUTES.orders,
+    exact: false,
+    roles: ['buyer']
+  },
+  {
+    label: 'Ventas recibidas',
+    group: 'Marketplace',
+    icon: 'clipboard-list',
+    route: APP_ROUTES.orders,
+    exact: false,
+    roles: ['seller']
+  },
+  {
+    label: 'Ordenes',
+    group: 'Marketplace',
+    icon: 'clipboard-list',
+    route: APP_ROUTES.orders,
+    exact: false,
+    roles: ['admin']
+  },
+  {
     label: 'Solicitudes',
     group: 'Marketplace',
     icon: 'sparkles',

@@ -34,6 +34,12 @@ public sealed class User
 
     public ICollection<PreOrder> PreOrders { get; set; } = new List<PreOrder>();
 
+    public ICollection<PurchaseOrder> BuyerPurchaseOrders { get; set; } = new List<PurchaseOrder>();
+
+    public ICollection<PurchaseOrder> SellerPurchaseOrders { get; set; } = new List<PurchaseOrder>();
+
+    public ICollection<PaymentTransaction> PaymentTransactions { get; set; } = new List<PaymentTransaction>();
+
     public ICollection<CommercialRequest> BuyerCommercialRequests { get; set; } = new List<CommercialRequest>();
 
     public ICollection<CommercialRequest> SellerCommercialRequests { get; set; } = new List<CommercialRequest>();

@@ -43,4 +43,6 @@ public sealed class PreOrder
     public User Buyer { get; set; } = null!;
 
     public Listing Listing { get; set; } = null!;
+
+    public ICollection<PurchaseOrder> PurchaseOrders { get; set; } = new List<PurchaseOrder>();
 }

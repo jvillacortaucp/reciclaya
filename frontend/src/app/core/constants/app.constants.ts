@@ -27,7 +27,9 @@ export const APP_ROUTES = {
   messages: '/app/messages',
   preferences: '/app/purchase-preferences',
   marketplace: '/app/marketplace',
+  checkout: '/app/checkout',
   preOrders: '/app/pre-orders',
+  orders: '/app/orders',
   profile: '/app/profile',
   settings: '/app/settings',
   admin: '/app/admin'

@@ -455,6 +455,84 @@ namespace ReciclaYa.Infrastructure.Persistence.Migrations
                     b.ToTable("message_threads", (string)null);
                 });
 
+            modelBuilder.Entity("ReciclaYa.Domain.Entities.PaymentTransaction", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid>("BuyerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CardBrand")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("CardLast4")
+                        .HasMaxLength(4)
+                        .HasColumnType("character varying(4)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)");
+
+                    b.Property<string>("FailureReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("ListingId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("PaidAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("PaymentMethod")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("ProviderReference")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BuyerId");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("ListingId");
+
+                    b.HasIndex("OrderId");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("payment_transactions", (string)null);
+                });
+
             modelBuilder.Entity("ReciclaYa.Domain.Entities.PersonProfile", b =>
                 {
                     b.Property<Guid>("Id")
@@ -597,6 +675,94 @@ namespace ReciclaYa.Infrastructure.Persistence.Migrations
                     b.HasIndex("Status");
 
                     b.ToTable("pre_orders", (string)null);
+                });
+
+            modelBuilder.Entity("ReciclaYa.Domain.Entities.PurchaseOrder", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("AdminFee")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid>("BuyerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)");
+
+                    b.Property<Guid>("ListingId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("LogisticsFee")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("OrderNumber")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<DateTime?>("PaidAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("PaymentTransactionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("PreOrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Quantity")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("numeric(18,3)");
+
+                    b.Property<Guid>("SellerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<decimal>("Subtotal")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("Total")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BuyerId");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("ListingId");
+
+                    b.HasIndex("OrderNumber")
+                        .IsUnique();
+
+                    b.HasIndex("PreOrderId");
+
+                    b.HasIndex("SellerId");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("purchase_orders", (string)null);
                 });
 
             modelBuilder.Entity("ReciclaYa.Domain.Entities.PurchasePreference", b =>
@@ -804,6 +970,96 @@ namespace ReciclaYa.Infrastructure.Persistence.Migrations
                     b.ToTable("users", (string)null);
                 });
 
+            modelBuilder.Entity("ReciclaYa.Domain.Entities.ValorizationIdea", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("BuyerRecommendation")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("EstimatedImpact")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<Guid>("ListingId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("PotentialBuyers")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<string>("ProcessOverview")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("RecommendedStrategy")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("RequiredConditions")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<string>("SellerRecommendation")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("SuggestedProduct")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<string>("Summary")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ViabilityLevel")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Warnings")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("ListingId");
+
+                    b.HasIndex("Source");
+
+                    b.ToTable("valorization_ideas", (string)null);
+                });
+
             modelBuilder.Entity("ReciclaYa.Domain.Entities.CommercialRequest", b =>
                 {
                     b.HasOne("ReciclaYa.Domain.Entities.User", "Buyer")
@@ -928,6 +1184,33 @@ namespace ReciclaYa.Infrastructure.Persistence.Migrations
                     b.Navigation("Seller");
                 });
 
+            modelBuilder.Entity("ReciclaYa.Domain.Entities.PaymentTransaction", b =>
+                {
+                    b.HasOne("ReciclaYa.Domain.Entities.User", "Buyer")
+                        .WithMany("PaymentTransactions")
+                        .HasForeignKey("BuyerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ReciclaYa.Domain.Entities.Listing", "Listing")
+                        .WithMany("PaymentTransactions")
+                        .HasForeignKey("ListingId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ReciclaYa.Domain.Entities.PurchaseOrder", "Order")
+                        .WithMany("PaymentTransactions")
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Buyer");
+
+                    b.Navigation("Listing");
+
+                    b.Navigation("Order");
+                });
+
             modelBuilder.Entity("ReciclaYa.Domain.Entities.PersonProfile", b =>
                 {
                     b.HasOne("ReciclaYa.Domain.Entities.User", "User")
@@ -958,6 +1241,40 @@ namespace ReciclaYa.Infrastructure.Persistence.Migrations
                     b.Navigation("Listing");
                 });
 
+            modelBuilder.Entity("ReciclaYa.Domain.Entities.PurchaseOrder", b =>
+                {
+                    b.HasOne("ReciclaYa.Domain.Entities.User", "Buyer")
+                        .WithMany("BuyerPurchaseOrders")
+                        .HasForeignKey("BuyerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ReciclaYa.Domain.Entities.Listing", "Listing")
+                        .WithMany("PurchaseOrders")
+                        .HasForeignKey("ListingId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ReciclaYa.Domain.Entities.PreOrder", "PreOrder")
+                        .WithMany("PurchaseOrders")
+                        .HasForeignKey("PreOrderId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("ReciclaYa.Domain.Entities.User", "Seller")
+                        .WithMany("SellerPurchaseOrders")
+                        .HasForeignKey("SellerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Buyer");
+
+                    b.Navigation("Listing");
+
+                    b.Navigation("PreOrder");
+
+                    b.Navigation("Seller");
+                });
+
             modelBuilder.Entity("ReciclaYa.Domain.Entities.PurchasePreference", b =>
                 {
                     b.HasOne("ReciclaYa.Domain.Entities.User", "Buyer")
@@ -980,6 +1297,17 @@ namespace ReciclaYa.Infrastructure.Persistence.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("ReciclaYa.Domain.Entities.ValorizationIdea", b =>
+                {
+                    b.HasOne("ReciclaYa.Domain.Entities.Listing", "Listing")
+                        .WithMany("ValorizationIdeas")
+                        .HasForeignKey("ListingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Listing");
+                });
+
             modelBuilder.Entity("ReciclaYa.Domain.Entities.CommercialRequest", b =>
                 {
                     b.Navigation("MessageThreads");
@@ -993,14 +1321,30 @@ namespace ReciclaYa.Infrastructure.Persistence.Migrations
 
                     b.Navigation("MessageThreads");
 
+                    b.Navigation("PaymentTransactions");
+
                     b.Navigation("PreOrders");
 
+                    b.Navigation("PurchaseOrders");
+
                     b.Navigation("TechnicalSpecs");
+
+                    b.Navigation("ValorizationIdeas");
                 });
 
             modelBuilder.Entity("ReciclaYa.Domain.Entities.MessageThread", b =>
                 {
                     b.Navigation("Messages");
+                });
+
+            modelBuilder.Entity("ReciclaYa.Domain.Entities.PreOrder", b =>
+                {
+                    b.Navigation("PurchaseOrders");
+                });
+
+            modelBuilder.Entity("ReciclaYa.Domain.Entities.PurchaseOrder", b =>
+                {
+                    b.Navigation("PaymentTransactions");
                 });
 
             modelBuilder.Entity("ReciclaYa.Domain.Entities.User", b =>
@@ -1009,9 +1353,13 @@ namespace ReciclaYa.Infrastructure.Persistence.Migrations
 
                     b.Navigation("BuyerMessageThreads");
 
+                    b.Navigation("BuyerPurchaseOrders");
+
                     b.Navigation("Company");
 
                     b.Navigation("Listings");
+
+                    b.Navigation("PaymentTransactions");
 
                     b.Navigation("PersonProfile");
 
@@ -1024,6 +1372,8 @@ namespace ReciclaYa.Infrastructure.Persistence.Migrations
                     b.Navigation("SellerCommercialRequests");
 
                     b.Navigation("SellerMessageThreads");
+
+                    b.Navigation("SellerPurchaseOrders");
 
                     b.Navigation("SentMessages");
                 });
