@@ -42,8 +42,8 @@
   </div>
 }
 
-<section class="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-6 pb-20">
-  <form class="lg:col-span-2 space-y-6" [formGroup]="form">
+<section class="mt-6 grid w-full max-w-full min-w-0 grid-cols-1 gap-6 pb-20 lg:grid-cols-[minmax(0,1fr)_340px]">
+  <form class="min-w-0 space-y-6" [formGroup]="form">
     <!-- Información General -->
     <article class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm transition-all hover:shadow-md animate-in fade-in slide-in-from-bottom-4 duration-500">
       <header class="flex items-center gap-3 mb-6">
@@ -228,7 +228,7 @@
   </form>
 
   <!-- Sidebar Resume -->
-  <aside class="space-y-6">
+  <aside class="w-full min-w-0 max-w-full space-y-6 lg:max-w-340px lg:justify-self-end">
     <article class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm transition-all hover:shadow-md">
       <div class="flex items-center justify-between mb-6">
         <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Estado del Registro</p>
@@ -246,23 +246,25 @@
       </div>
       
       <div class="flex gap-3 p-4 bg-amber-50 border border-amber-100 rounded-2xl">
-        <span class="flex-shrink-0 text-amber-500"><svg lucideInfo size="16"></svg></span>
+        <span class="shrink-0 text-amber-500"><svg lucideInfo size="16"></svg></span>
         <p class="text-xs text-amber-800 leading-relaxed font-medium">Agregue una fecha de disponibilidad exacta para aumentar la visibilidad en un 20%.</p>
       </div>
     </article>
 
-    <app-waste-preview-card [summary]="preview()" [loading]="previewLoading()" />
-    
-    <article class="bg-gradient-to-br from-green-600 to-green-700 p-6 rounded-3xl text-white shadow-lg shadow-green-100">
-      <h4 class="text-lg font-bold mb-3 flex items-center gap-2">
-        <svg lucideLeaf size="18"></svg>
-        Consejo EcoValor
-      </h4>
-      <p class="text-sm text-green-50 leading-relaxed mb-4 font-medium">Los anuncios con más de 3 fotos claras y descripción de proceso químico/físico tienen 3x más conversión.</p>
-      <a href="#" class="inline-flex items-center text-xs font-bold bg-white/10 hover:bg-white/20 py-2 px-4 rounded-xl transition-all">
-        Leer guía de publicación
-        <svg lucideArrowRight size="14" class="ml-2"></svg>
-      </a>
+    <div>
+      <app-waste-preview-card [summary]="preview()" [loading]="previewLoading()" />
+    </div>
+
+    <article class="overflow-hidden rounded-3xl bg-linear-to-br from-emerald-600 via-emerald-600 to-emerald-700 p-6 text-white shadow-lg shadow-emerald-100">
+      <h4 class="mb-4 text-3xl font-bold leading-tight">Consejo<br />EcoValor</h4>
+      <p class="mb-5 text-base font-semibold leading-snug text-emerald-50">
+        Los anuncios con más de 3 fotos claras y una descripción de proceso químico/físico tienen 3x más conversión.
+      </p>
+      <div class="-mx-6 -mb-6 rounded-t-3xl bg-emerald-700/45 px-6 pb-6 pt-5">
+        <a href="#" class="inline-flex items-center text-lg font-bold underline underline-offset-4 transition-opacity hover:opacity-90">
+          Leer guía de publicación
+        </a>
+      </div>
     </article>
   </aside>
 </section>

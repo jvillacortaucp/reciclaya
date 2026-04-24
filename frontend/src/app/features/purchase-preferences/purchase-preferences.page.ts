@@ -20,7 +20,6 @@ import {
   LucideSave,
   LucideTruck
 } from '@lucide/angular';
-import { SectionHeaderComponent } from '../../shared/ui/section-header/section-header.component';
 import { PendingChangesAware } from '../../core/models/pending-changes.model';
 import { PurchasePreferencesFacade } from './application/purchase-preferences.facade';
 import {
@@ -49,7 +48,6 @@ import { ActiveSummaryCardComponent } from './presentation/components/active-sum
   selector: 'app-purchase-preferences-page',
   imports: [
     ReactiveFormsModule,
-    SectionHeaderComponent,
     ResidueTypeToggleComponent,
     ConditionChipGroupComponent,
     RangeSliderFieldComponent,

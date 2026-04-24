@@ -7,6 +7,7 @@ export const SIDEBAR_NAV_ITEMS: readonly SidebarNavItem[] = [
     group: 'General',
     icon: 'layout-dashboard',
     route: APP_ROUTES.dashboard,
+    exact: true,
     permissions: [PERMISSIONS.VIEW_DASHBOARD]
   },
   {
@@ -14,6 +15,7 @@ export const SIDEBAR_NAV_ITEMS: readonly SidebarNavItem[] = [
     group: 'Marketplace',
     icon: 'package-plus',
     route: APP_ROUTES.wasteSell,
+    exact: true,
     permissions: [PERMISSIONS.MANAGE_WASTE]
   },
   {
@@ -21,6 +23,7 @@ export const SIDEBAR_NAV_ITEMS: readonly SidebarNavItem[] = [
     group: 'Marketplace',
     icon: 'sliders-horizontal',
     route: APP_ROUTES.preferences,
+    exact: true,
     permissions: [PERMISSIONS.MANAGE_PREFERENCES]
   },
   {
@@ -28,6 +31,8 @@ export const SIDEBAR_NAV_ITEMS: readonly SidebarNavItem[] = [
     group: 'Marketplace',
     icon: 'store',
     route: APP_ROUTES.marketplace,
+    activePaths: [APP_ROUTES.marketplace],
+    exact: false,
     permissions: [PERMISSIONS.VIEW_MARKETPLACE]
   },
   {
@@ -35,6 +40,7 @@ export const SIDEBAR_NAV_ITEMS: readonly SidebarNavItem[] = [
     group: 'Marketplace',
     icon: 'clipboard-list',
     route: APP_ROUTES.myListings,
+    exact: true,
     permissions: [PERMISSIONS.VIEW_MY_LISTINGS]
   },
   {
@@ -42,6 +48,7 @@ export const SIDEBAR_NAV_ITEMS: readonly SidebarNavItem[] = [
     group: 'Marketplace',
     icon: 'sparkles',
     route: APP_ROUTES.requests,
+    exact: true,
     permissions: [PERMISSIONS.VIEW_REQUESTS]
   },
   {
@@ -49,6 +56,7 @@ export const SIDEBAR_NAV_ITEMS: readonly SidebarNavItem[] = [
     group: 'Intelligence',
     icon: 'messages',
     route: APP_ROUTES.messages,
+    exact: true,
     permissions: [PERMISSIONS.VIEW_MESSAGES]
   },
   {
@@ -56,6 +64,7 @@ export const SIDEBAR_NAV_ITEMS: readonly SidebarNavItem[] = [
     group: 'Account',
     icon: 'circle-user-round',
     route: APP_ROUTES.profile,
+    exact: true,
     permissions: [PERMISSIONS.MANAGE_PROFILE]
   },
   {
@@ -63,6 +72,7 @@ export const SIDEBAR_NAV_ITEMS: readonly SidebarNavItem[] = [
     group: 'Account',
     icon: 'settings',
     route: APP_ROUTES.settings,
+    exact: true,
     permissions: [PERMISSIONS.MANAGE_PROFILE]
   }
 ];

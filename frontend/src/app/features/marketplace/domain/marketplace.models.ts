@@ -61,8 +61,23 @@ export interface MarketplaceDataset {
   readonly recommended: readonly RecommendedListing[];
 }
 
+export interface MarketplaceListingsQuery {
+  readonly page: number;
+  readonly pageSize: number;
+  readonly filters: MarketplaceFilterState;
+  readonly query: string;
+  readonly sortBy: SortOption;
+}
+
+export interface MarketplaceListingsPage {
+  readonly items: readonly MarketplaceListing[];
+  readonly total: number;
+  readonly page: number;
+  readonly pageSize: number;
+  readonly hasMore: boolean;
+}
+
 export interface ActiveFilterChip {
   readonly key: string;
   readonly label: string;
 }
-

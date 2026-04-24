@@ -1,9 +1,18 @@
-import { ChangeDetectionStrategy, Component, inject, OnDestroy, OnInit } from '@angular/core';
+import {
+  AfterViewInit,
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  inject,
+  OnDestroy,
+  OnInit,
+  signal,
+  ViewChild
+} from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
-import { LucideBookmark, LucideInfo, LucidePlus, LucideRefreshCcw } from '@lucide/angular';
+import { LucideBookmark, LucideInfo, LucidePlus, LucideSlidersHorizontal } from '@lucide/angular';
 import { EmptyStateComponent } from '../../../shared/ui/empty-state/empty-state.component';
-import { SectionHeaderComponent } from '../../../shared/ui/section-header/section-header.component';
 import {
   EXCHANGE_FILTER_OPTIONS,
   MARKETPLACE_COPY,
@@ -17,31 +26,32 @@ import { MarketplaceFacade } from '../application/marketplace.facade';
 import { MarketplaceFiltersComponent } from './components/marketplace-filters/marketplace-filters.component';
 import { RecommendedListingCardComponent } from './components/recommended-listing-card/recommended-listing-card.component';
 import { MarketplaceProductCardComponent } from './components/marketplace-product-card/marketplace-product-card.component';
-import { MarketplacePaginationComponent } from './components/marketplace-pagination/marketplace-pagination.component';
 
 @Component({
   selector: 'app-marketplace-page',
   standalone: true,
   imports: [
     ReactiveFormsModule,
-    SectionHeaderComponent,
     EmptyStateComponent,
     MarketplaceFiltersComponent,
     RecommendedListingCardComponent,
     MarketplaceProductCardComponent,
-    MarketplacePaginationComponent,
     LucideBookmark,
-    LucideRefreshCcw,
+    LucideSlidersHorizontal,
     LucidePlus,
     LucideInfo
   ],
   templateUrl: './marketplace.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class MarketplacePageComponent implements OnInit, OnDestroy {
+export class MarketplacePageComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly facade = inject(MarketplaceFacade);
   private readonly fb = inject(FormBuilder);
   private readonly subscriptions = new Subscription();
+  private observer: IntersectionObserver | null = null;
+
+  @ViewChild('infiniteScrollSentinel') private sentinelRef?: ElementRef<HTMLDivElement>;
+  protected readonly filtersOpen = signal(false);
 
   protected readonly copy = MARKETPLACE_COPY;
   protected readonly messages = MARKETPLACE_MESSAGES;
@@ -51,15 +61,14 @@ export class MarketplacePageComponent implements OnInit, OnDestroy {
   protected readonly sortOptions = SORT_OPTIONS;
 
   protected readonly loading = this.facade.loading;
-  protected readonly filteredListings = this.facade.filteredListings;
-  protected readonly pagedListings = this.facade.pagedListings;
+  protected readonly isLoadingMore = this.facade.isLoadingMore;
+  protected readonly listings = this.facade.listings;
   protected readonly recommendedListings = this.facade.recommendedListings;
+  protected readonly hasMore = this.facade.hasMore;
   protected readonly isEmpty = this.facade.isEmpty;
   protected readonly isDatasetEmpty = this.facade.isDatasetEmpty;
   protected readonly toastMessage = this.facade.toastMessage;
   protected readonly chips = this.facade.activeFilterChips;
-  protected readonly totalPages = this.facade.totalPages;
-  protected readonly currentPage = this.facade.currentPage;
   protected readonly sortValue = this.facade.search;
 
   protected readonly filtersForm = this.fb.nonNullable.group({
@@ -74,8 +83,7 @@ export class MarketplacePageComponent implements OnInit, OnDestroy {
 
     this.subscriptions.add(
       this.filtersForm.valueChanges.subscribe((value) => {
-        this.facade.setSearchQuery(value.query ?? '');
-        this.facade.updateFilters({
+        this.facade.setSearchAndFilters(value.query ?? '', {
           ...this.facade.filters(),
           wasteType: value.wasteType ?? 'all',
           sector: value.sector ?? 'all',
@@ -85,12 +93,22 @@ export class MarketplacePageComponent implements OnInit, OnDestroy {
     );
   }
 
+  ngAfterViewInit(): void {
+    this.setupInfiniteObserver();
+  }
+
   ngOnDestroy(): void {
     this.subscriptions.unsubscribe();
+    this.observer?.disconnect();
+    this.observer = null;
   }
 
   protected saveSearch(): void {
     this.facade.saveSearch();
+  }
+
+  protected toggleFilters(): void {
+    this.filtersOpen.update((value) => !value);
   }
 
   protected clearFilters(): void {
@@ -115,8 +133,32 @@ export class MarketplacePageComponent implements OnInit, OnDestroy {
     this.facade.setSort(option);
   }
 
-  protected changePage(page: number): void {
-    this.facade.setPage(page);
+  protected loadMore(): void {
+    this.facade.loadMore();
+  }
+
+  private setupInfiniteObserver(): void {
+    const sentinel = this.sentinelRef?.nativeElement;
+    if (!sentinel) {
+      return;
+    }
+
+    this.observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (!entry?.isIntersecting) {
+          return;
+        }
+
+        this.loadMore();
+      },
+      {
+        root: null,
+        rootMargin: '220px',
+        threshold: 0
+      }
+    );
+
+    this.observer.observe(sentinel);
   }
 }
-

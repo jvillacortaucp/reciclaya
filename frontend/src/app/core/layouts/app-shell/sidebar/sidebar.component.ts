@@ -1,5 +1,15 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
-import { RouterLink, RouterLinkActive } from '@angular/router';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  DestroyRef,
+  inject,
+  input,
+  output,
+  signal
+} from '@angular/core';
+import { NavigationEnd, Router, RouterLink } from '@angular/router';
+import { filter } from 'rxjs';
 import {
   LucideCircleUserRound,
   LucideClipboardList,
@@ -13,6 +23,7 @@ import {
   LucideStore
 } from '@lucide/angular';
 import { SIDEBAR_NAV_ITEMS } from '../constants/sidebar-nav.constants';
+import { SidebarNavItem } from '../models/sidebar-nav-item.model';
 import { AuthFacade } from '../../../../features/auth/services/auth.facade';
 
 @Component({
@@ -20,7 +31,6 @@ import { AuthFacade } from '../../../../features/auth/services/auth.facade';
   standalone: true,
   imports: [
     RouterLink,
-    RouterLinkActive,
     LucideCircleUserRound,
     LucideLayoutDashboard,
     LucidePlusCircle,
@@ -37,9 +47,12 @@ import { AuthFacade } from '../../../../features/auth/services/auth.facade';
 })
 export class SidebarComponent {
   private readonly authFacade = inject(AuthFacade);
+  private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
 
   isOpen = input<boolean>(false);
   closeSidebar = output<void>();
+  protected readonly currentUrl = signal(this.normalizeUrl(this.router.url));
 
   protected readonly navItems = computed(() =>
     SIDEBAR_NAV_ITEMS.filter((item) => {
@@ -56,11 +69,39 @@ export class SidebarComponent {
     this.navItems().filter((item) => item.group === 'Account')
   );
 
+  constructor() {
+    const subscription = this.router.events
+      .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
+      .subscribe(() => {
+        this.currentUrl.set(this.normalizeUrl(this.router.url));
+      });
+
+    this.destroyRef.onDestroy(() => subscription.unsubscribe());
+  }
+
   onLogout(): void {
     this.authFacade.logout();
   }
 
   onLinkClick(): void {
     this.closeSidebar.emit();
+  }
+
+  protected isRouteActive(item: SidebarNavItem): boolean {
+    const url = this.currentUrl();
+    const paths = item.activePaths?.length ? item.activePaths : [item.route];
+
+    return paths.some((path) => {
+      const normalizedPath = this.normalizeUrl(path);
+      if (item.exact !== false) {
+        return url === normalizedPath;
+      }
+
+      return url === normalizedPath || url.startsWith(`${normalizedPath}/`);
+    });
+  }
+
+  private normalizeUrl(url: string): string {
+    return url.split('?')[0].split('#')[0].replace(/\/$/, '') || '/';
   }
 }
