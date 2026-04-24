@@ -18,7 +18,7 @@ export interface FloatingActionOption {
 }
 
 export const MY_LISTINGS_COPY = {
-  title: 'Mis solicitudes',
+  title: 'Mis publicaciones',
   subtitle:
     'Administra tus residuos publicados, revisa su estado y gestiona tus oportunidades.',
   valueSector: 'Recomendaciones',
