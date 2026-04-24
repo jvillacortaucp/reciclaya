@@ -1,49 +1,109 @@
-<section class="register-shell page-enter">
-  <article class="register-card card-reveal">
-    <div class="mb-4 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-primary-700">
-      <svg lucideSparkles size="15"></svg>
-      {{ copy.badge }}
+<div class="register-layout">
+  <!-- Left Sidebar: Branding & Benefits -->
+  <aside class="register-sidebar">
+    <div class="sidebar-content">
+      <div class="logo-area">
+        <div class="logo-icon">
+          <svg lucideZap class="text-white" size="24"></svg>
+        </div>
+        <h1 class="logo-text">EcoLoop <span>Enterprise</span></h1>
+      </div>
+
+      <div class="value-prop mt-12">
+        <h2 class="text-3xl font-bold leading-tight text-white mb-4">Transformando residuos en valor industrial.</h2>
+        <p class="text-slate-300 text-lg leading-relaxed">Únase al ecosistema líder en economía circular B2B y optimice sus flujos de materiales con inteligencia operativa.</p>
+      </div>
+
+      <div class="benefits-list mt-10 space-y-8">
+        <div class="benefit-item flex gap-4">
+          <div class="benefit-icon">
+            <svg lucideZap size="20" class="text-emerald-400"></svg>
+          </div>
+          <div>
+            <h3 class="text-white font-semibold mb-1">Eficiencia Operativa</h3>
+            <p class="text-slate-400 text-sm">Reduzca costos de disposición hasta en un 35% mediante valorización.</p>
+          </div>
+        </div>
+        <div class="benefit-item flex gap-4">
+          <div class="benefit-icon">
+            <svg lucideShieldCheck size="20" class="text-emerald-400"></svg>
+          </div>
+          <div>
+            <h3 class="text-white font-semibold mb-1">Cumplimiento ESG</h3>
+            <p class="text-slate-400 text-sm">Trazabilidad completa y reportes automatizados para su estrategia de sostenibilidad.</p>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <h2 class="text-2xl font-semibold text-slate-900">{{ copy.title }}</h2>
-    <p class="mt-2 text-sm text-slate-500">{{ copy.subtitle }}</p>
+    <footer class="sidebar-footer">
+      <p class="text-slate-500 text-xs text-center border-t border-slate-800 pt-6">
+        © 2024 EcoLoop Systems. Industrial Efficiency & Environmental Stewardship.
+      </p>
+    </footer>
+  </aside>
 
-    <div class="mt-5">
-      @if (accountTypeOptions.length) {
-        <app-account-type-selector
-          [selected]="selectedAccountType()"
-          [options]="accountTypeOptions"
-          (selectedChange)="onAccountTypeChange($event)"
-        />
-        <p class="mt-2 text-xs text-slate-500">{{ selectedAccountTypeDescription() }}</p>
-      } @else {
-        <p class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-500" animate.enter="fade-in">
-          No hay tipos de cuenta disponibles en este momento.
-        </p>
-      }
+  <!-- Right Side: Registration Form -->
+  <main class="register-main">
+    <div class="form-scroll">
+      <div class="form-container">
+        
+        <!-- Header Info -->
+        <header class="mb-8">
+          <p class="text-xs font-bold text-emerald-600 uppercase tracking-widest mb-2 flex items-center gap-2">
+            <svg lucideSparkles size="14"></svg>
+            {{ copy.badge }}
+          </p>
+          <div class="flex items-center justify-between">
+            <h2 class="text-2xl font-bold text-slate-800">{{ copy.title }}</h2>
+            <div class="step-indicator-simple text-xs font-semibold px-3 py-1 bg-slate-100 text-slate-500 rounded-full">
+              Paso 1 de 2
+            </div>
+          </div>
+        </header>
+
+        <!-- Account Type Selection (Implicit Step 0) -->
+        <div class="mb-8 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-sm font-semibold text-slate-700">Tipo de cuenta</span>
+            <span class="text-xs text-primary-600 font-medium">Recomendado para B2B</span>
+          </div>
+          <app-account-type-selector
+            [selected]="selectedAccountType()"
+            [options]="accountTypeOptions"
+            (selectedChange)="onAccountTypeChange($event)"
+          />
+        </div>
+
+        <!-- Form Area -->
+        @if (selectedAccountType() === accountType.Company) {
+          <app-company-register-form
+            [loading]="loading()"
+            [errorMessage]="authError()"
+            (submitted)="submitCompany($event)"
+          />
+        } @else {
+          <app-natural-person-register-form
+            [loading]="loading()"
+            [errorMessage]="authError()"
+            (submitted)="submitNaturalPerson($event)"
+          />
+        }
+
+        <!-- Footer Actions -->
+        <footer class="mt-8 pt-6 border-t border-slate-100 flex items-center justify-between">
+          <p class="text-sm text-slate-500">
+            {{ copy.loginPrompt }}
+            <a routerLink="/auth/login" class="font-bold text-emerald-600 hover:underline">{{ copy.loginCta }}</a>
+          </p>
+          <div class="flex items-center gap-4 text-xs font-medium text-slate-400">
+            <span class="flex items-center gap-1.5"><svg lucideShieldCheck size="14"></svg> Datos encriptados SSL</span>
+            <span class="flex items-center gap-1.5"><svg lucideCheckCircle size="14"></svg> Soporte 24/7</span>
+          </div>
+        </footer>
+
+      </div>
     </div>
+  </main>
+</div>
 
-    <section class="mt-4 rounded-2xl border border-slate-200 bg-slate-50/55 p-4">
-      @if (selectedAccountType() === accountType.Company) {
-        <app-company-register-form
-          [loading]="loading()"
-          [errorMessage]="authError()"
-          (submitted)="submitCompany($event)"
-          animate.enter="page-enter"
-        />
-      } @else {
-        <app-natural-person-register-form
-          [loading]="loading()"
-          [errorMessage]="authError()"
-          (submitted)="submitNaturalPerson($event)"
-          animate.enter="page-enter"
-        />
-      }
-    </section>
-
-    <p class="mt-5 text-sm text-slate-600">
-      {{ copy.loginPrompt }}
-      <a routerLink="/auth/login" class="font-semibold text-primary-700 hover:underline">{{ copy.loginCta }}</a>
-    </p>
-  </article>
-</section>

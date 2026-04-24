@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output, computed, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { LucideEye, LucideEyeOff } from '@lucide/angular';
+import { LucideArrowRight, LucideBriefcase, LucideBuilding2, LucideEye, LucideEyeOff, LucideMapPin, LucidePhone, LucideUser } from '@lucide/angular';
 import { UserRole } from '../../../../../core/models/app.models';
 import { COMPANY_REGISTER_STEPS, INTENT_OPTIONS, REGISTER_PAGE_COPY, REGISTER_VALIDATION_MESSAGES } from '../../../data/register.constants';
 import { AccountType, CompanyRegistrationPayload, RegistrationIntent } from '../../../domain/register.models';
@@ -8,8 +8,17 @@ import { hasPasswordMismatch } from '../../helpers/register-form.helpers';
 
 @Component({
   selector: 'app-company-register-form',
-  imports: [ReactiveFormsModule, LucideEye, LucideEyeOff],
-  templateUrl: './company-register-form.component.html',
+  imports: [
+    ReactiveFormsModule,
+    LucideEye,
+    LucideEyeOff,
+    LucideBuilding2,
+    LucidePhone,
+    LucideMapPin,
+    LucideUser,
+    LucideBriefcase,
+    LucideArrowRight
+  ],  templateUrl: './company-register-form.component.html',
   styleUrl: './company-register-form.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush
 })

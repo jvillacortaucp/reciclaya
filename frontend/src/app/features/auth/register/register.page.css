@@ -1,26 +1,100 @@
-.register-shell {
-  min-height: 100vh;
+.register-layout {
   display: grid;
-  place-items: center;
-  padding: 1.25rem;
+  grid-template-columns: 420px 1fr;
+  min-height: 100vh;
+  background-color: #f8fafc;
 }
 
-.register-card {
-  width: min(100%, 52rem);
-  border-radius: 1.4rem;
-  border: 1px solid #e2e8f0;
-  background: #ffffff;
-  padding: 1.4rem;
-  box-shadow: 0 15px 35px rgba(15, 23, 42, 0.11);
+.register-sidebar {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  color: white;
+  padding: 3rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
 }
 
-@media (max-width: 768px) {
-  .register-shell {
-    padding: 0.75rem;
+.register-sidebar::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: radial-gradient(circle at 20% 30%, rgba(16, 185, 129, 0.1) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+.logo-area {
+  display: flex;
+  items-center: center;
+  gap: 0.75rem;
+}
+
+.logo-icon {
+  background: #10b981;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+}
+
+.logo-text {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.logo-text span {
+  color: #10b981;
+  font-weight: 400;
+}
+
+.benefit-icon {
+  background: rgba(16, 185, 129, 0.1);
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.register-main {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-scroll {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  justify-content: center;
+  padding: 4rem 2rem;
+}
+
+.form-container {
+  width: 100%;
+  max-width: 640px;
+}
+
+@media (max-width: 1024px) {
+  .register-layout {
+    grid-template-columns: 1fr;
   }
 
-  .register-card {
-    border-radius: 1rem;
-    padding: 1rem;
+  .register-sidebar {
+    display: none;
+  }
+
+  .form-scroll {
+    padding: 2rem 1rem;
   }
 }
+

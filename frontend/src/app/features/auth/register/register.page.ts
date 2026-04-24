@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { LucideSparkles } from '@lucide/angular';
+import { LucideCheckCircle, LucideShieldCheck, LucideSparkles, LucideZap } from '@lucide/angular';
 import { ACCOUNT_TYPE_OPTIONS, REGISTER_PAGE_COPY } from '../data/register.constants';
 import {
   AccountType,
@@ -17,6 +17,9 @@ import { NaturalPersonRegisterFormComponent } from './components/natural-person-
   imports: [
     RouterLink,
     LucideSparkles,
+    LucideZap,
+    LucideCheckCircle,
+    LucideShieldCheck,
     AccountTypeSelectorComponent,
     CompanyRegisterFormComponent,
     NaturalPersonRegisterFormComponent

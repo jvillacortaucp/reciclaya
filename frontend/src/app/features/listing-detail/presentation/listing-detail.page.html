@@ -1,24 +1,146 @@
-<ui-section-header title="Detalle de listado" subtitle="Informacion de calidad, logistica y condiciones" />
-
 @if (loading()) {
-  <p class="text-sm text-slate-500">Cargando detalle...</p>
+  <div class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
+    <svg lucideLoaderCircle size="16" class="animate-spin"></svg>
+    {{ messages.loading }}
+  </div>
 } @else if (!detail()) {
-  <ui-empty-state title="Listado no encontrado" description="Este registro ya no esta disponible." />
+  <ui-empty-state title="Listado no encontrado" [description]="messages.notFound" />
 } @else {
-  <ui-card>
-    <h3 class="text-xl font-semibold text-slate-900">{{ detail()?.title }}</h3>
-    <p class="mt-2 text-sm text-slate-600">{{ detail()?.description }}</p>
-    <div class="mt-3 grid gap-2 text-sm text-slate-700 md:grid-cols-2">
-      <p><strong>Calidad:</strong> {{ detail()?.qualityNotes }}</p>
-      <p><strong>Ubicacion:</strong> {{ detail()?.logistics?.location }}</p>
-      <p><strong>Ventana entrega:</strong> {{ detail()?.logistics?.deliveryWindowDays }} dias</p>
-      <p><strong>Retiro en planta:</strong> {{ detail()?.logistics?.pickupAvailable ? 'Si' : 'No' }}</p>
+  <div class="space-y-4">
+    <app-detail-breadcrumb
+      [parent]="copy.breadcrumbParent"
+      [current]="copy.breadcrumbCurrent"
+      [reference]="'REF: ' + detail()!.referenceCode"
+      (back)="goBack()"
+    />
+
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <div class="inline-flex items-center gap-2">
+        <span class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] text-emerald-700">
+          {{ detail()!.wasteType === 'organic' ? 'Orgánico' : 'Inorgánico' }}
+        </span>
+        <span class="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] text-blue-700">
+          {{ detail()!.status === 'available' ? 'Disponible' : 'Reciente' }}
+        </span>
+      </div>
+      <div class="flex items-center gap-2">
+        <button
+          type="button"
+          class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          [disabled]="saving()"
+          (click)="save()"
+        >
+          <svg lucideBookmark size="15"></svg>
+          {{ saving() ? 'Guardando...' : copy.save }}
+        </button>
+        <button
+          type="button"
+          class="inline-flex items-center gap-2 rounded-xl border border-transparent bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+          [disabled]="contacting()"
+          (click)="contact()"
+        >
+          {{ contacting() ? 'Enviando...' : copy.primaryAction }}
+        </button>
+      </div>
     </div>
-    <div class="mt-4 flex gap-2">
-      <a class="inline-flex rounded-xl bg-primary-600 px-4 py-2 text-sm text-white hover:bg-primary-700"
-        [routerLink]="['/app/pre-orders/new', detail()?.id]">Generar pre-orden</a>
-      <a class="inline-flex rounded-xl border border-slate-300 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
-        routerLink="/app/marketplace">Volver</a>
+
+    <div class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_330px]">
+      <section class="space-y-5">
+        <header class="space-y-3">
+          <h1 class="text-5xl font-semibold leading-tight text-slate-900">{{ detail()!.title }}</h1>
+          <p class="max-w-4xl text-[28px] leading-snug text-slate-600">{{ detail()!.description }}</p>
+        </header>
+
+        <app-listing-image-gallery
+          [media]="detail()!.media"
+          [activeMedia]="activeMedia()"
+          (select)="selectMedia($event)"
+        />
+
+        <article class="rounded-3xl border border-slate-200 bg-white shadow-sm">
+          <header class="flex items-center justify-between border-b border-slate-200 px-5 py-3">
+            <h3 class="text-2xl font-semibold text-slate-900">{{ copy.technicalSectionTitle }}</h3>
+            <a href="#" class="text-sm font-semibold text-emerald-700 hover:text-emerald-800">Descargar reporte lab</a>
+          </header>
+          <div class="grid sm:grid-cols-2 lg:grid-cols-3">
+            @for (spec of detail()!.technicalSpecs; track spec.key) {
+              <div class="border-b border-r border-slate-100 p-4 last:border-r-0">
+                <p class="text-xs uppercase tracking-[0.1em] text-slate-400">{{ spec.label }}</p>
+                <p class="mt-1 text-4xl font-semibold text-slate-900">{{ spec.value }}</p>
+              </div>
+            }
+          </div>
+        </article>
+
+        <article class="grid gap-4 md:grid-cols-3">
+          <div class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+            <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+              <svg lucideMapPin size="17"></svg>
+            </span>
+            <h4 class="mt-3 text-3xl font-semibold text-slate-900">Ubicación</h4>
+            <p class="mt-1 text-[22px] text-slate-600">{{ detail()!.logistics.location }}</p>
+          </div>
+          <div class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+            <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+              <svg lucideTruck size="17"></svg>
+            </span>
+            <h4 class="mt-3 text-3xl font-semibold text-slate-900">Modalidad de recojo</h4>
+            <p class="mt-1 text-[22px] text-slate-600">{{ deliveryModeLabel() }}</p>
+          </div>
+          <div class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+            <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+              <svg lucideBadgeInfo size="17"></svg>
+            </span>
+            <h4 class="mt-3 text-3xl font-semibold text-slate-900">Tiempo de almacenamiento</h4>
+            <p class="mt-1 text-[22px] text-slate-600">Máximo {{ detail()!.logistics.maxStorageTime }}</p>
+          </div>
+        </article>
+
+        <article class="rounded-3xl border border-amber-200 bg-amber-50 p-5">
+          <div class="flex items-start gap-3">
+            <span class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
+              <svg lucideCircleAlert size="18"></svg>
+            </span>
+            <div>
+              <h4 class="text-4xl font-semibold text-amber-800">Restricciones y manejo</h4>
+              <p class="mt-1 text-[24px] leading-snug text-amber-800">{{ detail()!.restrictions }}</p>
+            </div>
+          </div>
+        </article>
+
+        <section>
+          <h3 class="mb-3 text-3xl font-semibold text-slate-900">{{ copy.relatedSectionTitle }}</h3>
+          <div class="grid gap-4 md:grid-cols-3">
+            @for (item of detail()!.relatedListings; track item.id) {
+              <app-related-listing-card [item]="item" />
+            }
+          </div>
+        </section>
+      </section>
+
+      <section class="space-y-4 xl:sticky xl:top-20 xl:h-max">
+        <app-listing-summary-card
+          [detail]="detail()"
+          [primaryActionLabel]="copy.primaryAction"
+          [secondaryActionLabel]="copy.secondaryAction"
+          (contact)="contact()"
+        />
+
+        <article class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+          <h4 class="text-2xl font-semibold text-slate-900">Market insight</h4>
+          <p class="mt-2 text-[22px] leading-snug text-slate-600">
+            El precio para cítricos ha subido un <span class="font-semibold text-emerald-700">12%</span> este trimestre.
+          </p>
+          <div class="mt-3 h-16 rounded-2xl bg-slate-100"></div>
+        </article>
+      </section>
     </div>
-  </ui-card>
+
+    @if (toast()) {
+      <div class="fixed bottom-5 right-5 inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 shadow-lg" (click)="dismissToast()">
+        <svg lucideInfo size="15"></svg>
+        {{ toast() }}
+      </div>
+    }
+  </div>
 }
