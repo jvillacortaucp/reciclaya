@@ -1,10 +1,10 @@
-import { SidebarNavItem } from '../models/app.models';
-import { APP_ROUTES, PERMISSIONS } from './app.constants';
+import { APP_ROUTES, PERMISSIONS } from '../../../constants/app.constants';
+import { SidebarNavItem } from '../models/sidebar-nav-item.model';
 
 export const SIDEBAR_NAV_ITEMS: readonly SidebarNavItem[] = [
   {
     label: 'Dashboard',
-    group: 'Marketplace',
+    group: 'General',
     icon: 'layout-dashboard',
     route: APP_ROUTES.dashboard,
     permissions: [PERMISSIONS.VIEW_DASHBOARD]
@@ -31,7 +31,7 @@ export const SIDEBAR_NAV_ITEMS: readonly SidebarNavItem[] = [
     permissions: [PERMISSIONS.VIEW_MARKETPLACE]
   },
   {
-    label: 'My posts',
+    label: 'Mis publicaciones',
     group: 'Marketplace',
     icon: 'clipboard-list',
     route: APP_ROUTES.myListings,
@@ -45,28 +45,21 @@ export const SIDEBAR_NAV_ITEMS: readonly SidebarNavItem[] = [
     permissions: [PERMISSIONS.VIEW_REQUESTS]
   },
   {
-    label: 'Recommendations',
-    group: 'Intelligence',
-    icon: 'sparkles',
-    route: APP_ROUTES.recommendations,
-    permissions: [PERMISSIONS.VIEW_RECOMMENDATIONS]
-  },
-  {
-    label: 'Messages',
+    label: 'Mensajes',
     group: 'Intelligence',
     icon: 'messages',
     route: APP_ROUTES.messages,
     permissions: [PERMISSIONS.VIEW_MESSAGES]
   },
   {
-    label: 'Profile',
+    label: 'Perfil',
     group: 'Account',
     icon: 'circle-user-round',
     route: APP_ROUTES.profile,
     permissions: [PERMISSIONS.MANAGE_PROFILE]
   },
   {
-    label: 'Settings',
+    label: 'Configuración',
     group: 'Account',
     icon: 'settings',
     route: APP_ROUTES.settings,

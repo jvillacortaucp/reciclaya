@@ -15,30 +15,10 @@ import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from 
         [max]="max"
         [value]="value"
         [style.background]="sliderBackground()"
-        class="slider-track h-2 w-full cursor-pointer appearance-none rounded-lg"
+        class="h-2 w-full cursor-pointer appearance-none rounded-lg [&::-webkit-slider-thumb]:size-[18px] [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-emerald-500 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-sm [&::-moz-range-thumb]:size-[18px] [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-emerald-500 [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:shadow-sm"
         (input)="onInput($event)"
       />
     </div>
-  `,
-  styles: `
-    .slider-track::-webkit-slider-thumb {
-      appearance: none;
-      width: 18px;
-      height: 18px;
-      border-radius: 9999px;
-      border: 2px solid #10b981;
-      background: #ffffff;
-      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.2);
-    }
-
-    .slider-track::-moz-range-thumb {
-      width: 18px;
-      height: 18px;
-      border-radius: 9999px;
-      border: 2px solid #10b981;
-      background: #ffffff;
-      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.2);
-    }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush
 })

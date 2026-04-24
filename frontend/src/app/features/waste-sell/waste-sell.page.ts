@@ -61,7 +61,6 @@ import { WasteUploadZoneComponent } from './presentation/components/waste-upload
     LucideLoaderCircle
   ],
   templateUrl: './presentation/waste-sell.page.html',
-  styleUrl: './presentation/waste-sell.page.css',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class WasteSellPageComponent implements OnInit, OnDestroy, PendingChangesAware {

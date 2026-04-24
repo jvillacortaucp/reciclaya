@@ -1,0 +1,49 @@
+<nav class="bg-white border-b border-slate-100 px-4 py-2.5 fixed left-0 right-0 top-0 z-50">
+  <div class="flex justify-between items-center w-full">
+    <div class="flex justify-start items-center">
+      <button
+        (click)="toggleSidebar.emit()"
+        class="p-2 mr-3 text-slate-500 rounded-lg cursor-pointer md:hidden hover:text-slate-900 hover:bg-slate-50 transition-colors"
+      >
+        <svg lucideMenu class="w-6 h-6"></svg>
+        <span class="sr-only">Toggle sidebar</span>
+      </button>
+      <a href="/" class="flex items-center mr-4 lg:mr-6">
+        <svg lucideLeaf class="mr-2 h-8 w-8 text-green-600"></svg>
+        <span class="self-center text-xl font-bold whitespace-nowrap text-slate-800">EcoValor</span>
+      </a>
+      <form action="#" method="GET" class="hidden md:block md:pl-2">
+        <label for="topbar-search" class="sr-only">Search</label>
+        <div class="relative md:w-64 lg:w-96">
+          <div class="flex absolute inset-y-0 left-0 items-center pl-3 pointer-events-none">
+            <svg lucideSearch class="w-5 h-5 text-slate-400"></svg>
+          </div>
+          <input
+            type="text"
+            name="search"
+            id="topbar-search"
+            class="bg-slate-50 border border-slate-200 text-slate-900 text-sm rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 block w-full pl-10 p-2.5 transition-all"
+            placeholder="Buscar en la plataforma..."
+          />
+        </div>
+      </form>
+    </div>
+    <div class="flex items-center lg:order-2 space-x-2">
+      <button
+        type="button"
+        class="p-2 text-slate-400 rounded-lg hover:text-slate-900 hover:bg-slate-50 transition-colors"
+      >
+        <span class="sr-only">View notifications</span>
+        <svg lucideBell class="w-6 h-6"></svg>
+      </button>
+      <button
+        type="button"
+        class="flex items-center space-x-3 ml-2 group"
+        id="user-menu-button"
+      >
+        <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-700 font-bold text-xs border border-slate-200 group-hover:bg-slate-200 transition-colors">JV</div>
+        <span class="hidden md:block text-sm font-medium text-slate-700">Juan Villacorta</span>
+      </button>
+    </div>
+  </div>
+</nav>

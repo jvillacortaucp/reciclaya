@@ -37,7 +37,6 @@ import { AuthFacade } from '../services/auth.facade';
     LucideShieldCheck
   ],
   templateUrl: './login.page.html',
-  styleUrl: './login.page.css',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class LoginPageComponent {

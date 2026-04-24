@@ -71,4 +71,3 @@ const SAMPLE_ECONOMIC_SUMMARY: EconomicSummary = {
 export class PreOrderEconomicSummaryComponent {
   @Input() summary: EconomicSummary | null = SAMPLE_ECONOMIC_SUMMARY;
 }
-

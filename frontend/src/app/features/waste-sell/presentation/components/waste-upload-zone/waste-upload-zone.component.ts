@@ -6,7 +6,6 @@ import { WasteMediaUpload } from '../../../domain/waste-sell.models';
   selector: 'app-waste-upload-zone',
   imports: [LucideImageUp, LucidePlus, LucideTrash2],
   templateUrl: './waste-upload-zone.component.html',
-  styleUrl: './waste-upload-zone.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class WasteUploadZoneComponent {

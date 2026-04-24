@@ -10,7 +10,6 @@ import { hasPasswordMismatch } from '../../helpers/register-form.helpers';
   selector: 'app-natural-person-register-form',
   imports: [ReactiveFormsModule, LucideEye, LucideEyeOff],
   templateUrl: './natural-person-register-form.component.html',
-  styleUrl: './natural-person-register-form.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class NaturalPersonRegisterFormComponent {

@@ -6,7 +6,6 @@ import { AccountType, AccountTypeOption } from '../../../domain/register.models'
   selector: 'app-account-type-selector',
   imports: [LucideBuilding2, LucideUserRound],
   templateUrl: './account-type-selector.component.html',
-  styleUrl: './account-type-selector.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class AccountTypeSelectorComponent {
