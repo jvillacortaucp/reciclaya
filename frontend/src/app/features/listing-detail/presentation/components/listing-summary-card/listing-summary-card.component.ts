@@ -37,23 +37,29 @@ import { ListingDetailEntity } from '../../../domain/listing-detail.models';
           </div>
         </div>
 
-        <div class="mt-4 space-y-2">
-          <button
-            type="button"
-            class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-base font-semibold text-white transition hover:bg-emerald-700"
-            (click)="contact.emit()"
-          >
-            <svg lucideSend size="16"></svg>
-            {{ primaryActionLabel }}
-          </button>
-          <button
-            type="button"
-            class="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-base font-medium text-slate-700 transition hover:bg-slate-50"
-          >
-            <svg lucideMessageCircle size="16"></svg>
-            {{ secondaryActionLabel }}
-          </button>
-        </div>
+        @if (showPrimaryAction || showSecondaryAction) {
+          <div class="mt-4 space-y-2">
+            @if (showPrimaryAction) {
+              <button
+                type="button"
+                class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-base font-semibold text-white transition hover:bg-emerald-700"
+                (click)="contact.emit()"
+              >
+                <svg lucideSend size="16"></svg>
+                {{ primaryActionLabel }}
+              </button>
+            }
+            @if (showSecondaryAction) {
+              <button
+                type="button"
+                class="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-base font-medium text-slate-700 transition hover:bg-slate-50"
+              >
+                <svg lucideMessageCircle size="16"></svg>
+                {{ secondaryActionLabel }}
+              </button>
+            }
+          </div>
+        }
       </aside>
     }
   `,
@@ -63,5 +69,7 @@ export class ListingSummaryCardComponent {
   @Input() detail: ListingDetailEntity | null = null;
   @Input() primaryActionLabel = 'Contactar vendedor';
   @Input() secondaryActionLabel = 'Solicitar información';
+  @Input() showPrimaryAction = true;
+  @Input() showSecondaryAction = true;
   @Output() readonly contact = new EventEmitter<void>();
 }

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import {
   LucideBadgeInfo,
@@ -10,6 +10,8 @@ import {
   LucideTruck
 } from '@lucide/angular';
 import { EmptyStateComponent } from '../../shared/ui/empty-state/empty-state.component';
+import { PERMISSIONS } from '../../core/constants/app.constants';
+import { AuthFacade } from '../auth/services/auth.facade';
 import { LISTING_DETAIL_COPY, LISTING_DETAIL_MESSAGES, buildDeliveryModeLabel, buildExchangeTypeLabel } from './data/listing-detail.constants';
 import { ListingDetailFacade } from './application/listing-detail.facade';
 import { DetailBreadcrumbComponent } from './presentation/components/detail-breadcrumb/detail-breadcrumb.component';
@@ -41,6 +43,7 @@ export class ListingDetailPageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly facade = inject(ListingDetailFacade);
+  private readonly authFacade = inject(AuthFacade);
 
   protected readonly copy = LISTING_DETAIL_COPY;
   protected readonly messages = LISTING_DETAIL_MESSAGES;
@@ -50,6 +53,8 @@ export class ListingDetailPageComponent implements OnInit {
   protected readonly detail = this.facade.detail;
   protected readonly activeMedia = this.facade.activeMedia;
   protected readonly toast = this.facade.toastMessage;
+  protected readonly canCreatePreOrder = computed(() => this.authFacade.hasPermission(PERMISSIONS.CREATE_PRE_ORDER));
+  protected readonly canOpenMessages = computed(() => this.authFacade.hasPermission(PERMISSIONS.VIEW_MESSAGES));
 
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id');

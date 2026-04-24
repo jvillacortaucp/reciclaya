@@ -6,4 +6,5 @@ export interface SidebarNavItem {
   readonly activePaths?: readonly string[];
   readonly exact?: boolean;
   readonly permissions?: readonly string[];
+  readonly roles?: readonly string[];
 }

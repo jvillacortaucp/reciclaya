@@ -11,6 +11,13 @@
   </button>
 </ui-section-header>
 
+@if (toastMessage()) {
+  <div class="mb-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800" role="alert">
+    {{ toastMessage() }}
+    <button type="button" class="ml-3 font-semibold underline" (click)="dismissToast()">Cerrar</button>
+  </div>
+}
+
 <div class="grid gap-8 lg:grid-cols-3">
   <!-- Main Form -->
   <div class="lg:col-span-2">

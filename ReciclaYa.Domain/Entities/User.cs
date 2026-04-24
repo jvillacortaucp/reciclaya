@@ -1,0 +1,36 @@
+using ReciclaYa.Domain.Enums;
+
+namespace ReciclaYa.Domain.Entities;
+
+public sealed class User
+{
+    public Guid Id { get; set; }
+
+    public string Email { get; set; } = string.Empty;
+
+    public string PasswordHash { get; set; } = string.Empty;
+
+    public string FullName { get; set; } = string.Empty;
+
+    public UserRole Role { get; set; }
+
+    public ProfileType ProfileType { get; set; }
+
+    public UserStatus Status { get; set; } = UserStatus.Active;
+
+    public DateTimeOffset CreatedAt { get; set; }
+
+    public DateTimeOffset UpdatedAt { get; set; }
+
+    public Company? Company { get; set; }
+
+    public PersonProfile? PersonProfile { get; set; }
+
+    public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
+
+    public ICollection<Listing> Listings { get; set; } = new List<Listing>();
+
+    public ICollection<PurchasePreference> PurchasePreferences { get; set; } = new List<PurchasePreference>();
+
+    public ICollection<PreOrder> PreOrders { get; set; } = new List<PreOrder>();
+}

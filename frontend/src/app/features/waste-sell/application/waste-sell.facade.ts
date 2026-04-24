@@ -1,12 +1,13 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
-import { finalize } from 'rxjs';
+import { catchError, EMPTY, finalize } from 'rxjs';
+import { getErrorMessage } from '../../../core/http/api-response.helpers';
 import { WASTE_SELL_COPY } from '../data/waste-sell.constants';
 import { ListingPreviewSummary, WasteMediaUpload, WasteSellPageState } from '../domain/waste-sell.models';
-import { WasteSellMockRepository } from '../infrastructure/waste-sell.mock.repository';
+import { WasteSellHttpRepository } from '../infrastructure/waste-sell.http.repository';
 
 @Injectable({ providedIn: 'root' })
 export class WasteSellFacade {
-  private readonly repository = inject(WasteSellMockRepository);
+  private readonly repository = inject(WasteSellHttpRepository);
 
   readonly loading = signal(false);
   readonly draftLoading = signal(false);
@@ -55,7 +56,13 @@ export class WasteSellFacade {
     this.draftLoading.set(true);
     this.repository
       .saveDraft(state)
-      .pipe(finalize(() => this.draftLoading.set(false)))
+      .pipe(
+        catchError((error: unknown) => {
+          this.toastMessage.set(getErrorMessage(error, 'No se pudo guardar el borrador.'));
+          return EMPTY;
+        }),
+        finalize(() => this.draftLoading.set(false))
+      )
       .subscribe((nextState) => {
         this.state.set(nextState);
         this.toastMessage.set('Borrador guardado correctamente.');
@@ -67,10 +74,16 @@ export class WasteSellFacade {
     this.publishLoading.set(true);
     this.repository
       .publish(state)
-      .pipe(finalize(() => this.publishLoading.set(false)))
+      .pipe(
+        catchError((error: unknown) => {
+          this.toastMessage.set(getErrorMessage(error, 'No se pudo publicar el listado.'));
+          return EMPTY;
+        }),
+        finalize(() => this.publishLoading.set(false))
+      )
       .subscribe((nextState) => {
         this.state.set(nextState);
-        this.toastMessage.set('Listado publicado en modo MVP mock.');
+        this.toastMessage.set('Listado publicado correctamente.');
         this.refreshPreview();
       });
   }
@@ -88,7 +101,10 @@ export class WasteSellFacade {
     this.previewLoading.set(true);
     this.repository
       .buildPreview(current)
-      .pipe(finalize(() => this.previewLoading.set(false)))
+      .pipe(
+        catchError(() => EMPTY),
+        finalize(() => this.previewLoading.set(false))
+      )
       .subscribe((summary) => this.preview.set(summary));
   }
 }

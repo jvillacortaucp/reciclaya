@@ -1,12 +1,13 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
-import { finalize } from 'rxjs';
+import { catchError, EMPTY, finalize } from 'rxjs';
+import { getErrorMessage } from '../../../core/http/api-response.helpers';
 import { LISTING_DETAIL_MESSAGES } from '../data/listing-detail.constants';
 import { ListingDetailEntity } from '../domain/listing-detail.models';
-import { ListingDetailMockRepository } from '../infrastructure/listing-detail.mock.repository';
+import { ListingDetailHttpRepository } from '../infrastructure/listing-detail.http.repository';
 
 @Injectable({ providedIn: 'root' })
 export class ListingDetailFacade {
-  private readonly repository = inject(ListingDetailMockRepository);
+  private readonly repository = inject(ListingDetailHttpRepository);
 
   readonly loading = signal(false);
   readonly saving = signal(false);
@@ -29,7 +30,13 @@ export class ListingDetailFacade {
     this.loading.set(true);
     this.repository
       .getById(id)
-      .pipe(finalize(() => this.loading.set(false)))
+      .pipe(
+        catchError((error: unknown) => {
+          this.toastMessage.set(getErrorMessage(error, 'No se pudo cargar el detalle del listado.'));
+          return EMPTY;
+        }),
+        finalize(() => this.loading.set(false))
+      )
       .subscribe((detail) => {
         this.detail.set(detail);
         this.activeMediaId.set(detail?.media[0]?.id ?? null);

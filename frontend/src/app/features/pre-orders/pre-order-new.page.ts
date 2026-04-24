@@ -20,7 +20,6 @@ import {
 } from '@lucide/angular';
 import { PaymentMethodSelectorComponent } from './presentation/components/payment-method-selector/payment-method-selector.component';
 import { PreOrderEconomicSummaryComponent } from './presentation/components/pre-order-economic-summary/pre-order-economic-summary.component';
-import { PRE_ORDER_SCREEN_COPY } from './data/pre-order-screen.constants';
 import { PreOrdersFacade } from './application/pre-orders.facade';
 import { SectionHeaderComponent } from '../../shared/ui/section-header/section-header.component';
 
@@ -50,12 +49,11 @@ export class PreOrderNewPageComponent implements OnInit, OnDestroy {
   private readonly subscriptions = new Subscription();
   private readonly patching = signal(false);
 
-  protected readonly copy = PRE_ORDER_SCREEN_COPY;
   protected readonly listingId = this.route.snapshot.paramMap.get('listingId') ?? '';
-  protected readonly screenLoading = this.facade.screenLoading;
   protected readonly summaryLoading = this.facade.summaryLoading;
   protected readonly screenState = this.facade.screenState;
   protected readonly economicSummary = this.facade.economicSummary;
+  protected readonly toastMessage = this.facade.toastMessage;
 
   protected readonly form = this.fb.nonNullable.group({
     quantity: [10, [Validators.required, Validators.min(1)]],
@@ -88,16 +86,12 @@ export class PreOrderNewPageComponent implements OnInit, OnDestroy {
     this.facade.loadScreenState(this.listingId);
 
     this.subscriptions.add(
-      this.form.valueChanges.subscribe((value) => {
+      this.form.valueChanges.subscribe(() => {
         if (this.patching()) {
           return;
         }
 
-        this.facade.simulateSummary(
-          this.listingId,
-          Number(value.quantity ?? 0),
-          Boolean(value.reserveStock)
-        );
+        this.facade.simulateSummary(this.buildRequestFromForm());
       })
     );
   }
@@ -115,12 +109,12 @@ export class PreOrderNewPageComponent implements OnInit, OnDestroy {
       this.form.markAllAsTouched();
       return;
     }
-    this.saveDraft();
+
+    this.facade.create(this.buildRequestFromForm('submitted'));
   }
 
   protected saveDraft(): void {
-    const preOrder = this.buildPreOrderDraft();
-    this.facade.create(preOrder);
+    this.facade.create(this.buildRequestFromForm('draft'));
   }
 
   protected selectPayment(type: 'transfer' | 'cash' | 'credit'): void {
@@ -131,30 +125,28 @@ export class PreOrderNewPageComponent implements OnInit, OnDestroy {
     return this.form.controls.paymentMethod.value as 'transfer' | 'cash' | 'credit';
   }
 
-  private buildPreOrderDraft() {
+  protected dismissToast(): void {
+    this.facade.clearToast();
+  }
+
+  private buildRequestFromForm(status?: 'draft' | 'submitted') {
     const state = this.screenState();
-    const summary = this.economicSummary();
     const value = this.form.getRawValue();
-    const nowId = `po-${Date.now()}`;
+    const selectedType = value.paymentMethod as 'transfer' | 'cash' | 'credit';
+    const paymentLabel =
+      state?.paymentMethods.find((method) => method.type === selectedType)?.label ?? selectedType;
 
     return {
-      id: nowId,
       listingId: this.listingId,
-      buyerId: 'usr-001',
       quantity: value.quantity,
       desiredDate: value.desiredDate,
-      status: 'draft' as const,
+      reserveStock: Boolean(value.reserveStock),
+      notes: value.notes ?? '',
       paymentMethod: {
-        type: value.paymentMethod as 'transfer' | 'cash' | 'credit',
-        label: value.paymentMethod
+        type: selectedType,
+        label: paymentLabel
       },
-      pricing: {
-        subtotal: summary?.subtotal ?? 0,
-        logisticsFee: summary?.logisticsFee ?? 0,
-        taxes: 0,
-        total: summary?.total ?? 0,
-        currency: (state?.product ? 'USD' : 'USD') as 'USD' | 'PEN'
-      }
+      status
     };
   }
 }

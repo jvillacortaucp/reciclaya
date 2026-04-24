@@ -56,8 +56,9 @@ export class SidebarComponent {
 
   protected readonly navItems = computed(() =>
     SIDEBAR_NAV_ITEMS.filter((item) => {
-      if (!item.permissions?.length) return true;
-      return item.permissions.every((p) => this.authFacade.hasPermission(p));
+      const hasPermissions = !item.permissions?.length || item.permissions.every((p) => this.authFacade.hasPermission(p));
+      const hasRole = !item.roles?.length || this.authFacade.hasAnyRole(item.roles);
+      return hasPermissions && hasRole;
     })
   );
 

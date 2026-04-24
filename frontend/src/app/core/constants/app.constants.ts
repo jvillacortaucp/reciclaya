@@ -10,7 +10,8 @@ export const PERMISSIONS = {
   VIEW_MARKETPLACE: 'view:marketplace',
   CREATE_PRE_ORDER: 'create:preorder',
   VIEW_RECOMMENDATIONS: 'view:recommendations',
-  MANAGE_PROFILE: 'manage:profile'
+  MANAGE_PROFILE: 'manage:profile',
+  MANAGE_USERS: 'manage:users'
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -28,5 +29,6 @@ export const APP_ROUTES = {
   marketplace: '/app/marketplace',
   preOrders: '/app/pre-orders',
   profile: '/app/profile',
-  settings: '/app/settings'
+  settings: '/app/settings',
+  admin: '/app/admin'
 } as const;

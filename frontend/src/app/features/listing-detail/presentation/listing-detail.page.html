@@ -33,14 +33,16 @@
           <svg lucideBookmark size="15"></svg>
           {{ saving() ? 'Guardando...' : copy.save }}
         </button>
-        <button
-          type="button"
-          class="inline-flex items-center gap-2 rounded-xl border border-transparent bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
-          [disabled]="contacting()"
-          (click)="contact()"
-        >
-          {{ contacting() ? 'Enviando...' : copy.primaryAction }}
-        </button>
+        @if (canCreatePreOrder()) {
+          <button
+            type="button"
+            class="inline-flex items-center gap-2 rounded-xl border border-transparent bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+            [disabled]="contacting()"
+            (click)="contact()"
+          >
+            {{ contacting() ? 'Enviando...' : copy.primaryAction }}
+          </button>
+        }
       </div>
     </div>
 
@@ -123,6 +125,8 @@
           [detail]="detail()"
           [primaryActionLabel]="copy.primaryAction"
           [secondaryActionLabel]="copy.secondaryAction"
+          [showPrimaryAction]="canCreatePreOrder()"
+          [showSecondaryAction]="canOpenMessages()"
           (contact)="contact()"
         />
 
