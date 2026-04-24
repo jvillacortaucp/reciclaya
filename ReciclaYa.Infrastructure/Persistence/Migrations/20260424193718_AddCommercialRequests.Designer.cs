@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using ReciclaYa.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using ReciclaYa.Infrastructure.Persistence;
 namespace ReciclaYa.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(ReciclaYaDbContext))]
-    partial class ReciclaYaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260424193718_AddCommercialRequests")]
+    partial class AddCommercialRequests
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -368,91 +371,6 @@ namespace ReciclaYa.Infrastructure.Persistence.Migrations
                     b.HasIndex("ListingId", "Key");
 
                     b.ToTable("listing_technical_specs", (string)null);
-                });
-
-            modelBuilder.Entity("ReciclaYa.Domain.Entities.Message", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Body")
-                        .IsRequired()
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("ReadAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("SenderId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("ThreadId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CreatedAt");
-
-                    b.HasIndex("ReadAt");
-
-                    b.HasIndex("SenderId");
-
-                    b.HasIndex("ThreadId");
-
-                    b.ToTable("messages", (string)null);
-                });
-
-            modelBuilder.Entity("ReciclaYa.Domain.Entities.MessageThread", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("BuyerId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("CommercialRequestId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("LastMessageAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("ListingId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("SellerId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("BuyerId");
-
-                    b.HasIndex("CommercialRequestId");
-
-                    b.HasIndex("CreatedAt");
-
-                    b.HasIndex("LastMessageAt");
-
-                    b.HasIndex("ListingId");
-
-                    b.HasIndex("SellerId");
-
-                    b.HasIndex("Status");
-
-                    b.ToTable("message_threads", (string)null);
                 });
 
             modelBuilder.Entity("ReciclaYa.Domain.Entities.PersonProfile", b =>
@@ -875,59 +793,6 @@ namespace ReciclaYa.Infrastructure.Persistence.Migrations
                     b.Navigation("Listing");
                 });
 
-            modelBuilder.Entity("ReciclaYa.Domain.Entities.Message", b =>
-                {
-                    b.HasOne("ReciclaYa.Domain.Entities.User", "Sender")
-                        .WithMany("SentMessages")
-                        .HasForeignKey("SenderId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("ReciclaYa.Domain.Entities.MessageThread", "Thread")
-                        .WithMany("Messages")
-                        .HasForeignKey("ThreadId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Sender");
-
-                    b.Navigation("Thread");
-                });
-
-            modelBuilder.Entity("ReciclaYa.Domain.Entities.MessageThread", b =>
-                {
-                    b.HasOne("ReciclaYa.Domain.Entities.User", "Buyer")
-                        .WithMany("BuyerMessageThreads")
-                        .HasForeignKey("BuyerId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("ReciclaYa.Domain.Entities.CommercialRequest", "CommercialRequest")
-                        .WithMany("MessageThreads")
-                        .HasForeignKey("CommercialRequestId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("ReciclaYa.Domain.Entities.Listing", "Listing")
-                        .WithMany("MessageThreads")
-                        .HasForeignKey("ListingId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("ReciclaYa.Domain.Entities.User", "Seller")
-                        .WithMany("SellerMessageThreads")
-                        .HasForeignKey("SellerId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Buyer");
-
-                    b.Navigation("CommercialRequest");
-
-                    b.Navigation("Listing");
-
-                    b.Navigation("Seller");
-                });
-
             modelBuilder.Entity("ReciclaYa.Domain.Entities.PersonProfile", b =>
                 {
                     b.HasOne("ReciclaYa.Domain.Entities.User", "User")
@@ -980,34 +845,20 @@ namespace ReciclaYa.Infrastructure.Persistence.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("ReciclaYa.Domain.Entities.CommercialRequest", b =>
-                {
-                    b.Navigation("MessageThreads");
-                });
-
             modelBuilder.Entity("ReciclaYa.Domain.Entities.Listing", b =>
                 {
                     b.Navigation("CommercialRequests");
 
                     b.Navigation("Media");
 
-                    b.Navigation("MessageThreads");
-
                     b.Navigation("PreOrders");
 
                     b.Navigation("TechnicalSpecs");
                 });
 
-            modelBuilder.Entity("ReciclaYa.Domain.Entities.MessageThread", b =>
-                {
-                    b.Navigation("Messages");
-                });
-
             modelBuilder.Entity("ReciclaYa.Domain.Entities.User", b =>
                 {
                     b.Navigation("BuyerCommercialRequests");
-
-                    b.Navigation("BuyerMessageThreads");
 
                     b.Navigation("Company");
 
@@ -1022,10 +873,6 @@ namespace ReciclaYa.Infrastructure.Persistence.Migrations
                     b.Navigation("RefreshTokens");
 
                     b.Navigation("SellerCommercialRequests");
-
-                    b.Navigation("SellerMessageThreads");
-
-                    b.Navigation("SentMessages");
                 });
 #pragma warning restore 612, 618
         }

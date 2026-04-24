@@ -1,11 +1,14 @@
 using Microsoft.Extensions.DependencyInjection;
 using ReciclaYa.Application.Admin.Services;
 using ReciclaYa.Application.Auth.Services;
+using ReciclaYa.Application.CommercialRequests.Services;
 using ReciclaYa.Application.Dashboard.Services;
 using ReciclaYa.Application.Listings.Services;
+using ReciclaYa.Application.Messages.Services;
 using ReciclaYa.Application.Profile.Services;
 using ReciclaYa.Application.PreOrders.Services;
 using ReciclaYa.Application.PurchasePreferences.Services;
+using ReciclaYa.Application.Recommendations.Services;
 
 namespace ReciclaYa.Application;
 
@@ -22,6 +25,9 @@ public static class DependencyInjection
         services.AddScoped<IDashboardService, DashboardService>();
         services.AddScoped<IPurchasePreferenceService, PurchasePreferenceService>();
         services.AddScoped<IPreOrderService, PreOrderService>();
+        services.AddScoped<IRecommendationService, RecommendationService>();
+        services.AddScoped<ICommercialRequestService, CommercialRequestService>();
+        services.AddScoped<IMessageService, MessageService>();
 
         return services;
     }

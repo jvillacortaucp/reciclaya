@@ -5,7 +5,7 @@ import { APP_LATENCY_MS } from '../../core/tokens/app.tokens';
 import { RECOMMENDATIONS_MOCK } from '../../../assets/mocks/marketplace.mock';
 
 @Injectable({ providedIn: 'root' })
-export class RecommendationsService {
+export class RecommendationsMockRepository {
   private readonly latency = inject(APP_LATENCY_MS);
 
   list(): Observable<readonly Recommendation[]> {

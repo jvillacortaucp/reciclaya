@@ -33,4 +33,14 @@ public sealed class User
     public ICollection<PurchasePreference> PurchasePreferences { get; set; } = new List<PurchasePreference>();
 
     public ICollection<PreOrder> PreOrders { get; set; } = new List<PreOrder>();
+
+    public ICollection<CommercialRequest> BuyerCommercialRequests { get; set; } = new List<CommercialRequest>();
+
+    public ICollection<CommercialRequest> SellerCommercialRequests { get; set; } = new List<CommercialRequest>();
+
+    public ICollection<MessageThread> BuyerMessageThreads { get; set; } = new List<MessageThread>();
+
+    public ICollection<MessageThread> SellerMessageThreads { get; set; } = new List<MessageThread>();
+
+    public ICollection<Message> SentMessages { get; set; } = new List<Message>();
 }

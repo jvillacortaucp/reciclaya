@@ -4,10 +4,12 @@ import { getErrorMessage } from '../../../core/http/api-response.helpers';
 import { LISTING_DETAIL_MESSAGES } from '../data/listing-detail.constants';
 import { ListingDetailEntity } from '../domain/listing-detail.models';
 import { ListingDetailHttpRepository } from '../infrastructure/listing-detail.http.repository';
+import { RequestsHttpRepository } from '../../requests/requests-http.repository';
 
 @Injectable({ providedIn: 'root' })
 export class ListingDetailFacade {
   private readonly repository = inject(ListingDetailHttpRepository);
+  private readonly requestsRepository = inject(RequestsHttpRepository);
 
   readonly loading = signal(false);
   readonly saving = signal(false);
@@ -56,11 +58,27 @@ export class ListingDetailFacade {
   }
 
   contactSeller(): void {
+    const detail = this.detail();
+    if (!detail) {
+      return;
+    }
+
     this.contacting.set(true);
-    setTimeout(() => {
-      this.contacting.set(false);
-      this.toastMessage.set(LISTING_DETAIL_MESSAGES.contacted);
-    }, 500);
+    this.requestsRepository
+      .create({
+        listingId: detail.id,
+        message: 'Estoy interesado en este lote'
+      })
+      .pipe(
+        catchError((error: unknown) => {
+          this.toastMessage.set(getErrorMessage(error, 'No se pudo enviar la solicitud al vendedor.'));
+          return EMPTY;
+        }),
+        finalize(() => this.contacting.set(false))
+      )
+      .subscribe(() => {
+        this.toastMessage.set(LISTING_DETAIL_MESSAGES.contacted);
+      });
   }
 
   clearToast(): void {

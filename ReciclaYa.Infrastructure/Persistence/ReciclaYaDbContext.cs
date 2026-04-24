@@ -25,6 +25,12 @@ public sealed class ReciclaYaDbContext(DbContextOptions<ReciclaYaDbContext> opti
 
     public DbSet<PreOrder> PreOrders => Set<PreOrder>();
 
+    public DbSet<CommercialRequest> CommercialRequests => Set<CommercialRequest>();
+
+    public DbSet<MessageThread> MessageThreads => Set<MessageThread>();
+
+    public DbSet<Message> Messages => Set<Message>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ReciclaYaDbContext).Assembly);

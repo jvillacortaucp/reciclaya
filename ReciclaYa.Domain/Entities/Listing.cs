@@ -69,4 +69,8 @@ public sealed class Listing
     public ICollection<ListingTechnicalSpec> TechnicalSpecs { get; set; } = new List<ListingTechnicalSpec>();
 
     public ICollection<PreOrder> PreOrders { get; set; } = new List<PreOrder>();
+
+    public ICollection<CommercialRequest> CommercialRequests { get; set; } = new List<CommercialRequest>();
+
+    public ICollection<MessageThread> MessageThreads { get; set; } = new List<MessageThread>();
 }

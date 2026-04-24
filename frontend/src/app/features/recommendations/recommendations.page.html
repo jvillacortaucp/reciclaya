@@ -1,13 +1,19 @@
 <ui-section-header title="Recomendaciones" subtitle="Sugerencias inteligentes segun tus preferencias" />
 @if (loading()) {
   <p class="text-sm text-slate-500">Analizando oportunidades...</p>
+} @else if (errorMessage()) {
+  <div class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+    {{ errorMessage() }}
+  </div>
+} @else if (!hasRecommendations()) {
+  <p class="text-sm text-slate-500">No hay recomendaciones disponibles en este momento.</p>
 } @else {
   <section class="grid gap-3 md:grid-cols-2">
     @for (item of recommendations(); track item.id) {
       <ui-card>
         <h3 class="text-base font-semibold text-slate-900">{{ item.title }}</h3>
         <p class="mt-1 text-sm text-slate-600">{{ item.reason }}</p>
-        <p class="mt-2 text-xs text-primary-700">Confianza: {{ item.confidenceScore * 100 | number: '1.0-0' }}%</p>
+        <p class="mt-2 text-xs text-primary-700">Confianza: {{ toConfidenceLabel(item.confidenceScore) | number: '1.0-0' }}%</p>
       </ui-card>
     }
   </section>
