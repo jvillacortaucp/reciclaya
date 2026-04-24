@@ -17,6 +17,13 @@ export const SIDEBAR_NAV_ITEMS: readonly SidebarNavItem[] = [
     permissions: [PERMISSIONS.MANAGE_WASTE]
   },
   {
+    label: 'Preferencias',
+    group: 'Marketplace',
+    icon: 'sliders-horizontal',
+    route: APP_ROUTES.preferences,
+    permissions: [PERMISSIONS.MANAGE_PREFERENCES]
+  },
+  {
     label: 'Mis publicaciones',
     group: 'Marketplace',
     icon: 'store',

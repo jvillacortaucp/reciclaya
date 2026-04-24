@@ -10,6 +10,7 @@ import {
   LucidePackagePlus,
   LucideSearch,
   LucideSettings,
+  LucideSlidersHorizontal,
   LucideSparkles,
   LucideStore
 } from '@lucide/angular';
@@ -30,6 +31,7 @@ import { SIDEBAR_NAV_ITEMS } from '../../constants/sidebar-nav.constants';
     LucideCircleUserRound,
     LucideLayoutDashboard,
     LucidePackagePlus,
+    LucideSlidersHorizontal,
     LucideStore,
     LucideClipboardList,
     LucideMessageSquare,
