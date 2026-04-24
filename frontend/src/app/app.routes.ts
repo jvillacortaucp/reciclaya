@@ -30,6 +30,11 @@ export const appRoutes: AppRoute[] = [
           import('./features/my-listings/my-listings.routes').then((m) => m.MY_LISTINGS_ROUTES)
       },
       {
+        path: 'my-posts',
+        pathMatch: 'full',
+        redirectTo: 'my-listings'
+      },
+      {
         path: 'requests',
         loadChildren: () => import('./features/requests/requests.routes').then((m) => m.REQUESTS_ROUTES)
       },

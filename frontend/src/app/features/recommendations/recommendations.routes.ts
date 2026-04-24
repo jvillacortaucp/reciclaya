@@ -6,8 +6,8 @@ export const RECOMMENDATIONS_ROUTES: Route[] = [
     loadComponent: () => import('./recommendations.page').then((m) => m.RecommendationsPageComponent),
     data: {
       meta: {
-        title: 'Recomendaciones',
-        breadcrumb: 'Recomendaciones',
+        title: 'Sector de valor',
+        breadcrumb: 'Sector de valor',
         icon: 'sparkles',
         permissions: ['view:recommendations']
       }

@@ -1,0 +1,106 @@
+<header class="mb-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+  <div class="min-w-0">
+    <h2 class="text-2xl font-semibold text-slate-900">{{ copy.title }}</h2>
+    <p class="max-w-3xl text-sm text-slate-500">{{ copy.subtitle }}</p>
+  </div>
+
+  <div class="flex flex-wrap items-center gap-2 lg:justify-end">
+    <button
+      type="button"
+      class="inline-flex h-10 items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-4 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-100"
+      [routerLink]="['/app/recommendations']"
+    >
+      <svg lucideSparkles size="16"></svg>
+      {{ copy.recommendations }}
+    </button>
+
+    <button
+      type="button"
+      class="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+      (click)="toggleFilters()"
+      [attr.aria-expanded]="filtersOpen()"
+    >
+      <svg lucideFilter size="16"></svg>
+      {{ copy.filters }}
+    </button>
+
+    <a
+      [routerLink]="['/app/waste-sell']"
+      class="inline-flex h-10 items-center gap-2 rounded-xl border border-transparent bg-emerald-600 px-4 text-sm font-semibold text-white transition hover:bg-emerald-700"
+    >
+      <svg lucidePlusCircle size="16"></svg>
+      {{ copy.publishListing }}
+    </a>
+  </div>
+</header>
+
+@if (toast(); as message) {
+  <button
+    type="button"
+    class="mb-4 inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700"
+    animate.enter="fade-in"
+    (click)="dismissToast()"
+  >
+    <svg lucideInfo size="16"></svg>
+    {{ message.message }}
+  </button>
+}
+
+<app-my-listings-filters
+  [form]="filtersForm"
+  [open]="filtersOpen()"
+  [residueTypeOptions]="residueTypeOptions"
+  [sectorOptions]="sectorOptions"
+  [productOptions]="productOptions"
+  [statusOptions]="statusOptions"
+  [exchangeOptions]="exchangeOptions"
+  (clearFilters)="clearFilters()"
+/>
+
+<section class="mt-8">
+  <div class="mb-4 border-b border-slate-200">
+    <div class="flex flex-wrap gap-2 md:gap-4">
+      @for (tab of tabOptions; track tab.value) {
+        <button
+          type="button"
+          class="inline-flex h-10 items-center border-b-2 px-4 text-base font-semibold transition"
+          [class.border-emerald-500]="activeTab() === tab.value"
+          [class.text-emerald-700]="activeTab() === tab.value"
+          [class.border-transparent]="activeTab() !== tab.value"
+          [class.text-slate-500]="activeTab() !== tab.value"
+          [class.hover:text-slate-700]="activeTab() !== tab.value"
+          (click)="setTab(tab.value)"
+        >
+          {{ tab.label }}
+          @if (tab.value === 'active') { ({{ counts().active }}) }
+          @if (tab.value === 'draft') { ({{ counts().draft }}) }
+          @if (tab.value === 'inactive') { ({{ counts().inactive }}) }
+        </button>
+      }
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="py-10 text-sm text-slate-500">
+      <span class="inline-flex items-center gap-2">
+        <svg lucideLoaderCircle size="16" class="animate-spin"></svg>
+        Cargando publicaciones...
+      </span>
+    </div>
+  } @else if (isEmpty()) {
+    <ui-empty-state title="Sin resultados" [description]="copy.noResults" />
+  } @else {
+    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      @for (item of listings(); track item.id) {
+        <app-my-listing-card
+          [listing]="item"
+          (edit)="editListing($event)"
+          (deactivate)="deactivateListing($event)"
+          (restore)="restoreListing($event)"
+        />
+      }
+    </div>
+  }
+</section>
+
+<app-floating-actions [actions]="floatingActions" (actionSelected)="onFloatingAction($event)" />

@@ -52,6 +52,15 @@ export const SIDEBAR_NAV_ITEMS: readonly SidebarNavItem[] = [
     permissions: [PERMISSIONS.VIEW_REQUESTS]
   },
   {
+    label: 'Recomendaciones',
+    group: 'Intelligence',
+    icon: 'sparkles',
+    route: APP_ROUTES.recommendations,
+    activePaths: [APP_ROUTES.recommendations],
+    exact: false,
+    permissions: [PERMISSIONS.VIEW_RECOMMENDATIONS]
+  },
+  {
     label: 'Mensajes',
     group: 'Intelligence',
     icon: 'messages',
