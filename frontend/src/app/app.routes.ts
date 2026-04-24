@@ -70,6 +70,11 @@ export const appRoutes: AppRoute[] = [
           import('./features/value-sector/value-sector.routes').then((m) => m.VALUE_SECTOR_ROUTES)
       },
       {
+        path: 'recommendations',
+        loadChildren: () =>
+          import('./features/recommendations/recommendations.routes').then((m) => m.RECOMMENDATIONS_ROUTES)
+      },
+      {
         path: 'messages',
         loadChildren: () => import('./features/messages/messages.routes').then((m) => m.MESSAGES_ROUTES)
       },
