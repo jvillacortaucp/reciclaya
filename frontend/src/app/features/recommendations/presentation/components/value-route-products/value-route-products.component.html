@@ -1,36 +1,48 @@
 <div class="rounded-2xl bg-slate-50 p-4 sm:p-5">
   <p class="mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Productos sugeridos</p>
-  <div class="flex flex-wrap gap-3">
+  <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
     @for (product of products(); track product.id) {
       <button
         type="button"
-        class="inline-flex min-h-12 items-center gap-2 rounded-xl border px-4 py-3 text-left text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-300"
+        class="group rounded-2xl border p-4 text-left transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-emerald-300"
         [class.border-emerald-500]="selectedProductId() === product.id"
         [class.bg-emerald-50]="selectedProductId() === product.id"
-        [class.text-emerald-800]="selectedProductId() === product.id"
         [class.shadow-sm]="selectedProductId() === product.id"
         [class.border-slate-200]="selectedProductId() !== product.id"
         [class.bg-white]="selectedProductId() !== product.id"
-        [class.text-slate-700]="selectedProductId() !== product.id"
         [class.hover:border-emerald-300]="selectedProductId() !== product.id"
         (click)="onSelectProduct(product.id)">
-        <span class="text-emerald-600">
-          @switch (product.icon) {
-            @case ('leaf') { <svg lucideLeaf class="h-4 w-4"></svg> }
-            @case ('cookie') { <svg lucideCookie class="h-4 w-4"></svg> }
-            @case ('sparkles') { <svg lucideSparkles class="h-4 w-4"></svg> }
-            @case ('droplets') { <svg lucideDroplets class="h-4 w-4"></svg> }
-            @case ('pill') { <svg lucidePill class="h-4 w-4"></svg> }
-            @case ('microscope') { <svg lucideMicroscope class="h-4 w-4"></svg> }
-            @case ('zap') { <svg lucideZap class="h-4 w-4"></svg> }
-            @case ('beaker') { <svg lucideBeaker class="h-4 w-4"></svg> }
-            @default { <svg lucidePackage class="h-4 w-4"></svg> }
+        <div class="flex items-start justify-between gap-3">
+          <div class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-500 group-hover:text-emerald-600">
+            @switch (product.iconName) {
+              @case ('leaf') { <svg lucideLeaf class="h-4 w-4"></svg> }
+              @case ('cookie') { <svg lucideCookie class="h-4 w-4"></svg> }
+              @case ('sparkles') { <svg lucideSparkles class="h-4 w-4"></svg> }
+              @case ('droplets') { <svg lucideDroplets class="h-4 w-4"></svg> }
+              @case ('pill') { <svg lucidePill class="h-4 w-4"></svg> }
+              @case ('microscope') { <svg lucideMicroscope class="h-4 w-4"></svg> }
+              @case ('zap') { <svg lucideZap class="h-4 w-4"></svg> }
+              @case ('beaker') { <svg lucideBeaker class="h-4 w-4"></svg> }
+              @case ('factory') { <svg lucideFactory class="h-4 w-4"></svg> }
+              @default { <svg lucidePackage class="h-4 w-4"></svg> }
+            }
+          </div>
+          @if (selectedProductId() === product.id) {
+            <svg lucideCheckCircle2 class="h-5 w-5 text-emerald-600"></svg>
           }
-        </span>
-        <span>{{ product.name }}</span>
-        @if (selectedProductId() === product.id) {
-          <svg lucideCheckCircle2 class="ml-1 h-4 w-4 text-emerald-600"></svg>
-        }
+        </div>
+
+        <h4 class="mt-3 text-base font-semibold text-slate-900">{{ product.name }}</h4>
+        <p class="mt-1 line-clamp-2 text-sm leading-relaxed text-slate-600">{{ product.description }}</p>
+
+        <div class="mt-3 flex flex-wrap items-center gap-2">
+          <span class="rounded-full px-2.5 py-1 text-xs font-semibold" [class]="complexityStyles[product.complexity]">
+            Complejidad {{ complexityLabel[product.complexity] }}
+          </span>
+          <span class="rounded-full px-2.5 py-1 text-xs font-semibold" [class]="potentialStyles[product.marketPotential]">
+            Potencial {{ potentialLabel[product.marketPotential] }}
+          </span>
+        </div>
       </button>
     }
   </div>

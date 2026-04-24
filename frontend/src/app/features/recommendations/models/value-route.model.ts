@@ -1,8 +1,21 @@
-export type ValueRouteComplexity = 'baja' | 'media' | 'alta';
+export type ComplexityLevel = 'low' | 'medium' | 'high';
 
-export type ValueRoutePotential = 'medio' | 'alto' | 'muy-alto';
+export type MarketPotential = 'low' | 'medium' | 'high';
 
-export type ValueRouteProductIcon =
+export type ValueRouteIconName =
+  | 'utensils'
+  | 'sparkles'
+  | 'pill'
+  | 'sprout'
+  | 'flame'
+  | 'microscope'
+  | 'flask-conical'
+  | 'droplets'
+  | 'hammer'
+  | 'package'
+  | 'store';
+
+export type ValueRouteProductIconName =
   | 'leaf'
   | 'cookie'
   | 'sparkles'
@@ -11,41 +24,46 @@ export type ValueRouteProductIcon =
   | 'microscope'
   | 'zap'
   | 'package'
-  | 'beaker';
+  | 'beaker'
+  | 'factory';
 
 export interface ValueRouteProduct {
   readonly id: string;
   readonly name: string;
-  readonly icon: ValueRouteProductIcon;
-  readonly shortDescription: string;
+  readonly description: string;
+  readonly complexity: ComplexityLevel;
+  readonly marketPotential: MarketPotential;
+  readonly potentialUse: string;
+  readonly iconName: ValueRouteProductIconName;
 }
 
 export interface ValueRoute {
   readonly id: string;
-  readonly name: string;
-  readonly description: string;
-  readonly icon:
-    | 'utensils'
-    | 'sparkles'
-    | 'pill'
-    | 'microscope'
-    | 'zap'
-    | 'package';
-  readonly complexity: ValueRouteComplexity;
-  readonly potential: ValueRoutePotential;
-  readonly products: readonly ValueRouteProduct[];
+  readonly routeName: string;
+  readonly shortDescription: string;
+  readonly iconName: ValueRouteIconName;
+  readonly marketPotential: MarketPotential;
   readonly targetIndustries: readonly string[];
-  readonly valueInsight: string;
+  readonly products: readonly ValueRouteProduct[];
+  readonly insight: string;
   readonly heroImageUrl: string;
-  readonly displayOrder: number;
+}
+
+export interface ValueRoutesPageResponse {
+  readonly items: readonly ValueRoute[];
+  readonly page: number;
+  readonly pageSize: number;
+  readonly total: number;
+  readonly hasMore: boolean;
 }
 
 export interface ValueRouteSelectionSummary {
   readonly routeName: string;
   readonly productName: string;
-  readonly complexity: ValueRouteComplexity;
-  readonly potential: ValueRoutePotential;
+  readonly complexity: ComplexityLevel;
+  readonly potential: MarketPotential;
   readonly targetIndustries: readonly string[];
   readonly insight: string;
   readonly imageUrl: string;
+  readonly potentialUse: string;
 }
