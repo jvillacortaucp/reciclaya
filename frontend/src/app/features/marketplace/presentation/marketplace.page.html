@@ -1,31 +1,86 @@
-<ui-section-header title="Marketplace Circular" subtitle="Descubre residuos y subproductos disponibles" />
+<div class="mb-4 flex flex-wrap items-center justify-end gap-2">
+  <button
+    type="button"
+    class="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+    (click)="saveSearch()"
+  >
+    <svg lucideBookmark size="16"></svg>
+    {{ copy.saveSearch }}
+  </button>
+  <button
+    type="button"
+    class="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+    (click)="clearFilters()"
+  >
+    <svg lucideRefreshCcw size="16"></svg>
+    {{ copy.clearFilters }}
+  </button>
+  <button
+    type="button"
+    class="inline-flex items-center gap-2 rounded-xl border border-transparent bg-emerald-700 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-800"
+  >
+    <svg lucidePlus size="16"></svg>
+    {{ copy.publishListing }}
+  </button>
+</div>
 
-<section class="mb-4 flex flex-wrap gap-2">
-  <ui-filter-chip label="PET" [active]="true" />
-  <ui-filter-chip label="Organico" />
-  <ui-filter-chip label="Textil" />
-  <ui-filter-chip label="Metales" />
+<ui-section-header [title]="copy.title" [subtitle]="copy.subtitle" />
+
+@if (toastMessage()) {
+  <div class="mb-4 inline-flex cursor-pointer items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700" (click)="dismissToast()" animate.enter="fade-in">
+    <svg lucideInfo size="16"></svg>
+    <span>{{ toastMessage() }}</span>
+  </div>
+}
+
+<app-marketplace-filters
+  [form]="filtersForm"
+  [wasteTypeOptions]="wasteTypeOptions"
+  [sectorOptions]="sectorOptions"
+  [exchangeOptions]="exchangeOptions"
+  [sortOptions]="sortOptions"
+  [selectedSort]="sortValue().sortBy"
+  [chips]="chips()"
+  (removeChip)="removeChip($event)"
+  (sortChange)="setSort($event)"
+  class="block"
+/>
+
+<section class="mt-7">
+  <header class="mb-4 flex items-center justify-between gap-2">
+    <h3 class="text-3xl font-semibold text-slate-900">Recomendados para ti</h3>
+    <a class="text-sm font-semibold text-emerald-700 hover:text-emerald-800" href="#">Ver todos</a>
+  </header>
+  <div class="grid gap-4 lg:grid-cols-3">
+    @for (item of recommendedListings(); track item.id) {
+      <app-recommended-listing-card [listing]="item" />
+    }
+  </div>
 </section>
 
-@if (loading()) {
-  <p class="text-sm text-slate-500">Cargando listados...</p>
-} @else if (!listings().length) {
-  <ui-empty-state title="Sin resultados" description="Aun no hay residuos publicados para tus filtros." />
-} @else {
-  <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-    @for (listing of listings(); track listing.id) {
-      <ui-card>
-        <div class="flex items-start justify-between gap-2">
-          <h3 class="text-base font-semibold text-slate-900">{{ listing.title }}</h3>
-          <ui-badge [text]="listing.category" status="info" />
-        </div>
-        <p class="mt-2 text-sm text-slate-600">{{ listing.description }}</p>
-        <p class="mt-3 text-sm text-slate-500">{{ listing.volume.amount }} {{ listing.volume.unit }} · {{ listing.sellerName }}</p>
-        <div class="mt-4 flex items-center justify-between">
-          <strong class="text-primary-700">{{ listing.currency }} {{ listing.pricePerUnit }}</strong>
-          <a [routerLink]="['/app/marketplace', listing.id]" class="inline-flex rounded-xl bg-slate-900 px-3 py-2 text-sm text-white hover:bg-slate-800">Ver detalle</a>
-        </div>
-      </ui-card>
-    }
-  </section>
-}
+<section class="mt-9">
+  <header class="mb-4">
+    <h3 class="text-3xl font-semibold text-slate-900">Todos los resultados</h3>
+  </header>
+
+  @if (loading()) {
+    <p class="text-sm text-slate-500">Cargando listados...</p>
+  } @else if (isDatasetEmpty()) {
+    <ui-empty-state title="Marketplace vacío" [description]="messages.noData" />
+  } @else if (isEmpty()) {
+    <ui-empty-state title="Sin resultados" [description]="messages.noResults" />
+  } @else {
+    <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      @for (listing of pagedListings(); track listing.id) {
+        <app-marketplace-product-card [listing]="listing" />
+      }
+    </div>
+
+    <app-marketplace-pagination
+      [currentPage]="currentPage()"
+      [totalPages]="totalPages()"
+      (pageChange)="changePage($event)"
+    />
+  }
+</section>
+
