@@ -3,27 +3,33 @@ import { finalize } from 'rxjs';
 import { ValueRoutesMockRepository } from '../infrastructure/value-routes.mock.repository';
 import { ValueRoute, ValueRouteSelectionSummary } from '../models/value-route.model';
 
+const PAGE_SIZE = 4;
+
 @Injectable()
 export class ValueRoutesFacade {
   private readonly repository = inject(ValueRoutesMockRepository);
 
-  readonly loading = signal(false);
-  readonly routes = signal<readonly ValueRoute[]>([]);
+  readonly items = signal<readonly ValueRoute[]>([]);
+  readonly page = signal(0);
+  readonly pageSize = signal(PAGE_SIZE);
+  readonly hasMore = signal(true);
+  readonly isInitialLoading = signal(false);
+  readonly isLoadingMore = signal(false);
+
   readonly selectedRouteId = signal<string | null>(null);
   readonly selectedProductId = signal<string | null>(null);
   readonly expandedRouteId = signal<string | null>(null);
 
   readonly selectedRoute = computed(() =>
-    this.routes().find((route) => route.id === this.selectedRouteId()) ?? null
+    this.items().find((route) => route.id === this.selectedRouteId()) ?? null
   );
 
   readonly selectedProduct = computed(() => {
-    const currentRoute = this.selectedRoute();
-    if (!currentRoute) {
+    const route = this.selectedRoute();
+    if (!route) {
       return null;
     }
-
-    return currentRoute.products.find((product) => product.id === this.selectedProductId()) ?? null;
+    return route.products.find((product) => product.id === this.selectedProductId()) ?? null;
   });
 
   readonly summary = computed<ValueRouteSelectionSummary | null>(() => {
@@ -34,61 +40,66 @@ export class ValueRoutesFacade {
     }
 
     return {
-      routeName: route.name,
+      routeName: route.routeName,
       productName: product.name,
-      complexity: route.complexity,
-      potential: route.potential,
+      complexity: product.complexity,
+      potential: product.marketPotential,
       targetIndustries: route.targetIndustries,
-      insight: route.valueInsight,
-      imageUrl: route.heroImageUrl
+      insight: route.insight,
+      imageUrl: route.heroImageUrl,
+      potentialUse: product.potentialUse
     };
   });
 
   readonly completion = computed(() => {
-    let value = 0;
+    let total = 0;
     if (this.selectedRoute()) {
-      value += 50;
+      total += 50;
     }
     if (this.selectedProduct()) {
-      value += 50;
+      total += 50;
     }
-    return value;
+    return total;
   });
 
-  loadRoutes(): void {
-    this.loading.set(true);
-    this.repository
-      .listByResidue()
-      .pipe(finalize(() => this.loading.set(false)))
-      .subscribe((routes) => {
-        this.routes.set(routes);
-        const firstRoute = routes[0];
-        if (!firstRoute) {
-          this.selectedRouteId.set(null);
-          this.selectedProductId.set(null);
-          this.expandedRouteId.set(null);
-          return;
-        }
-
-        this.selectedRouteId.set(firstRoute.id);
-        this.expandedRouteId.set(firstRoute.id);
-        this.selectedProductId.set(firstRoute.products[0]?.id ?? null);
-      });
+  loadInitial(): void {
+    this.items.set([]);
+    this.page.set(0);
+    this.hasMore.set(true);
+    this.selectedRouteId.set(null);
+    this.selectedProductId.set(null);
+    this.expandedRouteId.set(null);
+    this.isInitialLoading.set(true);
+    this.loadPage(1, true);
   }
 
-  selectRoute(routeId: string): void {
-    const route = this.routes().find((item) => item.id === routeId);
+  loadMore(): void {
+    if (!this.hasMore() || this.isInitialLoading() || this.isLoadingMore()) {
+      return;
+    }
+    this.isLoadingMore.set(true);
+    this.loadPage(this.page() + 1, false);
+  }
+
+  toggleExpandedRoute(routeId: string): void {
+    const currentExpanded = this.expandedRouteId();
+    if (currentExpanded === routeId) {
+      this.expandedRouteId.set(null);
+      return;
+    }
+
+    const route = this.items().find((item) => item.id === routeId);
     if (!route) {
       return;
     }
 
-    this.selectedRouteId.set(route.id);
-    this.expandedRouteId.set(route.id);
+    this.expandedRouteId.set(routeId);
+    this.selectedRouteId.set(routeId);
     this.selectedProductId.set(route.products[0]?.id ?? null);
   }
 
   selectProduct(routeId: string, productId: string): void {
-    const route = this.routes().find((item) => item.id === routeId);
+    const route = this.items().find((item) => item.id === routeId);
     if (!route) {
       return;
     }
@@ -101,5 +112,34 @@ export class ValueRoutesFacade {
     this.selectedRouteId.set(routeId);
     this.expandedRouteId.set(routeId);
     this.selectedProductId.set(productId);
+  }
+
+  private loadPage(page: number, isInitial: boolean): void {
+    this.repository
+      .listByResidue({ page, pageSize: this.pageSize() })
+      .pipe(
+        finalize(() => {
+          if (isInitial) {
+            this.isInitialLoading.set(false);
+          } else {
+            this.isLoadingMore.set(false);
+          }
+        })
+      )
+      .subscribe((response) => {
+        this.page.set(response.page);
+        this.hasMore.set(response.hasMore);
+        this.items.update((current) => [...current, ...response.items]);
+
+        const hasSelection = this.selectedRouteId() && this.selectedProductId();
+        if (!hasSelection) {
+          const route = response.items[0];
+          if (route) {
+            this.selectedRouteId.set(route.id);
+            this.selectedProductId.set(route.products[0]?.id ?? null);
+            this.expandedRouteId.set(route.id);
+          }
+        }
+      });
   }
 }

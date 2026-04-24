@@ -1,30 +1,43 @@
-import { ValueRouteComplexity, ValueRoutePotential } from '../models/value-route.model';
+import { ComplexityLevel, MarketPotential } from '../models/value-route.model';
 
 export const VALUE_ROUTE_TEXT = {
-  title: 'Sector de valor',
+  title: 'Ruta de valor',
   subtitle: 'Explora posibles productos y oportunidades generadas a partir de este residuo.',
   baseResidueLabel: 'Residuo base: Cáscara de mango',
   helperLabel: 'Selecciona una ruta y un producto',
-  intro:
-    'Explora posibles productos y oportunidades generadas a partir de este residuo. El sistema ha identificado 6 rutas óptimas basadas en viabilidad técnica.',
+  secondaryHint: 'Selecciona una ruta y un producto para continuar con el análisis.',
   suggestedProductsTitle: 'Productos sugeridos',
   summaryTitle: 'Resumen de Selección',
   summaryRouteDetails: 'Detalles de la ruta',
   targetIndustriesTitle: 'Industrias objetivo',
-  insightTitle: 'Insight de valor',
-  continueButton: 'Continuar análisis',
+  insightTitle: 'Recomendación rápida',
+  continueButton: 'Continuar',
   processButton: 'Ver proceso',
-  marketAnalysisLink: 'Ver análisis de mercado'
+  marketAnalysisLink: 'Ver análisis de mercado',
+  loadMoreMessage: 'Cargando más rutas...',
+  noMoreMessage: 'No hay más rutas por mostrar.'
 } as const;
 
-export const VALUE_ROUTE_COMPLEXITY_LABEL: Readonly<Record<ValueRouteComplexity, string>> = {
-  baja: 'Baja',
-  media: 'Media',
-  alta: 'Alta'
+export const VALUE_ROUTE_COMPLEXITY_LABEL: Readonly<Record<ComplexityLevel, string>> = {
+  low: 'Baja',
+  medium: 'Media',
+  high: 'Alta'
 };
 
-export const VALUE_ROUTE_POTENTIAL_LABEL: Readonly<Record<ValueRoutePotential, string>> = {
-  medio: 'Medio',
-  alto: 'Alto',
-  'muy-alto': 'Muy alto'
+export const VALUE_ROUTE_COMPLEXITY_STYLES: Readonly<Record<ComplexityLevel, string>> = {
+  low: 'bg-emerald-100 text-emerald-700 border border-emerald-200',
+  medium: 'bg-indigo-100 text-indigo-700 border border-indigo-200',
+  high: 'bg-rose-100 text-rose-700 border border-rose-200'
+};
+
+export const VALUE_ROUTE_POTENTIAL_LABEL: Readonly<Record<MarketPotential, string>> = {
+  low: 'Bajo',
+  medium: 'Medio',
+  high: 'Alto'
+};
+
+export const VALUE_ROUTE_POTENTIAL_STYLES: Readonly<Record<MarketPotential, string>> = {
+  low: 'bg-slate-100 text-slate-600 border border-slate-200',
+  medium: 'bg-amber-100 text-amber-700 border border-amber-200',
+  high: 'bg-emerald-100 text-emerald-700 border border-emerald-200'
 };

@@ -1,30 +1,42 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { NgClass } from '@angular/common';
 import {
-  LucideArrowRight,
+  LucideChevronDown,
+  LucideChevronUp,
+  LucideDroplets,
+  LucideFlame,
+  LucideFlaskConical,
+  LucideHammer,
   LucideMicroscope,
   LucidePackage,
   LucidePill,
   LucideSparkles,
-  LucideUtensils,
-  LucideZap
+  LucideSprout,
+  LucideStore,
+  LucideUtensils
 } from '@lucide/angular';
 import { VALUE_ROUTE_POTENTIAL_LABEL } from '../../../data/value-route.constants';
 import { ValueRoute } from '../../../models/value-route.model';
-import { ValueRouteComplexityBadgeComponent } from '../value-route-complexity-badge/value-route-complexity-badge.component';
 import { ValueRouteProductsComponent } from '../value-route-products/value-route-products.component';
 
 @Component({
   selector: 'app-value-route-card',
   standalone: true,
   imports: [
+    NgClass,
     LucideUtensils,
     LucideSparkles,
     LucidePill,
+    LucideSprout,
+    LucideFlame,
     LucideMicroscope,
-    LucideZap,
+    LucideFlaskConical,
+    LucideDroplets,
+    LucideHammer,
     LucidePackage,
-    LucideArrowRight,
-    ValueRouteComplexityBadgeComponent,
+    LucideStore,
+    LucideChevronDown,
+    LucideChevronUp,
     ValueRouteProductsComponent
   ],
   templateUrl: './value-route-card.component.html',
@@ -36,13 +48,13 @@ export class ValueRouteCardComponent {
   selected = input<boolean>(false);
   selectedProductId = input<string | null>(null);
 
-  routeSelected = output<string>();
+  routeToggled = output<string>();
   productSelected = output<{ routeId: string; productId: string }>();
 
   protected readonly potentialLabel = VALUE_ROUTE_POTENTIAL_LABEL;
 
-  onSelectRoute(): void {
-    this.routeSelected.emit(this.route().id);
+  onToggleRoute(): void {
+    this.routeToggled.emit(this.route().id);
   }
 
   onSelectProduct(productId: string): void {

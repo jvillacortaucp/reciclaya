@@ -1,12 +1,13 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import {
   LucideExternalLink,
-  LucideEye,
-  LucideInfo
+  LucideEye
 } from '@lucide/angular';
 import {
+  VALUE_ROUTE_COMPLEXITY_STYLES,
   VALUE_ROUTE_COMPLEXITY_LABEL,
   VALUE_ROUTE_POTENTIAL_LABEL,
+  VALUE_ROUTE_POTENTIAL_STYLES,
   VALUE_ROUTE_TEXT
 } from '../../../data/value-route.constants';
 import { ValueRouteSelectionSummary } from '../../../models/value-route.model';
@@ -14,7 +15,7 @@ import { ValueRouteSelectionSummary } from '../../../models/value-route.model';
 @Component({
   selector: 'app-value-route-summary',
   standalone: true,
-  imports: [LucideInfo, LucideEye, LucideExternalLink],
+  imports: [LucideEye, LucideExternalLink],
   templateUrl: './value-route-summary.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -39,4 +40,7 @@ export class ValueRouteSummaryComponent {
     }
     return VALUE_ROUTE_COMPLEXITY_LABEL[selected.complexity];
   });
+
+  protected readonly complexityStyles = VALUE_ROUTE_COMPLEXITY_STYLES;
+  protected readonly potentialStyles = VALUE_ROUTE_POTENTIAL_STYLES;
 }
