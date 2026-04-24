@@ -1,14 +1,14 @@
 import { AccountType, AccountTypeOption, IntentOption, RegistrationIntent, RegisterStepItem } from '../domain/register.models';
 
 export const REGISTER_PAGE_COPY = {
-  badge: 'Onboarding circular inteligente',
-  title: 'Crea tu cuenta empresarial en minutos',
+  badge: 'Registro de Empresa',
+  title: 'Inicia el registro de tu organización',
   subtitle:
-    'Elige tu perfil y completa solo la informacion necesaria para operar en el marketplace de residuos y subproductos.',
-  loginPrompt: 'Ya tienes cuenta?',
-  loginCta: 'Inicia sesion',
-  createAccountLabel: 'Crear cuenta',
-  continueLabel: 'Continuar',
+    'Inicie la transformación sostenible de su cadena de suministro completando los datos básicos de su empresa.',
+  loginPrompt: '¿Ya tiene una cuenta?',
+  loginCta: 'Inicie sesión aquí',
+  createAccountLabel: 'Finalizar registro',
+  continueLabel: 'Siguiente',
   backLabel: 'Volver'
 } as const;
 
@@ -53,13 +53,13 @@ export const INTENT_OPTIONS: readonly IntentOption[] = [
 export const COMPANY_REGISTER_STEPS: readonly RegisterStepItem[] = [
   {
     index: 0,
-    title: 'Company data',
-    subtitle: 'Identificacion y contacto legal'
+    title: 'Registro Inicial',
+    subtitle: 'Datos básicos y contacto'
   },
   {
     index: 1,
-    title: 'Intent + credentials',
-    subtitle: 'Objetivo comercial y acceso seguro'
+    title: 'Objetivo y Acceso',
+    subtitle: 'Propósito y credenciales'
   }
 ];
 

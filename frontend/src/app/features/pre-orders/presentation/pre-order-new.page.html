@@ -1,8 +1,139 @@
-<ui-section-header title="Nueva pre-orden" subtitle="Confirma volumen, fecha y metodo de pago" />
-<form class="grid max-w-2xl gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-soft" [formGroup]="form" (ngSubmit)="submit()">
-  <p class="text-sm text-slate-600">Listing objetivo: {{ listingId }}</p>
-  <label class="grid gap-1 text-sm"><span>Cantidad</span><input type="number" formControlName="quantity" class="rounded-xl border border-slate-300 px-3 py-2" /></label>
-  <label class="grid gap-1 text-sm"><span>Fecha deseada</span><input type="date" formControlName="desiredDate" class="rounded-xl border border-slate-300 px-3 py-2" /></label>
-  <label class="grid gap-1 text-sm"><span>Metodo de pago</span><select formControlName="paymentMethod" class="rounded-xl border border-slate-300 px-3 py-2"><option value="transfer">Transferencia</option><option value="cash">Contado</option><option value="credit">Credito</option></select></label>
-  <button type="submit" class="rounded-xl bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700">Enviar pre-orden</button>
-</form>
+<ui-section-header
+  title="Realizar Pre-Orden"
+  subtitle="Confirma los detalles técnicos y económicos antes de proceder con el pedido."
+>
+  <button
+    type="button"
+    (click)="goBack()"
+    class="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+  >
+    Cancelar
+  </button>
+</ui-section-header>
+
+<div class="grid gap-8 lg:grid-cols-3">
+  <!-- Main Form -->
+  <div class="lg:col-span-2">
+    <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-6">
+      <!-- Volume and Date -->
+      <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h3 class="flex items-center gap-2 text-lg font-semibold text-slate-900">
+          <svg lucideCalendarDays class="h-5 w-5 text-emerald-600"></svg>
+          Logística y Volumen
+        </h3>
+        <div class="mt-4 grid gap-4 sm:grid-cols-2">
+          <div class="grid gap-1.5">
+            <label for="quantity" class="text-sm font-medium text-slate-700">Cantidad a solicitar (Toneladas)</label>
+            <input
+              id="quantity"
+              type="number"
+              formControlName="quantity"
+              class="rounded-xl border border-slate-300 px-4 py-2.5 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10"
+              placeholder="Ej. 10"
+            />
+          </div>
+          <div class="grid gap-1.5">
+            <label for="desiredDate" class="text-sm font-medium text-slate-700">Fecha estimada de llegada (ETA)</label>
+            <div class="relative">
+              <input
+                id="desiredDate"
+                type="date"
+                formControlName="desiredDate"
+                class="w-full rounded-xl border border-slate-300 px-4 py-2.5 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-4">
+          <label class="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              formControlName="reserveStock"
+              class="h-5 w-5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+            />
+            <span class="text-sm text-slate-600">Deseo reservar el stock por 48 horas (Sujeto a aprobación)</span>
+          </label>
+        </div>
+      </section>
+
+      <!-- Payment Method -->
+      <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h3 class="flex items-center gap-2 text-lg font-semibold text-slate-900">
+          <svg lucideSettings class="h-5 w-5 text-emerald-600"></svg>
+          Método de Pago Preferido
+        </h3>
+        <div class="mt-4">
+          <app-payment-method-selector
+            [methods]="(screenState()?.paymentMethods) ?? []"
+            [selectedType]="selectedPaymentMethod"
+            (select)="selectPayment($event)"
+          />
+        </div>
+        <p class="mt-3 flex items-center gap-2 text-xs text-slate-500">
+          <svg lucideCircleAlert class="h-4 w-4"></svg>
+          El método de pago es referencial. Se confirmará tras la validación comercial.
+        </p>
+      </section>
+
+      <!-- Additional Notes -->
+      <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h3 class="flex items-center gap-2 text-lg font-semibold text-slate-900">
+          <svg lucideFileClock class="h-5 w-5 text-emerald-600"></svg>
+          Notas Adicionales
+        </h3>
+        <div class="mt-4">
+          <textarea
+            formControlName="notes"
+            rows="3"
+            class="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10"
+            placeholder="Especificaciones de embalaje, horario de recepción, etc."
+          ></textarea>
+        </div>
+      </section>
+
+      <!-- Submit Actions -->
+      <div class="flex items-center gap-4 pt-2">
+        <button
+          type="submit"
+          [disabled]="form.invalid || (summaryLoading())"
+          class="flex flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-6 py-4 text-lg font-bold text-white transition hover:bg-emerald-700 disabled:opacity-50"
+        >
+          <svg lucideSave class="h-5 w-5"></svg>
+          Enviar Pre-Orden
+        </button>
+        <button
+          type="button"
+          (click)="saveDraft()"
+          class="flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-6 py-4 text-lg font-semibold text-slate-700 transition hover:bg-slate-50"
+        >
+          <svg lucideSquareArrowOutUpRight class="h-5 w-5"></svg>
+          Guardar Borrador
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Economic Summary Sidebar -->
+  <div class="space-y-6">
+    @if (summaryLoading()) {
+      <div class="flex h-64 flex-col items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-slate-50 text-slate-400">
+        <div class="h-8 w-8 animate-spin rounded-full border-4 border-slate-300 border-t-emerald-500"></div>
+        <p class="mt-4 text-sm font-medium">Recalculando totales...</p>
+      </div>
+    } @else {
+      <app-pre-order-economic-summary [summary]="economicSummary()" />
+    }
+
+    <div class="rounded-2xl bg-amber-50 p-4 text-amber-800">
+      <h4 class="flex items-center gap-2 font-bold uppercase tracking-wider text-[10px]">
+        <svg lucideCircleAlert class="h-3 w-3"></svg>
+        Importante
+      </h4>
+      <p class="mt-1 text-xs leading-relaxed">
+        Las pre-ordenes no son vinculantes legalmente hasta que el proveedor acepte y se emita la orden de compra formal.
+      </p>
+    </div>
+  </div>
+</div>
+

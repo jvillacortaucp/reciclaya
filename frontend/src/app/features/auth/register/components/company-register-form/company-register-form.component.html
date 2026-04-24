@@ -1,95 +1,172 @@
-<div class="stepper-row" role="list" aria-label="Progreso de registro de empresa">
+<!-- Stepper Indicator -->
+<div class="stepper-wrapper mb-8" role="list" aria-label="Progreso de registro de empresa">
   @for (step of steps; track step.index) {
-    <div class="step-item" [class.step-item-active]="activeStep() === step.index" role="listitem">
-      <span class="step-index">{{ step.index + 1 }}</span>
-      <div>
-        <p class="step-title">{{ step.title }}</p>
-        <p class="step-subtitle">{{ step.subtitle }}</p>
+    <div class="step-container" [class.step-active]="activeStep() === step.index">
+      <div class="step-circle">{{ step.index + 1 }}</div>
+      <div class="step-info">
+        <p class="step-label">Paso {{ step.index + 1 }}: {{ step.title }}</p>
       </div>
+      @if (step.index < steps.length - 1) {
+        <div class="step-connector" [class.connector-active]="activeStep() > step.index"></div>
+      }
     </div>
   }
 </div>
 
 @if (activeStep() === 0) {
-  <form class="form-grid" [formGroup]="companyForm" animate.enter="page-enter">
-    <label class="field"><span>RUC</span><input class="field-input" formControlName="ruc" /></label>
-    @if (fieldError('company', 'ruc')) { <p class="field-error">{{ fieldError('company', 'ruc') }}</p> }
+  <form class="form-grid space-y-6" [formGroup]="companyForm" animate.enter="page-enter">
+    
+    <div class="section-title flex items-center gap-2 text-slate-800 font-bold text-sm mb-4">
+      <svg lucideBuilding2 size="18" class="text-emerald-500"></svg>
+      Datos de la Empresa
+    </div>
 
-    <label class="field"><span>Business name / Razon social</span><input class="field-input" formControlName="businessName" /></label>
-    @if (fieldError('company', 'businessName')) { <p class="field-error">{{ fieldError('company', 'businessName') }}</p> }
-
-    <div class="two-cols">
-      <div>
-        <label class="field"><span>Mobile phone</span><input class="field-input" formControlName="mobilePhone" /></label>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="field-group">
+        <label for="ruc" class="field-label">RUC</label>
+        <div class="input-wrapper">
+          <input id="ruc" class="field-input" formControlName="ruc" placeholder="11 dígitos" />
+        </div>
+        @if (fieldError('company', 'ruc')) { <p class="field-error">{{ fieldError('company', 'ruc') }}</p> }
+      </div>
+      <div class="field-group">
+        <label for="mobile" class="field-label">Celular</label>
+        <div class="input-wrapper">
+          <input id="mobile" class="field-input text-indent" formControlName="mobilePhone" placeholder="+51 999 999 999" />
+          <svg lucidePhone size="16" class="input-icon-right text-slate-400"></svg>
+        </div>
         @if (fieldError('company', 'mobilePhone')) { <p class="field-error">{{ fieldError('company', 'mobilePhone') }}</p> }
       </div>
-      <div>
-        <label class="field"><span>Postal code</span><input class="field-input" formControlName="postalCode" /></label>
-        @if (fieldError('company', 'postalCode')) { <p class="field-error">{{ fieldError('company', 'postalCode') }}</p> }
-      </div>
     </div>
 
-    <label class="field"><span>Address</span><input class="field-input" formControlName="address" /></label>
-    @if (fieldError('company', 'address')) { <p class="field-error">{{ fieldError('company', 'address') }}</p> }
-
-    <div class="two-cols">
-      <div>
-        <label class="field"><span>Legal representative</span><input class="field-input" formControlName="legalRepresentative" /></label>
-        @if (fieldError('company', 'legalRepresentative')) { <p class="field-error">{{ fieldError('company', 'legalRepresentative') }}</p> }
+    <div class="field-group">
+      <label for="businessName" class="field-label">Razón Social</label>
+      <div class="input-wrapper">
+        <input id="businessName" class="field-input" formControlName="businessName" placeholder="Nombre legal de la empresa" />
       </div>
-      <div>
-        <label class="field"><span>Position / Cargo</span><input class="field-input" formControlName="position" /></label>
-        @if (fieldError('company', 'position')) { <p class="field-error">{{ fieldError('company', 'position') }}</p> }
-      </div>
+      @if (fieldError('company', 'businessName')) { <p class="field-error">{{ fieldError('company', 'businessName') }}</p> }
     </div>
 
-    <div class="actions">
-      <button type="button" class="btn-primary" (click)="goNext()">{{ copy.continueLabel }}</button>
+    <div class="field-group">
+      <label for="address" class="field-label">Dirección Fiscal</label>
+      <div class="input-wrapper">
+        <input id="address" class="field-input pr-10" formControlName="address" placeholder="Av. Principal 123, Distrito" />
+        <svg lucideMapPin size="16" class="input-icon-right text-slate-400"></svg>
+      </div>
+      @if (fieldError('company', 'address')) { <p class="field-error">{{ fieldError('company', 'address') }}</p> }
+    </div>
+
+    <div class="field-group">
+      <label for="postalCode" class="field-label">Código Postal</label>
+      <div class="input-wrapper">
+        <input id="postalCode" class="field-input" formControlName="postalCode" placeholder="Ej. 15001" />
+      </div>
+      @if (fieldError('company', 'postalCode')) { <p class="field-error">{{ fieldError('company', 'postalCode') }}</p> }
+    </div>
+
+    <div class="divider border-t border-slate-100 my-6"></div>
+
+    <div class="section-title flex items-center gap-2 text-slate-800 font-bold text-sm mb-4">
+      <svg lucideUser size="18" class="text-emerald-500"></svg>
+      Representante Legal
+    </div>
+
+    <div class="field-group">
+      <label for="legalRep" class="field-label">Nombre del Representante</label>
+      <div class="input-wrapper">
+        <input id="legalRep" class="field-input pr-10" formControlName="legalRepresentative" placeholder="Nombre completo" />
+        <svg lucideUser size="16" class="input-icon-right text-slate-400"></svg>
+      </div>
+      @if (fieldError('company', 'legalRepresentative')) { <p class="field-error">{{ fieldError('company', 'legalRepresentative') }}</p> }
+    </div>
+
+    <div class="field-group">
+      <label for="position" class="field-label">Cargo</label>
+      <div class="input-wrapper">
+        <input id="position" class="field-input" formControlName="position" placeholder="Puesto u ocupación" />
+      </div>
+      @if (fieldError('company', 'position')) { <p class="field-error">{{ fieldError('company', 'position') }}</p> }
+    </div>
+
+    <div class="actions mt-10">
+      <button type="button" class="btn-continue group" (click)="goNext()">
+        Continuar
+        <svg lucideArrowRight size="18" class="transition-transform group-hover:translate-x-1"></svg>
+      </button>
     </div>
   </form>
 }
 
 @if (activeStep() === 1) {
-  <form class="form-grid" [formGroup]="credentialsForm" animate.enter="page-enter" (ngSubmit)="submit()">
-    <label class="field">
-      <span>Intent</span>
-      <select class="field-input" formControlName="intent">
-        @for (intent of intents; track intent.value) {
-          <option [value]="intent.value">{{ intent.label }}</option>
-        }
-      </select>
-    </label>
+  <form class="form-grid space-y-6" [formGroup]="credentialsForm" animate.enter="page-enter" (ngSubmit)="submit()">
+    
+    <div class="section-title flex items-center gap-2 text-slate-800 font-bold text-sm mb-4">
+      <svg lucideZap size="18" class="text-emerald-500"></svg>
+      Objetivo Comercial
+    </div>
 
-    <label class="field"><span>Email</span><input class="field-input" formControlName="email" type="email" /></label>
-    @if (fieldError('credentials', 'email')) { <p class="field-error">{{ fieldError('credentials', 'email') }}</p> }
-
-    <label class="field"><span>Password</span>
-      <div class="password-wrap">
-        <input class="field-input" [type]="showPassword() ? 'text' : 'password'" formControlName="password" />
-        <button type="button" class="icon-btn" (click)="togglePassword()">
-          @if (showPassword()) { <svg lucideEyeOff size="16"></svg> } @else { <svg lucideEye size="16"></svg> }
-        </button>
+    <div class="field-group">
+      <label for="intent" class="field-label">Deseo realizar</label>
+      <div class="input-wrapper">
+        <select id="intent" class="field-input appearance-none" formControlName="intent">
+          @for (intent of intents; track intent.value) {
+            <option [value]="intent.value">{{ intent.label }}</option>
+          }
+        </select>
       </div>
-    </label>
-    @if (fieldError('credentials', 'password')) { <p class="field-error">{{ fieldError('credentials', 'password') }}</p> }
+    </div>
 
-    <label class="field"><span>Confirm password</span>
-      <div class="password-wrap">
-        <input class="field-input" [type]="showConfirmPassword() ? 'text' : 'password'" formControlName="confirmPassword" />
-        <button type="button" class="icon-btn" (click)="toggleConfirmPassword()">
-          @if (showConfirmPassword()) { <svg lucideEyeOff size="16"></svg> } @else { <svg lucideEye size="16"></svg> }
-        </button>
+    <div class="divider border-t border-slate-100 my-6"></div>
+
+    <div class="section-title flex items-center gap-2 text-slate-800 font-bold text-sm mb-4">
+      <svg lucideShieldCheck size="18" class="text-emerald-500"></svg>
+      Credenciales de Acceso
+    </div>
+
+    <div class="field-group">
+      <label for="email" class="field-label">Correo Electrónico</label>
+      <div class="input-wrapper">
+        <input id="email" class="field-input" formControlName="email" type="email" placeholder="email@empresa.com" />
       </div>
-    </label>
-    @if (passwordMismatch()) { <p class="field-error">{{ messages.passwordMismatch }}</p> }
+      @if (fieldError('credentials', 'email')) { <p class="field-error">{{ fieldError('credentials', 'email') }}</p> }
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="field-group">
+        <label for="pass" class="field-label">Contraseña</label>
+        <div class="input-wrapper">
+          <input id="pass" class="field-input pr-10" [type]="showPassword() ? 'text' : 'password'" formControlName="password" />
+          <button type="button" class="icon-btn-right" (click)="togglePassword()">
+            @if (showPassword()) { <svg lucideEyeOff size="16"></svg> } @else { <svg lucideEye size="16"></svg> }
+          </button>
+        </div>
+        @if (fieldError('credentials', 'password')) { <p class="field-error">{{ fieldError('credentials', 'password') }}</p> }
+      </div>
+      <div class="field-group">
+        <label for="cpass" class="field-label">Confirmar Contraseña</label>
+        <div class="input-wrapper">
+          <input id="cpass" class="field-input pr-10" [type]="showConfirmPassword() ? 'text' : 'password'" formControlName="confirmPassword" />
+          <button type="button" class="icon-btn-right" (click)="toggleConfirmPassword()">
+            @if (showConfirmPassword()) { <svg lucideEyeOff size="16"></svg> } @else { <svg lucideEye size="16"></svg> }
+          </button>
+        </div>
+        @if (passwordMismatch()) { <p class="field-error">{{ messages.passwordMismatch }}</p> }
+      </div>
+    </div>
 
     @if (errorMessage) {
-      <p class="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800" animate.enter="fade-in">{{ errorMessage }}</p>
+      <div class="bg-amber-50 border border-amber-200 text-amber-800 p-4 rounded-xl text-sm mb-6">
+        {{ errorMessage }}
+      </div>
     }
 
-    <div class="actions">
-      <button type="button" class="btn-secondary" (click)="goBack()">{{ copy.backLabel }}</button>
-      <button type="submit" class="btn-primary" [disabled]="loading">{{ loading ? 'Creando...' : copy.createAccountLabel }}</button>
+    <div class="actions flex items-center gap-4 mt-10">
+      <button type="button" class="btn-back" (click)="goBack()">Volver</button>
+      <button type="submit" class="btn-continue flex-1" [disabled]="loading">
+        {{ loading ? 'Creando...' : 'Finalizar Registro' }}
+        <svg lucideCheckCircle size="18"></svg>
+      </button>
     </div>
   </form>
 }
+
