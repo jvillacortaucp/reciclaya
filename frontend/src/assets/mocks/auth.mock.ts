@@ -55,6 +55,7 @@ export const MOCK_AUTH_USERS: readonly MockAuthUserRecord[] = [
     permissions: [
       'view:dashboard',
       'manage:waste',
+      'manage:preferences',
       'view:my-listings',
       'view:requests',
       'view:marketplace',
