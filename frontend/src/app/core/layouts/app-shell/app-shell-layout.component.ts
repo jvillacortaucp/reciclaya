@@ -1,68 +1,42 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
-import {
-  LucideCircleUserRound,
-  LucideClipboardList,
-  LucideLayoutDashboard,
-  LucideLeaf,
-  LucideMessageSquare,
-  LucideMenu,
-  LucidePackagePlus,
-  LucideSearch,
-  LucideSettings,
-  LucideSlidersHorizontal,
-  LucideSparkles,
-  LucideStore
-} from '@lucide/angular';
-import { NgClass } from '@angular/common';
-import { AuthFacade } from '../../../features/auth/services/auth.facade';
-import { SIDEBAR_NAV_ITEMS } from '../../constants/sidebar-nav.constants';
+import { ChangeDetectionStrategy, Component, effect, HostListener, signal } from '@angular/core';
+import { RouterOutlet } from '@angular/router';
+import { SidebarComponent } from './sidebar/sidebar.component';
+import { TopbarComponent } from './topbar/topbar.component';
 
 @Component({
   selector: 'app-shell-layout',
+  standalone: true,
   imports: [
     RouterOutlet,
-    RouterLink,
-    RouterLinkActive,
-    NgClass,
-    LucideMenu,
-    LucideSearch,
-    LucideLeaf,
-    LucideCircleUserRound,
-    LucideLayoutDashboard,
-    LucidePackagePlus,
-    LucideSlidersHorizontal,
-    LucideStore,
-    LucideClipboardList,
-    LucideMessageSquare,
-    LucideSparkles,
-    LucideSettings
+    SidebarComponent,
+    TopbarComponent
   ],
   templateUrl: './app-shell-layout.component.html',
-  styleUrl: './app-shell-layout.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class AppShellLayoutComponent {
-  private readonly authFacade = inject(AuthFacade);
+  protected readonly isSidebarOpen = signal(false);
 
-  protected readonly isSidebarCollapsed = signal(false);
-  protected readonly navItems = computed(() =>
-    SIDEBAR_NAV_ITEMS.filter((item) => {
-      if (!item.permissions?.length) {
-        return true;
+  constructor() {
+    effect(() => {
+      if (this.isSidebarOpen()) {
+        document.body.classList.add('overflow-hidden');
+      } else {
+        document.body.classList.remove('overflow-hidden');
       }
+    });
+  }
 
-      return item.permissions.every((permission) => this.authFacade.hasPermission(permission));
-    })
-  );
-  protected readonly mainNavItems = computed(() =>
-    this.navItems().filter((item) => item.group !== 'Account')
-  );
-  protected readonly accountNavItems = computed(() =>
-    this.navItems().filter((item) => item.group === 'Account')
-  );
+  @HostListener('window:keydown.escape')
+  protected onEscape(): void {
+    this.closeSidebar();
+  }
 
   protected toggleSidebar(): void {
-    this.isSidebarCollapsed.update((value) => !value);
+    this.isSidebarOpen.update((value) => !value);
+  }
+
+  protected closeSidebar(): void {
+    this.isSidebarOpen.set(false);
   }
 }

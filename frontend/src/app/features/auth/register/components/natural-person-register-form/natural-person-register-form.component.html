@@ -1,61 +1,61 @@
-<form class="form-grid" [formGroup]="form" (ngSubmit)="submit()" animate.enter="page-enter">
-  <div class="two-cols">
+<form class="grid gap-4" [formGroup]="form" (ngSubmit)="submit()" animate.enter="page-enter">
+  <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
     <div>
-      <label class="field"><span>First name</span><input class="field-input" formControlName="firstName" /></label>
-      @if (fieldError('firstName')) { <p class="field-error">{{ fieldError('firstName') }}</p> }
+      <label class="grid gap-1.5 text-sm text-slate-700"><span class="font-semibold">First name</span><input class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100" formControlName="firstName" /></label>
+      @if (fieldError('firstName')) { <p class="mt-1 text-xs font-medium text-rose-500">{{ fieldError('firstName') }}</p> }
     </div>
     <div>
-      <label class="field"><span>Last name</span><input class="field-input" formControlName="lastName" /></label>
-      @if (fieldError('lastName')) { <p class="field-error">{{ fieldError('lastName') }}</p> }
-    </div>
-  </div>
-
-  <div class="two-cols">
-    <div>
-      <label class="field"><span>DNI or document number</span><input class="field-input" formControlName="documentNumber" /></label>
-      @if (fieldError('documentNumber')) { <p class="field-error">{{ fieldError('documentNumber') }}</p> }
-    </div>
-    <div>
-      <label class="field"><span>Mobile phone</span><input class="field-input" formControlName="mobilePhone" /></label>
-      @if (fieldError('mobilePhone')) { <p class="field-error">{{ fieldError('mobilePhone') }}</p> }
+      <label class="grid gap-1.5 text-sm text-slate-700"><span class="font-semibold">Last name</span><input class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100" formControlName="lastName" /></label>
+      @if (fieldError('lastName')) { <p class="mt-1 text-xs font-medium text-rose-500">{{ fieldError('lastName') }}</p> }
     </div>
   </div>
 
-  <label class="field"><span>Address</span><input class="field-input" formControlName="address" /></label>
-  @if (fieldError('address')) { <p class="field-error">{{ fieldError('address') }}</p> }
+  <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+    <div>
+      <label class="grid gap-1.5 text-sm text-slate-700"><span class="font-semibold">DNI or document number</span><input class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100" formControlName="documentNumber" /></label>
+      @if (fieldError('documentNumber')) { <p class="mt-1 text-xs font-medium text-rose-500">{{ fieldError('documentNumber') }}</p> }
+    </div>
+    <div>
+      <label class="grid gap-1.5 text-sm text-slate-700"><span class="font-semibold">Mobile phone</span><input class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100" formControlName="mobilePhone" /></label>
+      @if (fieldError('mobilePhone')) { <p class="mt-1 text-xs font-medium text-rose-500">{{ fieldError('mobilePhone') }}</p> }
+    </div>
+  </div>
 
-  <label class="field"><span>Postal code</span><input class="field-input" formControlName="postalCode" /></label>
-  @if (fieldError('postalCode')) { <p class="field-error">{{ fieldError('postalCode') }}</p> }
+  <label class="grid gap-1.5 text-sm text-slate-700"><span class="font-semibold">Address</span><input class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100" formControlName="address" /></label>
+  @if (fieldError('address')) { <p class="mt-1 text-xs font-medium text-rose-500">{{ fieldError('address') }}</p> }
 
-  <label class="field">
-    <span>Intent</span>
-    <select class="field-input" formControlName="intent">
+  <label class="grid gap-1.5 text-sm text-slate-700"><span class="font-semibold">Postal code</span><input class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100" formControlName="postalCode" /></label>
+  @if (fieldError('postalCode')) { <p class="mt-1 text-xs font-medium text-rose-500">{{ fieldError('postalCode') }}</p> }
+
+  <label class="grid gap-1.5 text-sm text-slate-700">
+    <span class="font-semibold">Intent</span>
+    <select class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100" formControlName="intent">
       @for (intent of intents; track intent.value) {
         <option [value]="intent.value">{{ intent.label }}</option>
       }
     </select>
   </label>
 
-  <label class="field"><span>Email</span><input class="field-input" type="email" formControlName="email" /></label>
-  @if (fieldError('email')) { <p class="field-error">{{ fieldError('email') }}</p> }
+  <label class="grid gap-1.5 text-sm text-slate-700"><span class="font-semibold">Email</span><input class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100" type="email" formControlName="email" /></label>
+  @if (fieldError('email')) { <p class="mt-1 text-xs font-medium text-rose-500">{{ fieldError('email') }}</p> }
 
-  <div class="two-cols">
+  <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
     <div>
-      <label class="field"><span>Password</span>
-        <div class="password-wrap">
-          <input class="field-input" [type]="showPassword() ? 'text' : 'password'" formControlName="password" />
-          <button type="button" class="icon-btn" (click)="togglePassword()">
+      <label class="grid gap-1.5 text-sm text-slate-700"><span class="font-semibold">Password</span>
+        <div class="relative">
+          <input class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 pr-10 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100" [type]="showPassword() ? 'text' : 'password'" formControlName="password" />
+          <button type="button" class="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700" (click)="togglePassword()">
             @if (showPassword()) { <svg lucideEyeOff size="16"></svg> } @else { <svg lucideEye size="16"></svg> }
           </button>
         </div>
       </label>
-      @if (fieldError('password')) { <p class="field-error">{{ fieldError('password') }}</p> }
+      @if (fieldError('password')) { <p class="mt-1 text-xs font-medium text-rose-500">{{ fieldError('password') }}</p> }
     </div>
     <div>
-      <label class="field"><span>Confirm password</span>
-        <div class="password-wrap">
-          <input class="field-input" [type]="showConfirmPassword() ? 'text' : 'password'" formControlName="confirmPassword" />
-          <button type="button" class="icon-btn" (click)="toggleConfirmPassword()">
+      <label class="grid gap-1.5 text-sm text-slate-700"><span class="font-semibold">Confirm password</span>
+        <div class="relative">
+          <input class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 pr-10 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100" [type]="showConfirmPassword() ? 'text' : 'password'" formControlName="confirmPassword" />
+          <button type="button" class="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700" (click)="toggleConfirmPassword()">
             @if (showConfirmPassword()) { <svg lucideEyeOff size="16"></svg> } @else { <svg lucideEye size="16"></svg> }
           </button>
         </div>
@@ -63,13 +63,13 @@
     </div>
   </div>
 
-  @if (passwordMismatch()) { <p class="field-error">{{ messages.passwordMismatch }}</p> }
+  @if (passwordMismatch()) { <p class="mt-1 text-xs font-medium text-rose-500">{{ messages.passwordMismatch }}</p> }
 
   @if (errorMessage) {
     <p class="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800" animate.enter="fade-in">{{ errorMessage }}</p>
   }
 
-  <div class="actions">
-    <button type="submit" class="btn-primary" [disabled]="loading">{{ loading ? 'Creando...' : copy.createAccountLabel }}</button>
+  <div class="mt-3 flex justify-end">
+    <button type="submit" class="inline-flex items-center justify-center rounded-xl border border-transparent bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white transition-all hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60" [disabled]="loading">{{ loading ? 'Creando...' : copy.createAccountLabel }}</button>
   </div>
 </form>

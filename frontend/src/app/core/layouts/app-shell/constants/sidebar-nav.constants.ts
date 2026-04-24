@@ -1,12 +1,13 @@
-import { SidebarNavItem } from '../models/app.models';
-import { APP_ROUTES, PERMISSIONS } from './app.constants';
+import { APP_ROUTES, PERMISSIONS } from '../../../constants/app.constants';
+import { SidebarNavItem } from '../models/sidebar-nav-item.model';
 
 export const SIDEBAR_NAV_ITEMS: readonly SidebarNavItem[] = [
   {
     label: 'Dashboard',
-    group: 'Marketplace',
+    group: 'General',
     icon: 'layout-dashboard',
     route: APP_ROUTES.dashboard,
+    exact: true,
     permissions: [PERMISSIONS.VIEW_DASHBOARD]
   },
   {
@@ -14,6 +15,7 @@ export const SIDEBAR_NAV_ITEMS: readonly SidebarNavItem[] = [
     group: 'Marketplace',
     icon: 'package-plus',
     route: APP_ROUTES.wasteSell,
+    exact: true,
     permissions: [PERMISSIONS.MANAGE_WASTE]
   },
   {
@@ -21,6 +23,7 @@ export const SIDEBAR_NAV_ITEMS: readonly SidebarNavItem[] = [
     group: 'Marketplace',
     icon: 'sliders-horizontal',
     route: APP_ROUTES.preferences,
+    exact: true,
     permissions: [PERMISSIONS.MANAGE_PREFERENCES]
   },
   {
@@ -28,13 +31,16 @@ export const SIDEBAR_NAV_ITEMS: readonly SidebarNavItem[] = [
     group: 'Marketplace',
     icon: 'store',
     route: APP_ROUTES.marketplace,
+    activePaths: [APP_ROUTES.marketplace],
+    exact: false,
     permissions: [PERMISSIONS.VIEW_MARKETPLACE]
   },
   {
-    label: 'My posts',
+    label: 'Mis publicaciones',
     group: 'Marketplace',
     icon: 'clipboard-list',
     route: APP_ROUTES.myListings,
+    exact: true,
     permissions: [PERMISSIONS.VIEW_MY_LISTINGS]
   },
   {
@@ -42,34 +48,31 @@ export const SIDEBAR_NAV_ITEMS: readonly SidebarNavItem[] = [
     group: 'Marketplace',
     icon: 'sparkles',
     route: APP_ROUTES.requests,
+    exact: true,
     permissions: [PERMISSIONS.VIEW_REQUESTS]
   },
   {
-    label: 'Recommendations',
-    group: 'Intelligence',
-    icon: 'sparkles',
-    route: APP_ROUTES.recommendations,
-    permissions: [PERMISSIONS.VIEW_RECOMMENDATIONS]
-  },
-  {
-    label: 'Messages',
+    label: 'Mensajes',
     group: 'Intelligence',
     icon: 'messages',
     route: APP_ROUTES.messages,
+    exact: true,
     permissions: [PERMISSIONS.VIEW_MESSAGES]
   },
   {
-    label: 'Profile',
+    label: 'Perfil',
     group: 'Account',
     icon: 'circle-user-round',
     route: APP_ROUTES.profile,
+    exact: true,
     permissions: [PERMISSIONS.MANAGE_PROFILE]
   },
   {
-    label: 'Settings',
+    label: 'Configuración',
     group: 'Account',
     icon: 'settings',
     route: APP_ROUTES.settings,
+    exact: true,
     permissions: [PERMISSIONS.MANAGE_PROFILE]
   }
 ];

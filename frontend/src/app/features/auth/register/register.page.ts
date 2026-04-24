@@ -25,7 +25,6 @@ import { NaturalPersonRegisterFormComponent } from './components/natural-person-
     NaturalPersonRegisterFormComponent
   ],
   templateUrl: './register.page.html',
-  styleUrl: './register.page.css',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class RegisterPageComponent {

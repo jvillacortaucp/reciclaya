@@ -17,11 +17,13 @@ export class MarketplaceFacade {
   private readonly repository = inject(MarketplaceRepository);
 
   readonly loading = signal(false);
+  readonly isLoadingMore = signal(false);
   readonly detailLoading = signal(false);
   readonly selectedDetail = signal<ListingDetail | null>(null);
   readonly toastMessage = signal<string | null>(null);
 
   readonly dataset = signal<MarketplaceDataset>({ listings: [], recommended: [] });
+  readonly listings = signal<readonly MarketplaceListing[]>([]);
   readonly filters = signal<MarketplaceFilterState>(DEFAULT_FILTER_STATE);
   readonly search = signal<SearchState>({
     query: '',
@@ -29,7 +31,11 @@ export class MarketplaceFacade {
     viewMode: 'grid'
   });
   readonly currentPage = signal(1);
-  readonly pageSize = 4;
+  readonly pageSize = 6;
+  readonly total = signal(0);
+  readonly hasMore = signal(true);
+
+  private readonly requestInFlight = signal(false);
 
   readonly recommendedListings = computed(() => {
     const data = this.dataset();
@@ -39,65 +45,7 @@ export class MarketplaceFacade {
       .slice(0, 3);
   });
 
-  readonly filteredListings = computed(() => {
-    const query = this.search().query.toLowerCase().trim();
-    const filters = this.filters();
-
-    let items = this.dataset().listings.filter((listing) => {
-      const textMatch =
-        !query ||
-        listing.specificResidue.toLowerCase().includes(query) ||
-        listing.location.toLowerCase().includes(query) ||
-        listing.sector.toLowerCase().includes(query) ||
-        listing.productType.toLowerCase().includes(query);
-
-      const wasteTypeMatch = filters.wasteType === 'all' || listing.wasteType === filters.wasteType;
-      const sectorMatch = filters.sector === 'all' || listing.sector === filters.sector;
-      const productMatch = filters.productType === 'all' || listing.productType === filters.productType;
-      const residueMatch =
-        !filters.specificResidue ||
-        listing.specificResidue.toLowerCase().includes(filters.specificResidue.toLowerCase());
-      const exchangeMatch = filters.exchangeType === 'all' || listing.exchangeType === filters.exchangeType;
-      const locationMatch =
-        !filters.location || listing.location.toLowerCase().includes(filters.location.toLowerCase());
-      const deliveryMatch = filters.deliveryMode === 'all' || listing.deliveryMode === filters.deliveryMode;
-      const immediateMatch = !filters.immediateOnly || listing.immediateAvailability;
-      const conditionMatch =
-        filters.residueCondition === 'all' || listing.residueCondition === filters.residueCondition;
-      const minPriceMatch = filters.minPrice === null || (listing.pricePerUnitUsd ?? 0) >= filters.minPrice;
-      const maxPriceMatch = filters.maxPrice === null || (listing.pricePerUnitUsd ?? 0) <= filters.maxPrice;
-
-      return (
-        textMatch &&
-        wasteTypeMatch &&
-        sectorMatch &&
-        productMatch &&
-        residueMatch &&
-        exchangeMatch &&
-        locationMatch &&
-        deliveryMatch &&
-        immediateMatch &&
-        conditionMatch &&
-        minPriceMatch &&
-        maxPriceMatch
-      );
-    });
-
-    const sortBy = this.search().sortBy;
-    items = this.sortListings(items, sortBy);
-    return items;
-  });
-
-  readonly pagedListings = computed(() => {
-    const end = this.currentPage() * this.pageSize;
-    return this.filteredListings().slice(0, end);
-  });
-
-  readonly totalPages = computed(() => Math.max(1, Math.ceil(this.filteredListings().length / this.pageSize)));
-  readonly hasMore = computed(() => this.pagedListings().length < this.filteredListings().length);
-  readonly isEmpty = computed(
-    () => !this.loading() && this.dataset().listings.length > 0 && this.filteredListings().length === 0
-  );
+  readonly isEmpty = computed(() => !this.loading() && this.listings().length === 0 && !this.isDatasetEmpty());
   readonly isDatasetEmpty = computed(() => !this.loading() && this.dataset().listings.length === 0);
 
   readonly activeFilterChips = computed<readonly ActiveFilterChip[]>(() => {
@@ -127,34 +75,25 @@ export class MarketplaceFacade {
   });
 
   loadMarketplace(): void {
-    this.loading.set(true);
-    this.repository
-      .getDataset()
-      .pipe(finalize(() => this.loading.set(false)))
-      .subscribe((dataset) => {
-        this.dataset.set(dataset);
-      });
+    this.repository.getDataset().subscribe((dataset) => this.dataset.set(dataset));
+    this.reloadFromStart();
   }
 
-  setSearchQuery(query: string): void {
+  setSearchAndFilters(query: string, nextFilters: MarketplaceFilterState): void {
     this.search.update((current) => ({ ...current, query }));
-    this.currentPage.set(1);
+    this.filters.set(nextFilters);
+    this.reloadFromStart();
   }
 
   setSort(sortBy: SortOption): void {
     this.search.update((current) => ({ ...current, sortBy }));
-    this.currentPage.set(1);
-  }
-
-  updateFilters(nextFilters: MarketplaceFilterState): void {
-    this.filters.set(nextFilters);
-    this.currentPage.set(1);
+    this.reloadFromStart();
   }
 
   clearFilters(): void {
     this.filters.set(DEFAULT_FILTER_STATE);
     this.search.update((current) => ({ ...current, query: '', sortBy: 'newest' }));
-    this.currentPage.set(1);
+    this.reloadFromStart();
   }
 
   removeChip(key: ActiveFilterChip['key']): void {
@@ -169,19 +108,17 @@ export class MarketplaceFacade {
       specificResidue: key === 'specificResidue' ? '' : current.specificResidue
     };
 
-    this.updateFilters(next);
-  }
-
-  setPage(page: number): void {
-    this.currentPage.set(page);
+    this.filters.set(next);
+    this.reloadFromStart();
   }
 
   loadMore(): void {
-    if (!this.hasMore()) {
+    if (this.loading() || this.isLoadingMore() || this.requestInFlight() || !this.hasMore()) {
       return;
     }
 
-    this.currentPage.update((value) => value + 1);
+    const nextPage = this.currentPage() + 1;
+    this.fetchPage(nextPage, 'append');
   }
 
   saveSearch(): void {
@@ -200,19 +137,63 @@ export class MarketplaceFacade {
       .subscribe((data) => this.selectedDetail.set(data));
   }
 
-  private sortListings(listings: readonly MarketplaceListing[], sortBy: SortOption): MarketplaceListing[] {
-    const sorted = [...listings];
+  private reloadFromStart(): void {
+    this.currentPage.set(1);
+    this.total.set(0);
+    this.hasMore.set(true);
+    this.listings.set([]);
+    this.fetchPage(1, 'replace');
+  }
 
-    switch (sortBy) {
-      case 'best_match':
-        return sorted.sort((a, b) => b.matchScore - a.matchScore);
-      case 'lowest_price':
-        return sorted.sort((a, b) => (a.pricePerUnitUsd ?? Number.MAX_SAFE_INTEGER) - (b.pricePerUnitUsd ?? Number.MAX_SAFE_INTEGER));
-      case 'highest_volume':
-        return sorted.sort((a, b) => b.quantity - a.quantity);
-      default:
-        return sorted.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  private fetchPage(page: number, mode: 'replace' | 'append'): void {
+    if (this.requestInFlight()) {
+      return;
     }
+
+    this.requestInFlight.set(true);
+    if (mode === 'replace') {
+      this.loading.set(true);
+    } else {
+      this.isLoadingMore.set(true);
+    }
+
+    this.repository
+      .getListings({
+        page,
+        pageSize: this.pageSize,
+        filters: this.filters(),
+        query: this.search().query,
+        sortBy: this.search().sortBy
+      })
+      .pipe(
+        finalize(() => {
+          this.requestInFlight.set(false);
+          if (mode === 'replace') {
+            this.loading.set(false);
+          } else {
+            this.isLoadingMore.set(false);
+          }
+        })
+      )
+      .subscribe((response) => {
+        this.currentPage.set(response.page);
+        this.total.set(response.total);
+        this.hasMore.set(response.hasMore);
+
+        if (mode === 'replace') {
+          this.listings.set(response.items);
+          return;
+        }
+
+        const seen = new Set(this.listings().map((item) => item.id));
+        const merged = [...this.listings()];
+        response.items.forEach((item) => {
+          if (!seen.has(item.id)) {
+            merged.push(item);
+          }
+        });
+        this.listings.set(merged);
+      });
   }
 
   private mapSectorLabel(value: MarketplaceFilterState['sector']): string {
@@ -245,3 +226,4 @@ export class MarketplaceFacade {
     }
   }
 }
+

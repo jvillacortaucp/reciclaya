@@ -126,6 +126,7 @@ export class AuthFacade {
 
   logout(): void {
     this.sessionStorage.clear();
+    void this.router.navigateByUrl(APP_ROUTES.login);
   }
 
   setRole(role: UserRole): void {
