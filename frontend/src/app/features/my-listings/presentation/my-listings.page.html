@@ -8,10 +8,10 @@
     <button
       type="button"
       class="inline-flex h-10 items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-4 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-100"
-      [routerLink]="['/app/recommendations']"
+      [routerLink]="['/app/value-sector']"
     >
       <svg lucideSparkles size="16"></svg>
-      {{ copy.recommendations }}
+      {{ copy.valueSector }}
     </button>
 
     <button
@@ -104,3 +104,4 @@
 </section>
 
 <app-floating-actions [actions]="floatingActions" (actionSelected)="onFloatingAction($event)" />
+

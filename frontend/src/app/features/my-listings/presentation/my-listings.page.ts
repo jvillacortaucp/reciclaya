@@ -131,14 +131,14 @@ export class MyListingsPageComponent implements OnInit, OnDestroy {
     this.facade.clearToast();
   }
 
-  protected onFloatingAction(action: 'new' | 'recommendations' | 'export' | 'marketplace'): void {
+  protected onFloatingAction(action: 'new' | 'value-sector' | 'export' | 'marketplace'): void {
     if (action === 'new') {
       this.router.navigate(['/app/waste-sell']);
       return;
     }
 
-    if (action === 'recommendations') {
-      this.router.navigate(['/app/recommendations']);
+    if (action === 'value-sector') {
+      this.router.navigate(['/app/value-sector']);
       return;
     }
 
@@ -150,3 +150,4 @@ export class MyListingsPageComponent implements OnInit, OnDestroy {
     this.facade.showExportToast();
   }
 }
+

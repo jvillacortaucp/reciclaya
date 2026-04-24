@@ -1,0 +1,77 @@
+@if (recommendation(); as data) {
+  <div class="space-y-6">
+    <section
+      class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm"
+      style="
+        background-image:
+          linear-gradient(120deg, rgba(255, 255, 255, 0.93), rgba(249, 250, 251, 0.93)),
+          url('https://images.unsplash.com/photo-1686407493217-9de8f4f1ea4b?auto=format&fit=crop&w=1400&q=80');
+        background-size: cover;
+        background-position: center;
+      ">
+      <div class="grid items-center gap-4 p-5 sm:p-6 lg:grid-cols-[150px_minmax(0,1fr)]">
+        <div class="flex h-36 w-36 items-center justify-center rounded-3xl border border-emerald-200 bg-emerald-50">
+          <span class="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-700 text-white">
+            <svg class="h-8 w-8" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path
+                d="M21 3.8c-3.1-.6-6.4.1-9 1.9A12.6 12.6 0 0 0 7.4 12c-.6 2-.8 4-.7 6 2 .2 4 0 6-.7 2.4-.8 4.6-2.3 6.3-4.3 1.8-2.4 2.6-5.4 2-9.2zM6.5 13.4l4.2 4.2a1 1 0 0 1-1.4 1.4L5 14.8a1 1 0 0 1 1.5-1.4z" />
+            </svg>
+          </span>
+        </div>
+
+        <div class="min-w-0">
+          <div class="mb-3 flex flex-wrap gap-2">
+            <span
+              class="inline-flex rounded-lg bg-emerald-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-emerald-800">
+              Recomendado
+            </span>
+            <span
+              class="inline-flex rounded-lg bg-indigo-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-indigo-800">
+              Producto premium
+            </span>
+          </div>
+
+          <h3 class="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">{{ data.recommendedProduct }}</h3>
+
+          <div class="mt-4 grid grid-cols-2 gap-4 text-sm lg:grid-cols-4">
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Residuo base</p>
+              <p class="mt-1 text-xl font-semibold leading-tight text-slate-900 sm:text-xl">{{ data.baseResidue }}</p>
+            </div>
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Complejidad</p>
+              <p class="mt-1 text-xl font-semibold leading-tight text-emerald-700 sm:text-xl">
+                @if (data.complexity === 'low') { Baja }
+                @if (data.complexity === 'medium') { Media }
+                @if (data.complexity === 'high') { Alta }
+              </p>
+            </div>
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Tiempo estimado</p>
+              <p class="mt-1 text-xl font-semibold leading-tight text-slate-900 sm:text-xl">{{ data.totalEstimatedTime }}</p>
+            </div>
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Potencial</p>
+              <p class="mt-1 text-xl font-semibold leading-tight text-emerald-700 sm:text-xl">
+                @if (data.marketPotential === 'low') { Bajo }
+                @if (data.marketPotential === 'medium') { Medio }
+                @if (data.marketPotential === 'high') { Alto }
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h3 class="mb-4 flex items-center gap-2 text-2xl font-semibold text-slate-900 sm:text-3xl">
+        <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700">▣</span>
+        Pasos del Proceso
+      </h3>
+      <app-process-step-timeline
+        [steps]="data.processSteps"
+        [selectedStepId]="selectedStepId()"
+        (stepSelected)="onStepSelected($event)" />
+    </section>
+  </div>
+}

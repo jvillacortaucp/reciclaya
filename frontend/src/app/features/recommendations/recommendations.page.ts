@@ -1,76 +1,78 @@
-import {
-  AfterViewInit,
-  ChangeDetectionStrategy,
-  Component,
-  ElementRef,
-  OnDestroy,
-  OnInit,
-  ViewChild,
-  inject
-} from '@angular/core';
-import { LucideLeaf } from '@lucide/angular';
-import { ValueRoutesFacade } from './application/value-routes.facade';
-import { VALUE_ROUTE_TEXT } from './data/value-route.constants';
-import { ValueRouteFloatingActionsComponent } from './presentation/components/value-route-floating-actions/value-route-floating-actions.component';
-import { ValueRouteSummaryComponent } from './presentation/components/value-route-summary/value-route-summary.component';
-import { ValueRoutesComponent } from './presentation/components/value-routes/value-routes.component';
+import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
+import { LucideBookmark, LucideSparkles } from '@lucide/angular';
+import { RecommendationsFacade } from './application/recommendations.facade';
+import { ManufacturingProcessComponent } from './presentation/components/manufacturing-process/manufacturing-process.component';
+import { MarketAnalysisComponent } from './presentation/components/market-analysis/market-analysis.component';
+import { RecommendationExplanationComponent } from './presentation/components/recommendation-explanation/recommendation-explanation.component';
+import { RecommendationSummaryCardComponent } from './presentation/components/recommendation-summary-card/recommendation-summary-card.component';
+import { RecommendationTabsComponent } from './presentation/components/recommendation-tabs/recommendation-tabs.component';
 
 @Component({
   selector: 'app-recommendations-page',
   standalone: true,
-  providers: [ValueRoutesFacade],
-  imports: [LucideLeaf, ValueRoutesComponent, ValueRouteSummaryComponent, ValueRouteFloatingActionsComponent],
+  providers: [RecommendationsFacade],
+  imports: [
+    LucideBookmark,
+    LucideSparkles,
+    RecommendationTabsComponent,
+    ManufacturingProcessComponent,
+    MarketAnalysisComponent,
+    RecommendationExplanationComponent,
+    RecommendationSummaryCardComponent
+  ],
   templateUrl: './recommendations.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class RecommendationsPageComponent implements OnInit, AfterViewInit, OnDestroy {
-  private readonly facade = inject(ValueRoutesFacade);
-  private observer: IntersectionObserver | null = null;
+export class RecommendationsPageComponent implements OnInit {
+  private readonly facade = inject(RecommendationsFacade);
 
-  @ViewChild('infiniteScrollSentinel') private sentinelRef?: ElementRef<HTMLDivElement>;
-
-  protected readonly isInitialLoading = this.facade.isInitialLoading;
-  protected readonly routes = this.facade.items;
-  protected readonly hasMore = this.facade.hasMore;
-  protected readonly isLoadingMore = this.facade.isLoadingMore;
-  protected readonly selectedRouteId = this.facade.selectedRouteId;
-  protected readonly selectedProductId = this.facade.selectedProductId;
-  protected readonly expandedRouteId = this.facade.expandedRouteId;
-  protected readonly summary = this.facade.summary;
-  protected readonly completion = this.facade.completion;
-  protected readonly text = VALUE_ROUTE_TEXT;
+  protected readonly loading = this.facade.loading;
+  protected readonly recommendation = this.facade.recommendation;
+  protected readonly activeTab = this.facade.activeTab;
+  protected readonly selectedStepId = this.facade.selectedStepId;
+  protected readonly selectedStep = this.facade.selectedStep;
+  protected readonly explanationData = this.facade.explanationSteps;
+  protected readonly selectedExplanationStepId = this.facade.selectedExplanationStepId;
+  protected readonly selectedExplanationStep = this.facade.selectedExplanationStep;
+  protected readonly environmentalSummary = this.facade.environmentalSummary;
+  protected readonly filteredBuyers = this.facade.filteredBuyers;
+  protected readonly selectedBuyerSegment = this.facade.selectedBuyerSegment;
+  protected readonly selectedCostView = this.facade.selectedCostView;
+  protected readonly selectedChartType = this.facade.selectedChartType;
 
   ngOnInit(): void {
-    this.facade.loadInitial();
+    this.facade.load();
   }
 
-  ngAfterViewInit(): void {
-    if (!this.sentinelRef?.nativeElement) {
-      return;
-    }
-
-    this.observer = new IntersectionObserver(
-      (entries) => {
-        const sentinelVisible = entries.some((entry) => entry.isIntersecting);
-        if (sentinelVisible) {
-          this.facade.loadMore();
-        }
-      },
-      { root: null, rootMargin: '260px 0px', threshold: 0.1 }
-    );
-
-    this.observer.observe(this.sentinelRef.nativeElement);
+  protected setTab(tab: 'process' | 'explanation' | 'market'): void {
+    this.facade.setActiveTab(tab);
   }
 
-  ngOnDestroy(): void {
-    this.observer?.disconnect();
+  protected selectStep(stepId: string): void {
+    this.facade.selectStep(stepId);
   }
 
-  protected onRouteToggled(routeId: string): void {
-    this.facade.toggleExpandedRoute(routeId);
+  protected selectExplanationStep(stepId: string): void {
+    this.facade.selectExplanationStep(stepId);
   }
 
-  protected onProductSelected(payload: { routeId: string; productId: string }): void {
-    this.facade.selectProduct(payload.routeId, payload.productId);
+  protected goToExplanation(): void {
+    this.facade.setActiveTab('explanation');
+  }
+
+  protected goToMarket(): void {
+    this.facade.setActiveTab('market');
+  }
+
+  protected selectBuyerSegment(segment: string): void {
+    this.facade.setSelectedBuyerSegment(segment);
+  }
+
+  protected selectCostView(view: 'percent' | 'usd'): void {
+    this.facade.setSelectedCostView(view);
+  }
+
+  protected selectChartType(type: 'donut' | 'bar'): void {
+    this.facade.setSelectedChartType(type);
   }
 }

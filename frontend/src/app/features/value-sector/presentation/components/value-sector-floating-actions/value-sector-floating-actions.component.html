@@ -1,0 +1,45 @@
+<div class="fixed bottom-6 right-6 z-30">
+  <div
+    class="mb-3 w-64 origin-bottom-right space-y-1 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl transition-all duration-200"
+    [class.pointer-events-none]="!isOpen()"
+    [class.translate-y-2]="!isOpen()"
+    [class.scale-95]="!isOpen()"
+    [class.opacity-0]="!isOpen()"
+    [class.opacity-100]="isOpen()">
+    <a
+      [routerLink]="routes.valueSector"
+      (click)="closeMenu()"
+      class="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
+      <svg lucideFilePlus2 class="h-4 w-4 text-emerald-600"></svg>
+      Nuevo análisis de sector
+    </a>
+    <button
+      type="button"
+      (click)="closeMenu()"
+      class="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-50">
+      <svg lucideScanSearch class="h-4 w-4 text-emerald-600"></svg>
+      Ver proceso
+    </button>
+    <button
+      type="button"
+      (click)="closeMenu()"
+      class="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-50">
+      <svg lucideBarChart3 class="h-4 w-4 text-emerald-600"></svg>
+      Ver análisis de mercado
+    </button>
+    <a
+      [routerLink]="routes.marketplace"
+      (click)="closeMenu()"
+      class="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
+      <svg lucideStore class="h-4 w-4 text-emerald-600"></svg>
+      Ir a Marketplace
+    </a>
+  </div>
+
+  <button
+    type="button"
+    (click)="toggleMenu()"
+    class="inline-flex h-14 w-14 items-center justify-center rounded-full bg-emerald-600 text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-200">
+    <svg lucidePlus class="h-6 w-6 transition-transform duration-200" [class.rotate-45]="isOpen()"></svg>
+  </button>
+</div>

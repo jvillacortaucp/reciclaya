@@ -1,0 +1,42 @@
+<article class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+  <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+    <p class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Visualización de costos</p>
+    <div class="inline-flex rounded-xl bg-white p-1 shadow-sm ring-1 ring-slate-200">
+      <button
+        type="button"
+        (click)="chartTypeChanged.emit('donut')"
+        [class]="chartType() === 'donut' ? 'bg-emerald-600 text-white' : 'text-slate-600 hover:bg-slate-100'"
+        class="h-8 rounded-lg px-3 text-xs font-semibold transition">
+        Donut
+      </button>
+      <button
+        type="button"
+        (click)="chartTypeChanged.emit('bar')"
+        [class]="chartType() === 'bar' ? 'bg-emerald-600 text-white' : 'text-slate-600 hover:bg-slate-100'"
+        class="h-8 rounded-lg px-3 text-xs font-semibold transition">
+        Barras
+      </button>
+    </div>
+  </div>
+
+  @if (chartType() === 'donut') {
+    <apx-chart
+      [series]="donutSeries"
+      [chart]="donutOptions.chart"
+      [labels]="donutLabels"
+      [legend]="donutOptions.legend"
+      [stroke]="donutOptions.stroke"
+      [dataLabels]="donutOptions.dataLabels"
+      [plotOptions]="donutOptions.plotOptions"
+      [responsive]="donutOptions.responsive"
+      [colors]="donutOptions.colors"></apx-chart>
+  } @else {
+    <apx-chart
+      [series]="barSeries"
+      [chart]="barOptions.chart"
+      [xaxis]="barXAxis"
+      [plotOptions]="barOptions.plotOptions"
+      [dataLabels]="barOptions.dataLabels"
+      [colors]="barOptions.colors"></apx-chart>
+  }
+</article>

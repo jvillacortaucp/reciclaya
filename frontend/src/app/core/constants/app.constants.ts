@@ -10,6 +10,7 @@ export const PERMISSIONS = {
   VIEW_MARKETPLACE: 'view:marketplace',
   CREATE_PRE_ORDER: 'create:preorder',
   VIEW_RECOMMENDATIONS: 'view:recommendations',
+  VIEW_VALUE_SECTOR: 'view:value-sector',
   MANAGE_PROFILE: 'manage:profile'
 } as const;
 
@@ -23,6 +24,7 @@ export const APP_ROUTES = {
   myListings: '/app/my-listings',
   requests: '/app/requests',
   recommendations: '/app/recommendations',
+  valueSector: '/app/value-sector',
   messages: '/app/messages',
   preferences: '/app/purchase-preferences',
   marketplace: '/app/marketplace',

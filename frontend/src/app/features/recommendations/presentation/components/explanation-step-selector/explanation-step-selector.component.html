@@ -1,0 +1,35 @@
+<div class="overflow-x-auto rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+  <div class="inline-flex min-w-max items-center gap-2">
+    @for (step of steps(); track step.id; let last = $last) {
+      <button
+        type="button"
+        class="inline-flex min-w-24 flex-col items-center gap-2 rounded-xl px-2 py-2 text-center transition"
+        [class.bg-emerald-50]="selectedStepId() === step.id"
+        [class.text-emerald-700]="selectedStepId() === step.id"
+        [class.text-slate-500]="selectedStepId() !== step.id"
+        (click)="onSelectStep(step.id)">
+        <span
+          class="inline-flex h-11 w-11 items-center justify-center rounded-full border"
+          [class.border-emerald-500]="selectedStepId() === step.id"
+          [class.bg-emerald-600]="selectedStepId() === step.id"
+          [class.text-white]="selectedStepId() === step.id"
+          [class.border-slate-200]="selectedStepId() !== step.id"
+          [class.bg-slate-100]="selectedStepId() !== step.id">
+          @switch (step.iconName) {
+            @case ('package-search') { <svg lucideSearchCheck class="h-4 w-4"></svg> }
+            @case ('droplets') { <svg lucideDroplets class="h-4 w-4"></svg> }
+            @case ('wind') { <svg lucideWind class="h-4 w-4"></svg> }
+            @case ('factory') { <svg lucideFactory class="h-4 w-4"></svg> }
+            @case ('scan-line') { <svg lucideScanLine class="h-4 w-4"></svg> }
+            @case ('package') { <svg lucidePackage class="h-4 w-4"></svg> }
+            @default { <svg lucideArchive class="h-4 w-4"></svg> }
+          }
+        </span>
+        <span class="text-xs font-medium">{{ step.shortLabel }}</span>
+      </button>
+      @if (!last) {
+        <span class="mx-1 h-px w-6 bg-slate-200"></span>
+      }
+    }
+  </div>
+</div>

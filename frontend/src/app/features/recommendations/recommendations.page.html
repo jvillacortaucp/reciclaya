@@ -1,72 +1,78 @@
-<section class="mx-auto w-full max-w-[1600px] overflow-x-hidden px-4 pb-12 pt-6 sm:px-6 lg:px-8">
-  <div class="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+<section class="mx-auto w-full max-w-[1600px] overflow-x-hidden px-4 pb-10 pt-6 sm:px-6 lg:px-8">
+  <header class="mb-5 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
     <div class="min-w-0">
-      <header class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-        <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div class="min-w-0">
-            <h1 class="text-3xl font-semibold leading-tight text-emerald-700 sm:text-4xl">{{ text.title }}</h1>
-            <p class="mt-2 max-w-3xl text-sm leading-relaxed text-slate-600 sm:text-base">{{ text.subtitle }}</p>
-            <p class="mt-2 text-sm text-slate-500">{{ text.secondaryHint }}</p>
-          </div>
-          <div class="flex flex-wrap items-center gap-2">
-            <span
-              class="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-700">
-              <svg lucideLeaf class="h-4 w-4"></svg>
-              {{ text.baseResidueLabel }}
-            </span>
-            <span class="inline-flex rounded-full bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700">
-              {{ text.helperLabel }}
-            </span>
-          </div>
-        </div>
-      </header>
+      <h1 class="text-3xl font-semibold text-slate-900 sm:text-4xl">Motor de recomendaciones</h1>
+      <p class="mt-2 max-w-3xl text-sm text-slate-600 sm:text-base">
+        Descubre qué puedes fabricar a partir de tus residuos y cómo iniciar el proceso.
+      </p>
+    </div>
 
-      <div class="mt-6">
-        @if (isInitialLoading()) {
-          <div class="space-y-4">
-            @for (skeleton of [1,2,3,4]; track skeleton) {
-              <div class="animate-pulse rounded-3xl border border-slate-200 bg-white p-6">
-                <div class="mb-3 h-6 w-1/3 rounded-lg bg-slate-200"></div>
-                <div class="h-4 w-2/3 rounded-lg bg-slate-200"></div>
-              </div>
-            }
-          </div>
-        } @else if (!routes().length) {
-          <div class="rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center">
-            <p class="text-base font-semibold text-slate-700">No encontramos rutas de valor para este residuo.</p>
-            <p class="mt-2 text-sm text-slate-500">Ajusta el residuo base para obtener nuevas oportunidades.</p>
-          </div>
-        } @else {
-          <app-value-routes
-            [routes]="routes()"
-            [selectedRouteId]="selectedRouteId()"
-            [selectedProductId]="selectedProductId()"
-            [expandedRouteId]="expandedRouteId()"
-            (routeToggled)="onRouteToggled($event)"
-            (productSelected)="onProductSelected($event)" />
+    <div class="flex flex-wrap items-center gap-2">
+      <button
+        type="button"
+        class="inline-flex h-11 items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+        <svg lucideBookmark class="h-4 w-4"></svg>
+        Guardar recomendación
+      </button>
+      <button
+        type="button"
+        class="inline-flex h-11 items-center gap-2 rounded-xl border border-transparent bg-emerald-600 px-4 text-sm font-semibold text-white transition hover:bg-emerald-700">
+        <svg lucideSparkles class="h-4 w-4"></svg>
+        Generar nueva recomendación
+      </button>
+    </div>
+  </header>
 
-          <div #infiniteScrollSentinel class="h-4 w-full"></div>
+  <app-recommendation-tabs [activeTab]="activeTab()" (tabChanged)="setTab($event)" />
 
-          @if (isLoadingMore()) {
-            <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-              @for (loadingCard of [1,2,3]; track loadingCard) {
-                <div class="animate-pulse rounded-3xl border border-slate-200 bg-white p-5">
-                  <div class="mb-3 h-5 w-1/2 rounded-lg bg-slate-200"></div>
-                  <div class="h-4 w-4/5 rounded-lg bg-slate-200"></div>
-                </div>
-              }
-            </div>
-          } @else if (!hasMore()) {
-            <p class="mt-5 text-center text-sm text-slate-500">{{ text.noMoreMessage }}</p>
-          }
+  @if (loading()) {
+    <div class="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+      <div class="space-y-4">
+        @for (s of [1,2,3]; track s) {
+          <div class="h-28 animate-pulse rounded-3xl border border-slate-200 bg-white"></div>
         }
       </div>
+      <div class="h-80 animate-pulse rounded-3xl border border-slate-200 bg-white"></div>
     </div>
+  } @else if (recommendation(); as data) {
+    @if (activeTab() === 'explanation') {
+      <div class="mt-6">
+        <app-recommendation-explanation
+          [recommendation]="data"
+          [selectedStep]="selectedExplanationStep()"
+          [selectedStepId]="selectedExplanationStepId()"
+          [environmentalSummary]="environmentalSummary()"
+          (stepSelected)="selectExplanationStep($event)" />
+      </div>
+    } @else if (activeTab() === 'market') {
+      <div class="mt-6">
+        <app-market-analysis
+          [recommendation]="data"
+          [buyers]="filteredBuyers()"
+          [selectedBuyerSegment]="selectedBuyerSegment()"
+          [selectedCostView]="selectedCostView()"
+          [selectedChartType]="selectedChartType()"
+          (buyerSegmentChanged)="selectBuyerSegment($event)"
+          (costViewChanged)="selectCostView($event)"
+          (chartTypeChanged)="selectChartType($event)" />
+      </div>
+    } @else {
+      <div class="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <div class="min-w-0">
+          <app-manufacturing-process
+            [recommendation]="data"
+            [selectedStepId]="selectedStepId()"
+            (stepSelected)="selectStep($event)" />
+        </div>
 
-    <div class="min-w-0">
-      <app-value-route-summary [summary]="summary()" [completion]="completion()" />
-    </div>
-  </div>
+        <div class="min-w-0">
+          <app-recommendation-summary-card
+            [recommendation]="data"
+            (explanationRequested)="goToExplanation()"
+            (marketRequested)="goToMarket()" />
+        </div>
+      </div>
+    }
+  }
 </section>
 
-<app-value-route-floating-actions />
