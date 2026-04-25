@@ -10,6 +10,7 @@ import {
   LucideSparkles
 } from '@lucide/angular';
 import { EmptyStateComponent } from '../../../shared/ui/empty-state/empty-state.component';
+import { TourGuideService } from '../../../core/services/tour-guide.service';
 import { MyListingsFacade } from '../application/my-listings.facade';
 import {
   MY_LISTINGS_COPY,
@@ -50,6 +51,7 @@ export class MyListingsPageComponent implements OnInit, OnDestroy {
   private readonly fb = inject(FormBuilder);
   private readonly router = inject(Router);
   private readonly facade = inject(MyListingsFacade);
+  private readonly tourGuide = inject(TourGuideService);
   private readonly subscriptions = new Subscription();
 
   protected readonly copy = MY_LISTINGS_COPY;
@@ -148,6 +150,10 @@ export class MyListingsPageComponent implements OnInit, OnDestroy {
     }
 
     this.facade.showExportToast();
+  }
+
+  protected startGuide(): void {
+    this.tourGuide.launchFromBot();
   }
 }
 

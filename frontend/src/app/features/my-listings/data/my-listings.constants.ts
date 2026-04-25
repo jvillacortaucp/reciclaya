@@ -18,10 +18,10 @@ export interface FloatingActionOption {
 }
 
 export const MY_LISTINGS_COPY = {
-  title: 'Mis solicitudes',
+  title: 'Mis publicaciones',
   subtitle:
     'Administra tus residuos publicados, revisa su estado y gestiona tus oportunidades.',
-  valueSector: 'Sector de valor',
+  valueSector: 'Recomendaciones',
   filters: 'Filtros',
   publishListing: 'Publicar residuo',
   clearFilters: 'Limpiar filtros',

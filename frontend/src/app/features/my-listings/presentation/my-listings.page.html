@@ -9,6 +9,7 @@
       type="button"
       class="inline-flex h-10 items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-4 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-100"
       [routerLink]="['/app/value-sector']"
+      data-tour="recommendations-button"
     >
       <svg lucideSparkles size="16"></svg>
       {{ copy.valueSector }}
@@ -91,9 +92,10 @@
     <ui-empty-state title="Sin resultados" [description]="copy.noResults" />
   } @else {
     <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-      @for (item of listings(); track item.id) {
+      @for (item of listings(); track item.id; let isFirst = $first) {
         <app-my-listing-card
           [listing]="item"
+          [tourTarget]="isFirst"
           (edit)="editListing($event)"
           (deactivate)="deactivateListing($event)"
           (restore)="restoreListing($event)"
@@ -103,5 +105,8 @@
   }
 </section>
 
-<app-floating-actions [actions]="floatingActions" (actionSelected)="onFloatingAction($event)" />
+<app-floating-actions
+  [actions]="floatingActions"
+  (guideRequested)="startGuide()"
+  (actionSelected)="onFloatingAction($event)" />
 

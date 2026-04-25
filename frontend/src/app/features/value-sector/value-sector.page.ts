@@ -15,6 +15,9 @@ import { ValueSectorAccordionComponent } from './presentation/components/value-s
 import { ValueSectorFloatingActionsComponent } from './presentation/components/value-sector-floating-actions/value-sector-floating-actions.component';
 import { ValueSectorSummaryComponent } from './presentation/components/value-sector-summary/value-sector-summary.component';
 
+import { CardComponent } from '../../shared/ui/card/card.component';
+import { SectionHeaderComponent } from '../../shared/ui/section-header/section-header.component';
+
 @Component({
   selector: 'app-value-sector-page',
   standalone: true,
@@ -23,7 +26,9 @@ import { ValueSectorSummaryComponent } from './presentation/components/value-sec
     LucideLeaf,
     ValueSectorAccordionComponent,
     ValueSectorSummaryComponent,
-    ValueSectorFloatingActionsComponent
+    ValueSectorFloatingActionsComponent,
+    CardComponent,
+    SectionHeaderComponent
   ],
   templateUrl: './value-sector.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush

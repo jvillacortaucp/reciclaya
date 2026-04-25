@@ -6,6 +6,13 @@
     [class.scale-95]="!isOpen()"
     [class.opacity-0]="!isOpen()"
     [class.opacity-100]="isOpen()">
+    <button
+      type="button"
+      (click)="startGuide()"
+      class="flex w-full items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-left text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100">
+      <svg lucideBot class="h-4 w-4 text-emerald-600"></svg>
+      Iniciar guía interactiva
+    </button>
     <a
       [routerLink]="routes.valueSector"
       (click)="closeMenu()"
@@ -39,7 +46,23 @@
   <button
     type="button"
     (click)="toggleMenu()"
-    class="inline-flex h-14 w-14 items-center justify-center rounded-full bg-emerald-600 text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-200">
-    <svg lucidePlus class="h-6 w-6 transition-transform duration-200" [class.rotate-45]="isOpen()"></svg>
+    data-tour="bot-guide-button"
+    class="inline-flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border-2 border-white bg-white text-white shadow-lg transition hover:-translate-y-0.5 focus:outline-none focus:ring-4 focus:ring-emerald-200">
+    @if (imageError()) {
+      <span class="inline-flex h-full w-full items-center justify-center bg-emerald-600">
+        <svg lucidePlus class="h-6 w-6 transition-transform duration-200" [class.rotate-45]="isOpen()"></svg>
+      </span>
+    } @else {
+      <img
+        [src]="botImageUrl"
+        alt="Bot guía"
+        class="h-full w-full object-cover"
+        (error)="imageError.set(true)" />
+      @if (isOpen()) {
+        <span class="absolute inset-0 inline-flex items-center justify-center bg-slate-900/55">
+          <svg lucidePlus class="h-6 w-6 rotate-45"></svg>
+        </span>
+      }
+    }
   </button>
 </div>

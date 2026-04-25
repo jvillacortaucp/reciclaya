@@ -10,8 +10,8 @@ export const VALUE_SECTOR_TEXT = {
   summaryTitle: 'Resumen de Selección',
   targetIndustriesTitle: 'Industrias objetivo',
   insightTitle: 'Recomendación rápida',
-  continueButton: 'Continuar',
-  processButton: 'Ver proceso',
+  continueButton: 'Ver proceso',
+  processButton: 'Ver explicación',
   marketAnalysisLink: 'Ver análisis de mercado',
   loadMoreMessage: 'Cargando más sectores...',
   noMoreMessage: 'No hay más sectores por mostrar.'

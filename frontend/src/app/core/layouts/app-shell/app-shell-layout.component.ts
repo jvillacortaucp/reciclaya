@@ -1,5 +1,6 @@
-import { ChangeDetectionStrategy, Component, effect, HostListener, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, effect, HostListener, inject, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { TourGuideService } from '../../services/tour-guide.service';
 import { SidebarComponent } from './sidebar/sidebar.component';
 import { TopbarComponent } from './topbar/topbar.component';
 
@@ -16,8 +17,10 @@ import { TopbarComponent } from './topbar/topbar.component';
 })
 export class AppShellLayoutComponent {
   protected readonly isSidebarOpen = signal(false);
+  private readonly tourGuide = inject(TourGuideService);
 
   constructor() {
+    this.tourGuide.init();
     effect(() => {
       if (this.isSidebarOpen()) {
         document.body.classList.add('overflow-hidden');
