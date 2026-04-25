@@ -27,7 +27,6 @@ import { SectionHeaderComponent } from '../../shared/ui/section-header/section-h
     ValueSectorAccordionComponent,
     ValueSectorSummaryComponent,
     ValueSectorFloatingActionsComponent,
-    CardComponent,
     SectionHeaderComponent
   ],
   templateUrl: './value-sector.page.html',
