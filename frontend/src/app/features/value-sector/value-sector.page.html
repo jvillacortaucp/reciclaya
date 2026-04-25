@@ -52,7 +52,13 @@
     </div>
 
     <div class="min-w-0">
-      <app-value-sector-summary [summary]="summary()" [completion]="completion()" />
+      <app-value-sector-summary
+        [summary]="summary()"
+        [completion]="completion()"
+        [actionsEnabled]="!!selectedProductId()"
+        (processRequested)="onProcessRequested()"
+        (explanationRequested)="onExplanationRequested()"
+        (marketRequested)="onMarketRequested()" />
     </div>
   </div>
 </section>

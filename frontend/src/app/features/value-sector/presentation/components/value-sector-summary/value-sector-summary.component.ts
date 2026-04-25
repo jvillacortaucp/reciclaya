@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import { LucideExternalLink, LucideEye } from '@lucide/angular';
 import {
   VALUE_SECTOR_COMPLEXITY_LABEL,
@@ -19,6 +19,11 @@ import { ValueSectorSelectionSummary } from '../../../models/value-sector.model'
 export class ValueSectorSummaryComponent {
   summary = input<ValueSectorSelectionSummary | null>(null);
   completion = input<number>(0);
+  actionsEnabled = input<boolean>(false);
+
+  processRequested = output<void>();
+  explanationRequested = output<void>();
+  marketRequested = output<void>();
 
   protected readonly texts = VALUE_SECTOR_TEXT;
   protected readonly complexityStyles = VALUE_SECTOR_COMPLEXITY_STYLES;
@@ -35,4 +40,19 @@ export class ValueSectorSummaryComponent {
     if (!selected) return '-';
     return VALUE_SECTOR_COMPLEXITY_LABEL[selected.complexity];
   });
+
+  protected onProcessRequested(): void {
+    if (!this.actionsEnabled()) return;
+    this.processRequested.emit();
+  }
+
+  protected onExplanationRequested(): void {
+    if (!this.actionsEnabled()) return;
+    this.explanationRequested.emit();
+  }
+
+  protected onMarketRequested(): void {
+    if (!this.actionsEnabled()) return;
+    this.marketRequested.emit();
+  }
 }

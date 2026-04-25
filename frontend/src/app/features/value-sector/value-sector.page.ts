@@ -8,6 +8,7 @@ import {
   ViewChild,
   inject
 } from '@angular/core';
+import { Router } from '@angular/router';
 import { LucideLeaf } from '@lucide/angular';
 import { ValueSectorFacade } from './application/value-sector.facade';
 import { VALUE_SECTOR_TEXT } from './data/value-sector.constants';
@@ -15,7 +16,6 @@ import { ValueSectorAccordionComponent } from './presentation/components/value-s
 import { ValueSectorFloatingActionsComponent } from './presentation/components/value-sector-floating-actions/value-sector-floating-actions.component';
 import { ValueSectorSummaryComponent } from './presentation/components/value-sector-summary/value-sector-summary.component';
 
-import { CardComponent } from '../../shared/ui/card/card.component';
 import { SectionHeaderComponent } from '../../shared/ui/section-header/section-header.component';
 
 @Component({
@@ -27,7 +27,6 @@ import { SectionHeaderComponent } from '../../shared/ui/section-header/section-h
     ValueSectorAccordionComponent,
     ValueSectorSummaryComponent,
     ValueSectorFloatingActionsComponent,
-    CardComponent,
     SectionHeaderComponent
   ],
   templateUrl: './value-sector.page.html',
@@ -35,6 +34,7 @@ import { SectionHeaderComponent } from '../../shared/ui/section-header/section-h
 })
 export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly facade = inject(ValueSectorFacade);
+  private readonly router = inject(Router);
   private observer: IntersectionObserver | null = null;
 
   @ViewChild('infiniteScrollSentinel') private sentinelRef?: ElementRef<HTMLDivElement>;
@@ -80,5 +80,28 @@ export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestro
 
   protected onProductSelected(payload: { routeId: string; productId: string }): void {
     this.facade.selectProduct(payload.routeId, payload.productId);
+  }
+
+  protected onProcessRequested(): void {
+    this.navigateToRecommendations('process');
+  }
+
+  protected onExplanationRequested(): void {
+    this.navigateToRecommendations('explanation');
+  }
+
+  protected onMarketRequested(): void {
+    this.navigateToRecommendations('market');
+  }
+
+  private navigateToRecommendations(tab: 'process' | 'explanation' | 'market'): void {
+    const productId = this.selectedProductId();
+    if (!productId) {
+      return;
+    }
+
+    void this.router.navigate(['/app/recommendations', productId], {
+      queryParams: { tab }
+    });
   }
 }

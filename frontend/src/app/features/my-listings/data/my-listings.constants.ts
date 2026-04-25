@@ -22,6 +22,7 @@ export const MY_LISTINGS_COPY = {
   subtitle:
     'Administra tus residuos publicados, revisa su estado y gestiona tus oportunidades.',
   valueSector: 'Recomendaciones',
+  searchPlaceholder: 'Buscar por producto, residuo, sector o ubicación',
   filters: 'Filtros',
   publishListing: 'Publicar residuo',
   clearFilters: 'Limpiar filtros',
@@ -84,6 +85,7 @@ export const MY_LISTINGS_EXCHANGE_OPTIONS: readonly MyListingsSelectOption<
 ];
 
 export const MY_LISTINGS_DEFAULT_FILTERS: MyListingsFilterState = {
+  searchQuery: '',
   residueType: 'all',
   sector: 'all',
   productType: 'all',

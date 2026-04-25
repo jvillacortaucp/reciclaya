@@ -72,8 +72,11 @@ export class MyListingsPageComponent implements OnInit, OnDestroy {
   protected readonly toast = this.facade.toast;
 
   protected readonly filtersOpen = signal(false);
+  protected readonly selectedListingId = signal<string | null>(null);
+  protected readonly hasSelectedListing = signal(false);
 
   protected readonly filtersForm = this.fb.nonNullable.group({
+    searchQuery: [MY_LISTINGS_DEFAULT_FILTERS.searchQuery],
     residueType: [MY_LISTINGS_DEFAULT_FILTERS.residueType],
     sector: [MY_LISTINGS_DEFAULT_FILTERS.sector],
     productType: [MY_LISTINGS_DEFAULT_FILTERS.productType],
@@ -88,6 +91,7 @@ export class MyListingsPageComponent implements OnInit, OnDestroy {
     this.subscriptions.add(
       this.filtersForm.valueChanges.subscribe((value) => {
         this.facade.setFilters({
+          searchQuery: value.searchQuery ?? MY_LISTINGS_DEFAULT_FILTERS.searchQuery,
           residueType: value.residueType ?? MY_LISTINGS_DEFAULT_FILTERS.residueType,
           sector: value.sector ?? MY_LISTINGS_DEFAULT_FILTERS.sector,
           productType: value.productType ?? MY_LISTINGS_DEFAULT_FILTERS.productType,
@@ -115,6 +119,8 @@ export class MyListingsPageComponent implements OnInit, OnDestroy {
 
   protected setTab(tab: ListingTab): void {
     this.facade.setTab(tab);
+    this.selectedListingId.set(null);
+    this.hasSelectedListing.set(false);
   }
 
   protected editListing(id: string): void {
@@ -154,6 +160,17 @@ export class MyListingsPageComponent implements OnInit, OnDestroy {
 
   protected startGuide(): void {
     this.tourGuide.launchFromBot();
+  }
+
+  protected selectListing(listingId: string): void {
+    this.selectedListingId.set(listingId);
+    this.hasSelectedListing.set(true);
+  }
+
+  protected goToValueSector(): void {
+    const listingId = this.selectedListingId();
+    if (!listingId) return;
+    this.router.navigate(['/app/value-sector'], { queryParams: { listing: listingId } });
   }
 }
 

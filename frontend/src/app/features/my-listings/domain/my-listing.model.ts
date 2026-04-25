@@ -22,6 +22,7 @@ export interface MyListing {
 }
 
 export interface MyListingsFilterState {
+  readonly searchQuery: string;
   readonly residueType: ResidueType | 'all';
   readonly sector: SectorType | 'all';
   readonly productType: ProductCategory | 'all';

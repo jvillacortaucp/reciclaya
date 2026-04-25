@@ -7,9 +7,18 @@
   <div class="flex flex-wrap items-center gap-2 lg:justify-end">
     <button
       type="button"
-      class="inline-flex h-10 items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-4 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-100"
-      [routerLink]="['/app/value-sector']"
+      class="inline-flex h-10 items-center gap-2 rounded-xl border px-4 text-sm font-semibold transition"
+      [class.border-indigo-200]="hasSelectedListing()"
+      [class.bg-indigo-50]="hasSelectedListing()"
+      [class.text-indigo-700]="hasSelectedListing()"
+      [class.hover:bg-indigo-100]="hasSelectedListing()"
+      [class.cursor-not-allowed]="!hasSelectedListing()"
+      [class.border-slate-200]="!hasSelectedListing()"
+      [class.bg-slate-100]="!hasSelectedListing()"
+      [class.text-slate-400]="!hasSelectedListing()"
+      [disabled]="!hasSelectedListing()"
       data-tour="recommendations-button"
+      (click)="goToValueSector()"
     >
       <svg lucideSparkles size="16"></svg>
       {{ copy.valueSector }}
@@ -35,6 +44,19 @@
   </div>
 </header>
 
+<section class="mb-4">
+  <div class="relative">
+    <span class="pointer-events-none absolute inset-y-0 left-3 inline-flex items-center text-slate-400">
+      <svg lucideFilter size="16"></svg>
+    </span>
+    <input
+      [formControl]="filtersForm.controls.searchQuery"
+      type="search"
+      class="h-12 w-full rounded-2xl border border-slate-200 bg-white py-2 pl-10 pr-4 text-sm text-slate-700 placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200"
+      [placeholder]="copy.searchPlaceholder" />
+  </div>
+</section>
+
 @if (toast(); as message) {
   <button
     type="button"
@@ -47,16 +69,18 @@
   </button>
 }
 
-<app-my-listings-filters
-  [form]="filtersForm"
-  [open]="filtersOpen()"
-  [residueTypeOptions]="residueTypeOptions"
-  [sectorOptions]="sectorOptions"
-  [productOptions]="productOptions"
-  [statusOptions]="statusOptions"
-  [exchangeOptions]="exchangeOptions"
-  (clearFilters)="clearFilters()"
-/>
+@if (filtersOpen()) {
+  <app-my-listings-filters
+    [form]="filtersForm"
+    [open]="filtersOpen()"
+    [residueTypeOptions]="residueTypeOptions"
+    [sectorOptions]="sectorOptions"
+    [productOptions]="productOptions"
+    [statusOptions]="statusOptions"
+    [exchangeOptions]="exchangeOptions"
+    (clearFilters)="clearFilters()"
+  />
+}
 
 <section class="mt-8">
   <div class="mb-4 border-b border-slate-200">
@@ -96,6 +120,8 @@
         <app-my-listing-card
           [listing]="item"
           [tourTarget]="isFirst"
+          [isSelected]="selectedListingId() === item.id"
+          (selected)="selectListing($event)"
           (edit)="editListing($event)"
           (deactivate)="deactivateListing($event)"
           (restore)="restoreListing($event)"

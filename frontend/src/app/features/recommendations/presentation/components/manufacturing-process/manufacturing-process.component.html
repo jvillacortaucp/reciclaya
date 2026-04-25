@@ -1,6 +1,7 @@
 @if (recommendation(); as data) {
   <div class="space-y-6">
     <section
+      data-tour="process-product-card"
       class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm"
       style="
         background-image:
@@ -9,10 +10,10 @@
         background-size: cover;
         background-position: center;
       ">
-      <div class="grid items-center gap-4 p-5 sm:p-6 lg:grid-cols-[150px_minmax(0,1fr)]">
-        <div class="flex h-36 w-36 items-center justify-center rounded-3xl border border-emerald-200 bg-emerald-50">
-          <span class="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-700 text-white">
-            <svg class="h-8 w-8" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <div class="grid items-start gap-4 p-5 lg:grid-cols-[120px_minmax(0,1fr)] lg:p-6">
+        <div class="flex h-24 w-24 items-center justify-center rounded-2xl border border-emerald-200 bg-emerald-50 sm:h-28 sm:w-28">
+          <span class="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-700 text-white sm:h-12 sm:w-12">
+            <svg class="h-6 w-6" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
               <path
                 d="M21 3.8c-3.1-.6-6.4.1-9 1.9A12.6 12.6 0 0 0 7.4 12c-.6 2-.8 4-.7 6 2 .2 4 0 6-.7 2.4-.8 4.6-2.3 6.3-4.3 1.8-2.4 2.6-5.4 2-9.2zM6.5 13.4l4.2 4.2a1 1 0 0 1-1.4 1.4L5 14.8a1 1 0 0 1 1.5-1.4z" />
             </svg>
@@ -20,39 +21,41 @@
         </div>
 
         <div class="min-w-0">
-          <div class="mb-3 flex flex-wrap gap-2">
+          <div class="mb-2 flex flex-wrap gap-2">
             <span
-              class="inline-flex rounded-lg bg-emerald-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-emerald-800">
+              class="inline-flex rounded-lg bg-emerald-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-emerald-800">
               Recomendado
             </span>
             <span
-              class="inline-flex rounded-lg bg-indigo-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-indigo-800">
+              class="inline-flex rounded-lg bg-indigo-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-indigo-800">
               Producto premium
             </span>
           </div>
 
-          <h3 class="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">{{ data.recommendedProduct }}</h3>
+          <h3 class="text-xl font-bold leading-tight tracking-tight text-slate-900 sm:text-2xl break-words">
+            {{ data.recommendedProduct }}
+          </h3>
 
-          <div class="mt-4 grid grid-cols-2 gap-4 text-sm lg:grid-cols-4">
-            <div>
-              <p class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Residuo base</p>
-              <p class="mt-1 text-xl font-semibold leading-tight text-slate-900 sm:text-xl">{{ data.baseResidue }}</p>
+          <div class="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
+            <div class="min-w-0">
+              <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Residuo base</p>
+              <p class="mt-1 text-sm font-semibold leading-snug text-slate-900 sm:text-base break-words">{{ data.baseResidue }}</p>
             </div>
-            <div>
-              <p class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Complejidad</p>
-              <p class="mt-1 text-xl font-semibold leading-tight text-emerald-700 sm:text-xl">
+            <div class="min-w-0">
+              <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Complejidad</p>
+              <p class="mt-1 text-sm font-semibold leading-snug text-emerald-700 sm:text-base">
                 @if (data.complexity === 'low') { Baja }
                 @if (data.complexity === 'medium') { Media }
                 @if (data.complexity === 'high') { Alta }
               </p>
             </div>
-            <div>
-              <p class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Tiempo estimado</p>
-              <p class="mt-1 text-xl font-semibold leading-tight text-slate-900 sm:text-xl">{{ data.totalEstimatedTime }}</p>
+            <div class="min-w-0">
+              <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Tiempo estimado</p>
+              <p class="mt-1 text-sm font-semibold leading-snug text-slate-900 sm:text-base break-words">{{ data.totalEstimatedTime }}</p>
             </div>
-            <div>
-              <p class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Potencial</p>
-              <p class="mt-1 text-xl font-semibold leading-tight text-emerald-700 sm:text-xl">
+            <div class="min-w-0">
+              <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Potencial</p>
+              <p class="mt-1 text-sm font-semibold leading-snug text-emerald-700 sm:text-base">
                 @if (data.marketPotential === 'low') { Bajo }
                 @if (data.marketPotential === 'medium') { Medio }
                 @if (data.marketPotential === 'high') { Alto }
@@ -63,9 +66,9 @@
       </div>
     </section>
 
-    <section>
-      <h3 class="mb-4 flex items-center gap-2 text-2xl font-semibold text-slate-900 sm:text-3xl">
-        <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700">▣</span>
+    <section data-tour="process-timeline">
+      <h3 class="mb-4 flex items-center gap-2 text-2xl font-semibold text-slate-900">
+        <span class="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700">▣</span>
         Pasos del Proceso
       </h3>
       <app-process-step-timeline

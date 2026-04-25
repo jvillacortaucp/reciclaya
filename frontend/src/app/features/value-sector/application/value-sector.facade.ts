@@ -94,8 +94,6 @@ export class ValueSectorFacade {
     }
 
     this.expandedRouteId.set(routeId);
-    this.selectedRouteId.set(routeId);
-    this.selectedProductId.set(route.products[0]?.id ?? null);
   }
 
   selectProduct(routeId: string, productId: string): void {
@@ -130,16 +128,6 @@ export class ValueSectorFacade {
         this.page.set(response.page);
         this.hasMore.set(response.hasMore);
         this.items.update((current) => [...current, ...response.items]);
-
-        const hasSelection = this.selectedRouteId() && this.selectedProductId();
-        if (!hasSelection) {
-          const firstRoute = response.items[0];
-          if (firstRoute) {
-            this.selectedRouteId.set(firstRoute.id);
-            this.selectedProductId.set(firstRoute.products[0]?.id ?? null);
-            this.expandedRouteId.set(firstRoute.id);
-          }
-        }
       });
   }
 }
