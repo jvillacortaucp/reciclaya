@@ -35,6 +35,7 @@
     "driver.js": "^1.4.0",
     "flowbite": "^4.0.1",
     "ng-apexcharts": "^2.4.0",
+    "notyf": "^3.10.0",
     "rxjs": "~7.8.0",
     "tailwindcss": "^4.2.4",
     "tslib": "^2.3.0"

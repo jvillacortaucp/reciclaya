@@ -6,8 +6,8 @@ export const DASHBOARD_ROUTES: Route[] = [
     loadComponent: () => import('./dashboard.page').then((m) => m.DashboardPageComponent),
     data: {
       meta: {
-        title: 'Dashboard',
-        breadcrumb: 'Dashboard',
+        title: 'Dashboard de impacto',
+        breadcrumb: 'Dashboard de impacto',
         icon: 'layout-dashboard',
         permissions: ['view:dashboard']
       }

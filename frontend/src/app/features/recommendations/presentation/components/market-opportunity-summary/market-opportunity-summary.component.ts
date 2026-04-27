@@ -5,7 +5,7 @@ import { MarketOpportunitySummary } from '../../../models/recommendation.model';
 @Component({
   selector: 'app-market-opportunity-summary',
   standalone: true,
-  imports: [ LucideBookmark],
+  imports: [LucideBookmark],
   templateUrl: './market-opportunity-summary.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })

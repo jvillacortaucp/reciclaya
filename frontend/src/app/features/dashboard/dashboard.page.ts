@@ -1,36 +1,49 @@
-import { ChangeDetectionStrategy, Component, OnInit } from '@angular/core';
-import { NgApexchartsModule } from 'ng-apexcharts';
-import { ApexAxisChartSeries, ApexChart, ApexStroke, ApexXAxis } from 'ng-apexcharts';
-import { SectionHeaderComponent } from '../../shared/ui/section-header/section-header.component';
-import { StatCardComponent } from '../../shared/ui/stat-card/stat-card.component';
-
-interface ChartOptions {
-  readonly series: ApexAxisChartSeries;
-  readonly chart: ApexChart;
-  readonly stroke: ApexStroke;
-  readonly xaxis: ApexXAxis;
-}
+import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
+import { DashboardImpactFacade } from './application/dashboard-impact.facade';
+import { DASHBOARD_COPY } from './data/dashboard-impact.constants';
+import { DashboardPeriodFilterComponent } from './presentation/components/dashboard-period-filter/dashboard-period-filter.component';
+import { ExportDataButtonComponent } from './presentation/components/export-data-button/export-data-button.component';
+import { ImpactKpiCardComponent } from './presentation/components/impact-kpi-card/impact-kpi-card.component';
+import { ProductMatrixChartComponent } from './presentation/components/product-matrix-chart/product-matrix-chart.component';
+import { ProductMatrixTableComponent } from './presentation/components/product-matrix-table/product-matrix-table.component';
+import { QuarterlyImprovementScoreComponent } from './presentation/components/quarterly-improvement-score/quarterly-improvement-score.component';
 
 @Component({
   selector: 'app-dashboard-page',
-  imports: [NgApexchartsModule, SectionHeaderComponent, StatCardComponent],
+  standalone: true,
+  providers: [DashboardImpactFacade],
+  imports: [
+    DashboardPeriodFilterComponent,
+    ExportDataButtonComponent,
+    ImpactKpiCardComponent,
+    ProductMatrixChartComponent,
+    ProductMatrixTableComponent,
+    QuarterlyImprovementScoreComponent
+  ],
   templateUrl: './dashboard.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class DashboardPageComponent implements OnInit {
-  protected chartOptions!: ChartOptions;
+  private readonly facade = inject(DashboardImpactFacade);
+
+  protected readonly copy = DASHBOARD_COPY;
+  protected readonly loading = this.facade.loading;
+  protected readonly period = this.facade.selectedPeriod;
+  protected readonly kpis = this.facade.kpis;
+  protected readonly matrix = this.facade.matrix;
+  protected readonly quarterlyScore = this.facade.quarterlyScore;
+  protected readonly exportMessage = this.facade.exportMessage;
 
   ngOnInit(): void {
-    this.chartOptions = {
-      chart: {
-        type: 'area',
-        height: 280,
-        toolbar: { show: false },
-        animations: { speed: 420 }
-      },
-      series: [{ name: 'Volumen transado (ton)', data: [12, 18, 15, 21, 26, 24, 29] }],
-      stroke: { curve: 'smooth', width: 3 },
-      xaxis: { categories: ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom'] }
-    };
+    this.facade.loadInitial();
+  }
+
+  protected onPeriodChange(period: 'last_7_days' | 'current_month' | 'current_quarter' | 'current_year'): void {
+    this.facade.onPeriodChange(period);
+  }
+
+  protected onExportRequested(): void {
+    this.facade.exportCsv();
   }
 }
+

@@ -2,9 +2,9 @@ import { ListingDetailEntity } from '../domain/listing-detail.models';
 
 export const LISTING_DETAIL_COPY = {
   breadcrumbParent: 'Marketplace',
-  breadcrumbCurrent: 'Listing Detail',
+  breadcrumbCurrent: 'Detalle del residuo',
   save: 'Guardar',
-  primaryAction: 'Contactar vendedor',
+  primaryAction: 'Generar pre-orden',
   secondaryAction: 'Solicitar información',
   back: 'Volver',
   technicalSectionTitle: 'Especificaciones Técnicas',
@@ -44,4 +44,3 @@ export function buildExchangeTypeLabel(detail: ListingDetailEntity): string {
       return detail.logistics.exchangeType;
   }
 }
-
