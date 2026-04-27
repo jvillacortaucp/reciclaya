@@ -47,7 +47,7 @@ export const TOUR_GUIDE_STORAGE_KEYS = {
 } as const;
 
 export const TOUR_GUIDE_TEST_CONFIG = {
-    ENABLED: true,
+    ENABLED: false,
     MAX_ATTEMPTS: 10,
     RESET_ON_RELOAD: false,
 } as const;

@@ -65,6 +65,14 @@ export const appRoutes: AppRoute[] = [
         loadChildren: () => import('./features/pre-orders/pre-orders.routes').then((m) => m.PRE_ORDERS_ROUTES)
       },
       {
+        path: 'orders',
+        loadChildren: () => import('./features/orders/orders.routes').then((m) => m.ORDERS_ROUTES)
+      },
+      {
+        path: 'checkout',
+        loadChildren: () => import('./features/checkout/checkout.routes').then((m) => m.CHECKOUT_ROUTES)
+      },
+      {
         path: 'value-sector',
         loadChildren: () =>
           import('./features/value-sector/value-sector.routes').then((m) => m.VALUE_SECTOR_ROUTES)
@@ -86,7 +94,12 @@ export const appRoutes: AppRoute[] = [
         path: 'settings',
         loadChildren: () => import('./features/settings/settings.routes').then((m) => m.SETTINGS_ROUTES)
       },
-      { path: '', pathMatch: 'full', redirectTo: 'dashboard' }
+      {
+        path: 'admin',
+        loadChildren: () => import('./features/admin/admin.routes').then((m) => m.ADMIN_ROUTES)
+      },
+      { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
+      { path: '**', redirectTo: 'dashboard' }
     ]
   },
   { path: '', pathMatch: 'full', redirectTo: 'auth/login' },

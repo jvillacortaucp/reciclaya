@@ -1,6 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ReciclaYa.Api.Requests;
 using ReciclaYa.Api.Responses;
 using ReciclaYa.Application.Auth.Models;
 using ReciclaYa.Application.Media.Models;
@@ -46,9 +47,10 @@ public sealed class ProfileController(
     }
 
     [HttpPost("avatar")]
+    [Consumes("multipart/form-data")]
     [RequestSizeLimit(5 * 1024 * 1024)]
     public async Task<IActionResult> UploadAvatar(
-        [FromForm] IFormFile? file,
+        [FromForm] UploadAvatarFormRequest request,
         CancellationToken cancellationToken)
     {
         if (!TryGetUserId(out var userId))
@@ -57,7 +59,7 @@ public sealed class ProfileController(
         }
 
         var role = User.FindFirst("role")?.Value ?? string.Empty;
-        var payload = await ToFilePayloadAsync(file, cancellationToken);
+        var payload = await ToFilePayloadAsync(request.File, cancellationToken);
         if (payload is null)
         {
             return BadRequest(ApiResponse<object>.Fail("A file is required.", ["FILE_REQUIRED"]));

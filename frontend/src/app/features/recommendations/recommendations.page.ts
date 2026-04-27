@@ -35,7 +35,10 @@ export class RecommendationsPageComponent implements OnInit {
   private loadedProductId: string | null = null;
 
   protected readonly loading = this.facade.loading;
+  protected readonly error = this.facade.error;
   protected readonly recommendation = this.facade.recommendation;
+  protected readonly commercialRecommendations = this.facade.commercialRecommendations;
+  protected readonly usingCommercialMode = this.facade.usingCommercialMode;
   protected readonly activeTab = this.facade.activeTab;
   protected readonly selectedStepId = this.facade.selectedStepId;
   protected readonly selectedStep = this.facade.selectedStep;
@@ -66,6 +69,10 @@ export class RecommendationsPageComponent implements OnInit {
   }
 
   protected setTab(tab: 'process' | 'explanation' | 'market'): void {
+    if (this.usingCommercialMode()) {
+      return;
+    }
+
     this.facade.setActiveTab(tab);
     void this.router.navigate([], {
       relativeTo: this.route,
@@ -100,6 +107,14 @@ export class RecommendationsPageComponent implements OnInit {
 
   protected selectChartType(type: 'donut' | 'bar'): void {
     this.facade.setSelectedChartType(type);
+  }
+
+  protected openListing(listingId?: string): void {
+    if (!listingId) {
+      return;
+    }
+
+    void this.router.navigate(['/app/marketplace', listingId]);
   }
 
   private parseTab(tab: string | null): RecommendationTab {

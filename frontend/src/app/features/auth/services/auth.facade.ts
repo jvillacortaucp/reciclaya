@@ -14,12 +14,10 @@ import {
   RegisterPayload
 } from '../domain/register.models';
 import { AuthHttpRepository } from '../infrastructure/auth-http.repository';
-import { MockAuthService } from './mock-auth.service';
 
 @Injectable({ providedIn: 'root' })
 export class AuthFacade {
   private readonly authRepository = inject(AuthHttpRepository);
-  private readonly mockAuthService = inject(MockAuthService);
   private readonly sessionStorage = inject(SessionStorageService);
   private readonly router = inject(Router);
 
@@ -32,6 +30,7 @@ export class AuthFacade {
   readonly isAuthenticated = computed(() => !!this.session());
   readonly permissions = computed(() => this.session()?.permissions ?? []);
   readonly isLoading = computed(() => this.emailLoginLoading() || this.socialLoginLoading());
+  private syncRequested = false;
 
   login(payload: LoginPayload): void {
     this.authError.set(null);
@@ -55,22 +54,7 @@ export class AuthFacade {
   }
 
   loginWithGoogle(): void {
-    this.authError.set(null);
-    this.socialLoginLoading.set(true);
-
-    this.mockAuthService
-      .loginWithGoogle()
-      .pipe(
-        tap((session) => this.persistSession(session, true)),
-        catchError(() => {
-          this.authError.set(LOGIN_VALIDATION_MESSAGES.socialDisabled);
-          return EMPTY;
-        }),
-        finalize(() => this.socialLoginLoading.set(false))
-      )
-      .subscribe(() => {
-        void this.router.navigateByUrl(APP_ROUTES.dashboard);
-      });
+    this.authError.set(LOGIN_VALIDATION_MESSAGES.socialDisabled);
   }
 
   register(payload: RegisterPayload): void {
@@ -120,6 +104,10 @@ export class AuthFacade {
   }
 
   hasPermission(permission: string): boolean {
+    if (this.user()?.role === UserRole.Admin) {
+      return true;
+    }
+
     if (this.permissions().includes(permission)) {
       return true;
     }
@@ -130,6 +118,40 @@ export class AuthFacade {
   hasAnyRole(roles: readonly string[]): boolean {
     const userRole = this.user()?.role;
     return !!userRole && roles.includes(userRole);
+  }
+
+  syncSession(force = false): void {
+    const current = this.session();
+    if (!current?.token) {
+      return;
+    }
+
+    if (this.syncRequested && !force) {
+      return;
+    }
+
+    this.syncRequested = true;
+    this.authRepository.getMe().subscribe({
+      next: (me) => {
+        const existing = this.session();
+        if (!existing) {
+          return;
+        }
+
+        this.sessionStorage.set({
+          ...existing,
+          user: {
+            ...existing.user,
+            ...me.user,
+            avatarUrl: me.user.avatarUrl ?? existing.user.avatarUrl ?? null
+          },
+          permissions: me.permissions
+        });
+      },
+      error: () => {
+        this.syncRequested = false;
+      }
+    });
   }
 
   logout(): void {

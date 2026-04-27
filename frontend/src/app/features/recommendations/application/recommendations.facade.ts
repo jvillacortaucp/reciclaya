@@ -1,5 +1,8 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
-import { finalize } from 'rxjs';
+import { catchError, EMPTY, finalize } from 'rxjs';
+import { getErrorMessage } from '../../../core/http/api-response.helpers';
+import { Recommendation } from '../../../core/models/app.models';
+import { RecommendationsHttpRepository } from '../recommendations-http.repository';
 import { RecommendationsService } from '../infrastructure/recommendations.service';
 import {
   BuyerSegment,
@@ -14,9 +17,13 @@ import {
 @Injectable()
 export class RecommendationsFacade {
   private readonly service = inject(RecommendationsService);
+  private readonly recommendationsRepository = inject(RecommendationsHttpRepository);
 
   readonly loading = signal(false);
+  readonly error = signal<string | null>(null);
   readonly recommendation = signal<RecommendationProcess | null>(null);
+  readonly commercialRecommendations = signal<readonly Recommendation[]>([]);
+  readonly usingCommercialMode = signal(false);
   readonly activeTab = signal<RecommendationTab>('process');
   readonly selectedStepId = signal<string | null>(null);
   readonly selectedExplanationStepId = signal<string | null>(null);
@@ -56,8 +63,28 @@ export class RecommendationsFacade {
   });
 
   load(productId?: string | null, tab: RecommendationTab = 'process'): void {
+    this.error.set(null);
     this.activeTab.set(tab);
     this.loading.set(true);
+
+    if (!productId) {
+      this.usingCommercialMode.set(true);
+      this.recommendation.set(null);
+      this.recommendationsRepository
+        .list()
+        .pipe(
+          catchError((error: unknown) => {
+            this.error.set(getErrorMessage(error, 'No se pudieron cargar las recomendaciones comerciales.'));
+            return EMPTY;
+          }),
+          finalize(() => this.loading.set(false))
+        )
+        .subscribe((items) => this.commercialRecommendations.set(items));
+      return;
+    }
+
+    this.usingCommercialMode.set(false);
+    this.commercialRecommendations.set([]);
     this.service
       .getProcessRecommendation(productId)
       .pipe(finalize(() => this.loading.set(false)))

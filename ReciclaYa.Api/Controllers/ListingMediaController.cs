@@ -1,6 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ReciclaYa.Api.Requests;
 using ReciclaYa.Api.Responses;
 using ReciclaYa.Application.Auth.Models;
 using ReciclaYa.Application.Media.Models;
@@ -14,12 +15,11 @@ namespace ReciclaYa.Api.Controllers;
 public sealed class ListingMediaController(IMediaService mediaService) : ControllerBase
 {
     [HttpPost("upload")]
+    [Consumes("multipart/form-data")]
     [RequestSizeLimit(5 * 1024 * 1024)]
-    public async Task<IActionResult> Upload(
+    public async Task<IActionResult> UploadListingMedia(
         Guid listingId,
-        [FromForm] IFormFile? file,
-        [FromForm] string? alt,
-        [FromForm] int? sortOrder,
+        [FromForm] UploadListingMediaFormRequest request,
         CancellationToken cancellationToken)
     {
         if (!TryGetUserId(out var userId))
@@ -27,7 +27,7 @@ public sealed class ListingMediaController(IMediaService mediaService) : Control
             return Unauthorized(ApiResponse<object>.Fail("Unauthorized.", ["INVALID_TOKEN_SUBJECT"]));
         }
 
-        var payload = await ToFilePayloadAsync(file, cancellationToken);
+        var payload = await ToFilePayloadAsync(request.File, cancellationToken);
         if (payload is null)
         {
             return BadRequest(ApiResponse<object>.Fail("A file is required.", ["FILE_REQUIRED"]));
@@ -38,8 +38,8 @@ public sealed class ListingMediaController(IMediaService mediaService) : Control
             GetRole(),
             listingId,
             payload,
-            alt,
-            sortOrder,
+            request.Alt,
+            request.SortOrder,
             cancellationToken);
 
         return ToActionResult(result);

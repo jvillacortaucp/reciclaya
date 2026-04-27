@@ -124,7 +124,14 @@ export class PreOrderNewPageComponent implements OnInit, OnDestroy {
           return;
         }
 
-        this.facade.simulateSummary(this.listingId, Number(value.quantity ?? 0));
+        this.facade.simulateSummary(
+          this.listingId,
+          Number(value.quantity ?? 0),
+          (value.paymentMethod ?? 'bank_transfer') as PaymentMethodType,
+          value.desiredDate ?? new Date().toISOString().slice(0, 10),
+          value.notes ?? '',
+          Boolean(value.reserveStock)
+        );
       })
     );
   }

@@ -42,7 +42,13 @@ export const SIDEBAR_NAV_ITEMS: readonly SidebarNavItem[] = [
     group: 'Marketplace',
     icon: 'clipboard-list',
     route: APP_ROUTES.preOrders,
-    permissions: [PERMISSIONS.CREATE_PRE_ORDER]
+    permissions: [PERMISSIONS.CREATE_PREORDER]
+  },
+  {
+    label: 'Ordenes',
+    group: 'Marketplace',
+    icon: 'clipboard-list',
+    route: APP_ROUTES.orders
   },
   {
     label: 'Solicitudes',
@@ -56,7 +62,7 @@ export const SIDEBAR_NAV_ITEMS: readonly SidebarNavItem[] = [
     group: 'Intelligence',
     icon: 'sparkles',
     route: APP_ROUTES.valueSector,
-    permissions: [PERMISSIONS.VIEW_VALUE_SECTOR]
+    permissions: [PERMISSIONS.VIEW_RECOMMENDATIONS]
   },
   {
     label: 'Recomendaciones',

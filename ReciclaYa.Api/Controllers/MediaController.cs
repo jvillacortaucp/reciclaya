@@ -1,6 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ReciclaYa.Api.Requests;
 using ReciclaYa.Api.Responses;
 using ReciclaYa.Application.Auth.Models;
 using ReciclaYa.Application.Media.Models;
@@ -15,15 +16,10 @@ namespace ReciclaYa.Api.Controllers;
 public sealed class MediaController(IMediaService mediaService) : ControllerBase
 {
     [HttpPost("upload")]
+    [Consumes("multipart/form-data")]
     [RequestSizeLimit(5 * 1024 * 1024)]
     public async Task<IActionResult> Upload(
-        [FromForm] IFormFile? file,
-        [FromForm] string entityType,
-        [FromForm] Guid? entityId,
-        [FromForm] string purpose,
-        [FromForm] string visibility,
-        [FromForm] string? alt,
-        [FromForm] int? sortOrder,
+        [FromForm] UploadMediaFormRequest request,
         CancellationToken cancellationToken)
     {
         if (!TryGetUserId(out var userId))
@@ -31,7 +27,7 @@ public sealed class MediaController(IMediaService mediaService) : ControllerBase
             return Unauthorized(ApiResponse<object>.Fail("Unauthorized.", ["INVALID_TOKEN_SUBJECT"]));
         }
 
-        var payload = await ToFilePayloadAsync(file, cancellationToken);
+        var payload = await ToFilePayloadAsync(request.File, cancellationToken);
         if (payload is null)
         {
             return BadRequest(ApiResponse<object>.Fail("A file is required.", ["FILE_REQUIRED"]));
@@ -41,7 +37,13 @@ public sealed class MediaController(IMediaService mediaService) : ControllerBase
             userId,
             GetRole(),
             payload,
-            new UploadMediaRequest(entityType, entityId, purpose, visibility, alt, sortOrder),
+            new UploadMediaRequest(
+                request.EntityType,
+                request.EntityId,
+                request.Purpose,
+                request.Visibility,
+                request.Alt,
+                request.SortOrder),
             cancellationToken);
 
         return ToActionResult(result);

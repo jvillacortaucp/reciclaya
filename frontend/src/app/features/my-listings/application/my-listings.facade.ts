@@ -1,5 +1,6 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
-import { finalize } from 'rxjs';
+import { catchError, EMPTY, finalize } from 'rxjs';
+import { getErrorMessage } from '../../../core/http/api-response.helpers';
 import { MY_LISTINGS_COPY, MY_LISTINGS_DEFAULT_FILTERS } from '../data/my-listings.constants';
 import {
   ListingActionFeedback,
@@ -8,11 +9,12 @@ import {
   MyListing,
   MyListingsFilterState
 } from '../domain/my-listing.model';
-import { MyListingsMockService } from '../infrastructure/my-listings.mock.service';
+import { MyListingsRepository } from '../my-listings.repository';
+import { MarketplaceListing } from '../../marketplace/domain/marketplace.models';
 
 @Injectable({ providedIn: 'root' })
 export class MyListingsFacade {
-  private readonly service = inject(MyListingsMockService);
+  private readonly repository = inject(MyListingsRepository);
 
   readonly loading = signal(false);
   readonly actionLoadingId = signal<string | null>(null);
@@ -22,11 +24,11 @@ export class MyListingsFacade {
   readonly toast = signal<ListingActionFeedback | null>(null);
 
   readonly filteredByTab = computed(() =>
-    this.listings().filter((item) => item.status === this.activeTab())
+    this.applyFilters(this.listings(), this.filters()).filter((item) => item.status === this.activeTab())
   );
 
   readonly counts = computed<ListingCountByStatus>(() => {
-    const all = this.listings();
+    const all = this.applyFilters(this.listings(), this.filters());
     return {
       active: all.filter((item) => item.status === 'active').length,
       draft: all.filter((item) => item.status === 'draft').length,
@@ -38,20 +40,27 @@ export class MyListingsFacade {
 
   loadListings(): void {
     this.loading.set(true);
-    this.service
-      .getListings({ filters: this.filters() })
-      .pipe(finalize(() => this.loading.set(false)))
-      .subscribe((items) => this.listings.set(items));
+    this.repository
+      .getMyListings()
+      .pipe(
+        catchError((error: unknown) => {
+          this.toast.set({
+            type: 'info',
+            message: getErrorMessage(error, 'No se pudieron cargar tus publicaciones.')
+          });
+          return EMPTY;
+        }),
+        finalize(() => this.loading.set(false))
+      )
+      .subscribe((items) => this.listings.set(items.map((item) => this.toMyListing(item))));
   }
 
   setFilters(nextFilters: MyListingsFilterState): void {
     this.filters.set(nextFilters);
-    this.loadListings();
   }
 
   clearFilters(): void {
     this.filters.set(MY_LISTINGS_DEFAULT_FILTERS);
-    this.loadListings();
   }
 
   setTab(tab: ListingTab): void {
@@ -60,38 +69,22 @@ export class MyListingsFacade {
 
   deactivate(id: string): void {
     this.actionLoadingId.set(id);
-    this.service
-      .updateListingStatus(id, 'inactive')
-      .pipe(finalize(() => this.actionLoadingId.set(null)))
-      .subscribe((updated) => {
-        if (!updated) {
-          return;
-        }
-
-        this.listings.update((items) =>
-          items.map((item) => (item.id === id ? { ...item, status: 'inactive' } : item))
-        );
-        this.activeTab.set('inactive');
-        this.toast.set({ type: 'success', message: MY_LISTINGS_COPY.deactivatedSuccess });
-      });
+    queueMicrotask(() => {
+      this.actionLoadingId.set(null);
+      this.listings.update((items) => items.map((item) => (item.id === id ? { ...item, status: 'inactive' } : item)));
+      this.activeTab.set('inactive');
+      this.toast.set({ type: 'info', message: MY_LISTINGS_COPY.deactivatedSuccess });
+    });
   }
 
   restore(id: string): void {
     this.actionLoadingId.set(id);
-    this.service
-      .updateListingStatus(id, 'active')
-      .pipe(finalize(() => this.actionLoadingId.set(null)))
-      .subscribe((updated) => {
-        if (!updated) {
-          return;
-        }
-
-        this.listings.update((items) =>
-          items.map((item) => (item.id === id ? { ...item, status: 'active' } : item))
-        );
-        this.activeTab.set('active');
-        this.toast.set({ type: 'success', message: MY_LISTINGS_COPY.restoredSuccess });
-      });
+    queueMicrotask(() => {
+      this.actionLoadingId.set(null);
+      this.listings.update((items) => items.map((item) => (item.id === id ? { ...item, status: 'active' } : item)));
+      this.activeTab.set('active');
+      this.toast.set({ type: 'info', message: MY_LISTINGS_COPY.restoredSuccess });
+    });
   }
 
   showExportToast(): void {
@@ -100,5 +93,59 @@ export class MyListingsFacade {
 
   clearToast(): void {
     this.toast.set(null);
+  }
+
+  private applyFilters(items: readonly MyListing[], filters: MyListingsFilterState): readonly MyListing[] {
+    const query = filters.searchQuery.trim().toLowerCase();
+
+    return items.filter((item) => {
+      const matchesQuery =
+        !query ||
+        item.title.toLowerCase().includes(query) ||
+        item.specificResidue.toLowerCase().includes(query) ||
+        item.location?.toLowerCase().includes(query);
+
+      return (
+        matchesQuery &&
+        (filters.residueType === 'all' || item.residueType === filters.residueType) &&
+        (filters.sector === 'all' || item.sector === filters.sector) &&
+        (filters.productType === 'all' || item.productType === filters.productType) &&
+        (!filters.specificResidue ||
+          item.specificResidue.toLowerCase().includes(filters.specificResidue.toLowerCase())) &&
+        (filters.status === 'all' || item.status === filters.status) &&
+        (filters.exchangeType === 'all' || item.exchangeType === filters.exchangeType)
+      );
+    });
+  }
+
+  private toMyListing(item: MarketplaceListing): MyListing {
+    return {
+      id: item.id,
+      title: item.specificResidue,
+      productType: item.productType,
+      specificResidue: item.specificResidue,
+      residueType: item.wasteType,
+      sector: item.sector,
+      quantity: item.quantity,
+      unitLabel: item.unit,
+      estimatedPriceLabel: item.pricePerUnitUsd === null ? 'A coordinar' : `USD ${item.pricePerUnitUsd.toFixed(2)}`,
+      status: item.status === 'recent' ? 'draft' : 'active',
+      publishedAt: item.createdAt,
+      exchangeType: item.exchangeType,
+      exchangeLabel: this.mapExchangeLabel(item.exchangeType),
+      location: item.location,
+      imageUrl: item.media[0]?.url
+    };
+  }
+
+  private mapExchangeLabel(value: MarketplaceListing['exchangeType']): string {
+    switch (value) {
+      case 'barter':
+        return 'Trueque';
+      case 'pickup':
+        return 'Recojo';
+      default:
+        return 'Venta';
+    }
   }
 }

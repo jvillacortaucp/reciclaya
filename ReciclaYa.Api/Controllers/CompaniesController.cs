@@ -1,6 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ReciclaYa.Api.Requests;
 using ReciclaYa.Api.Responses;
 using ReciclaYa.Application.Auth.Models;
 using ReciclaYa.Application.Media.Models;
@@ -14,9 +15,10 @@ namespace ReciclaYa.Api.Controllers;
 public sealed class CompaniesController(IMediaService mediaService) : ControllerBase
 {
     [HttpPost("me/logo")]
+    [Consumes("multipart/form-data")]
     [RequestSizeLimit(5 * 1024 * 1024)]
     public async Task<IActionResult> UploadLogo(
-        [FromForm] IFormFile? file,
+        [FromForm] UploadLogoFormRequest request,
         CancellationToken cancellationToken)
     {
         if (!TryGetUserId(out var userId))
@@ -24,7 +26,7 @@ public sealed class CompaniesController(IMediaService mediaService) : Controller
             return Unauthorized(ApiResponse<object>.Fail("Unauthorized.", ["INVALID_TOKEN_SUBJECT"]));
         }
 
-        var payload = await ToFilePayloadAsync(file, cancellationToken);
+        var payload = await ToFilePayloadAsync(request.File, cancellationToken);
         if (payload is null)
         {
             return BadRequest(ApiResponse<object>.Fail("A file is required.", ["FILE_REQUIRED"]));
