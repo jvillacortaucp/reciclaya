@@ -270,7 +270,7 @@ export class TourGuideService {
         nextBtnText: isChoiceStep ? 'Entendido' : 'Siguiente',
         prevBtnText: 'Atrás',
         onNextClick: () => this.handleNext(step.id),
-        onCloseClick: () => this.destroyDriver()
+        onCloseClick: () => this.finishFlow()
       }
     };
 
@@ -279,6 +279,8 @@ export class TourGuideService {
       allowClose: true,
       showProgress: false,
       smoothScroll: true,
+      stagePadding: 22,
+      stageRadius: 22,
       popoverClass: 'ecovalor-driver-popover',
       steps: [tourStep]
     });
@@ -402,6 +404,8 @@ export class TourGuideService {
       allowClose: true,
       showProgress: false,
       smoothScroll: true,
+      stagePadding: 22,
+      stageRadius: 22,
       popoverClass: 'ecovalor-driver-popover',
       steps: [tourStep]
     });
@@ -557,6 +561,8 @@ export class TourGuideService {
       allowClose: true,
       showProgress: false,
       smoothScroll: true,
+      stagePadding: 22,
+      stageRadius: 22,
       popoverClass: 'ecovalor-driver-popover',
       steps: [completionStep]
     });

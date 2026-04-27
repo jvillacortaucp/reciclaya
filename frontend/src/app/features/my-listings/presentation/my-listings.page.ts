@@ -16,7 +16,6 @@ import {
   MY_LISTINGS_COPY,
   MY_LISTINGS_DEFAULT_FILTERS,
   MY_LISTINGS_EXCHANGE_OPTIONS,
-  MY_LISTINGS_FLOATING_ACTIONS,
   MY_LISTINGS_PRODUCT_OPTIONS,
   MY_LISTINGS_RESIDUE_TYPE_OPTIONS,
   MY_LISTINGS_SECTOR_OPTIONS,
@@ -61,7 +60,6 @@ export class MyListingsPageComponent implements OnInit, OnDestroy {
   protected readonly productOptions = MY_LISTINGS_PRODUCT_OPTIONS;
   protected readonly statusOptions = MY_LISTINGS_STATUS_OPTIONS;
   protected readonly exchangeOptions = MY_LISTINGS_EXCHANGE_OPTIONS;
-  protected readonly floatingActions = MY_LISTINGS_FLOATING_ACTIONS;
 
   protected readonly loading = this.facade.loading;
   protected readonly actionLoadingId = this.facade.actionLoadingId;
@@ -137,25 +135,6 @@ export class MyListingsPageComponent implements OnInit, OnDestroy {
 
   protected dismissToast(): void {
     this.facade.clearToast();
-  }
-
-  protected onFloatingAction(action: 'new' | 'value-sector' | 'export' | 'marketplace'): void {
-    if (action === 'new') {
-      this.router.navigate(['/app/waste-sell']);
-      return;
-    }
-
-    if (action === 'value-sector') {
-      this.router.navigate(['/app/value-sector']);
-      return;
-    }
-
-    if (action === 'marketplace') {
-      this.router.navigate(['/app/marketplace']);
-      return;
-    }
-
-    this.facade.showExportToast();
   }
 
   protected startGuide(): void {
