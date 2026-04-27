@@ -49,6 +49,7 @@ import { ListingDetailEntity } from '../../../domain/listing-detail.models';
           <button
             type="button"
             class="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-base font-medium text-slate-700 transition hover:bg-slate-50"
+            (click)="requestInfo.emit()"
           >
             <svg lucideMessageCircle size="16"></svg>
             {{ secondaryActionLabel }}
@@ -61,7 +62,8 @@ import { ListingDetailEntity } from '../../../domain/listing-detail.models';
 })
 export class ListingSummaryCardComponent {
   @Input() detail: ListingDetailEntity | null = null;
-  @Input() primaryActionLabel = 'Contactar vendedor';
+  @Input() primaryActionLabel = 'Generar pre-orden';
   @Input() secondaryActionLabel = 'Solicitar información';
   @Output() readonly contact = new EventEmitter<void>();
+  @Output() readonly requestInfo = new EventEmitter<void>();
 }

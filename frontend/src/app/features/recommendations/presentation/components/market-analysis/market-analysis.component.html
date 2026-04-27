@@ -18,17 +18,19 @@
             [buyers]="buyers()"
             [selectedSegment]="selectedBuyerSegment()"
             (segmentSelected)="buyerSegmentChanged.emit($event)" />
-          <app-cost-profit-analysis
-            [costStructure]="market.costStructure"
-            [grossMarginPercent]="market.estimatedGrossMarginPercent"
-            [suggestedPricePerKg]="market.suggestedPricePerKg"
-            [totalCostPerKg]="market.totalCostPerKg"
-            [chartLabels]="market.chartLabels"
-            [chartSeries]="market.chartSeries"
-            [selectedCostView]="selectedCostView()"
-            [selectedChartType]="selectedChartType()"
-            (costViewChanged)="costViewChanged.emit($event)"
-            (chartTypeChanged)="chartTypeChanged.emit($event)" />
+          <div data-tour="market-costs">
+            <app-cost-profit-analysis
+              [costStructure]="market.costStructure"
+              [grossMarginPercent]="market.estimatedGrossMarginPercent"
+              [suggestedPricePerKg]="market.suggestedPricePerKg"
+              [totalCostPerKg]="market.totalCostPerKg"
+              [chartLabels]="market.chartLabels"
+              [chartSeries]="market.chartSeries"
+              [selectedCostView]="selectedCostView()"
+              [selectedChartType]="selectedChartType()"
+              (costViewChanged)="costViewChanged.emit($event)"
+              (chartTypeChanged)="chartTypeChanged.emit($event)" />
+          </div>
           <app-competition-insight-card [insight]="market.competitionInsight" />
         </div>
 

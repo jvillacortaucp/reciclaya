@@ -11,17 +11,12 @@ export interface MyListingsTabOption {
   readonly label: string;
 }
 
-export interface FloatingActionOption {
-  readonly key: 'new' | 'value-sector' | 'export' | 'marketplace';
-  readonly label: string;
-  readonly icon: 'plus' | 'sparkles' | 'download' | 'store';
-}
-
 export const MY_LISTINGS_COPY = {
   title: 'Mis publicaciones',
   subtitle:
     'Administra tus residuos publicados, revisa su estado y gestiona tus oportunidades.',
   valueSector: 'Recomendaciones',
+  searchPlaceholder: 'Buscar por producto, residuo, sector o ubicación',
   filters: 'Filtros',
   publishListing: 'Publicar residuo',
   clearFilters: 'Limpiar filtros',
@@ -84,6 +79,7 @@ export const MY_LISTINGS_EXCHANGE_OPTIONS: readonly MyListingsSelectOption<
 ];
 
 export const MY_LISTINGS_DEFAULT_FILTERS: MyListingsFilterState = {
+  searchQuery: '',
   residueType: 'all',
   sector: 'all',
   productType: 'all',
@@ -92,10 +88,3 @@ export const MY_LISTINGS_DEFAULT_FILTERS: MyListingsFilterState = {
   exchangeType: 'all',
   publishedDate: ''
 };
-
-export const MY_LISTINGS_FLOATING_ACTIONS: readonly FloatingActionOption[] = [
-  { key: 'new', label: 'Nueva publicación', icon: 'plus' },
-  { key: 'value-sector', label: 'Ver sector de valor', icon: 'sparkles' },
-  { key: 'export', label: 'Exportar listado', icon: 'download' },
-  { key: 'marketplace', label: 'Ir a Marketplace', icon: 'store' }
-];

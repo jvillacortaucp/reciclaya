@@ -1,5 +1,5 @@
 @if (product(); as item) {
-  <article class="rounded-3xl border border-slate-200 bg-white shadow-sm">
+  <article data-tour="market-finished-product" class="rounded-3xl border border-slate-200 bg-white shadow-sm">
     <div class="grid min-w-0 grid-cols-1 overflow-hidden rounded-3xl md:grid-cols-[240px_minmax(0,1fr)]">
       <div class="relative h-52 md:h-full">
         <img
@@ -39,13 +39,6 @@
             <span class="text-xl font-medium text-slate-500">/kg</span>
           </p>
         </div>
-
-        <button
-          type="button"
-          class="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100">
-          <svg lucideTag class="h-4 w-4"></svg>
-          Ver especificaciones
-        </button>
       </div>
     </div>
   </article>

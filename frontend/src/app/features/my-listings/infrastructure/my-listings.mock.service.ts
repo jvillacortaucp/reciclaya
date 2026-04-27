@@ -33,6 +33,9 @@ export class MyListingsMockService {
     const filters = query.filters;
 
     return items.filter((item) => {
+      const searchValue = filters.searchQuery.trim().toLowerCase();
+      const searchableContent = `${item.title} ${item.specificResidue} ${item.exchangeLabel} ${item.location ?? ''}`.toLowerCase();
+      const searchMatch = !searchValue || searchableContent.includes(searchValue);
       const residueTypeMatch = filters.residueType === 'all' || item.residueType === filters.residueType;
       const sectorMatch = filters.sector === 'all' || item.sector === filters.sector;
       const productMatch = filters.productType === 'all' || item.productType === filters.productType;
@@ -44,6 +47,7 @@ export class MyListingsMockService {
       const dateMatch = !filters.publishedDate || item.publishedAt === filters.publishedDate;
 
       return (
+        searchMatch &&
         residueTypeMatch &&
         sectorMatch &&
         productMatch &&

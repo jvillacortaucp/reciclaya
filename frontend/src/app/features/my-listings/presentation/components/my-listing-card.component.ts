@@ -9,13 +9,22 @@ import { MyListing } from '../../domain/my-listing.model';
   imports: [RouterLink, LucideBan, LucideEye, LucidePencil, LucideRotateCcw],
   template: `
     <article
-      class="flex h-full min-h-[430px] min-w-0 flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-      [attr.data-tour]="tourTarget ? 'first-listing-card' : null">
-      <div class="relative h-52 overflow-hidden bg-slate-200">
+      role="button"
+      tabindex="0"
+      class="flex h-full min-h-[430px] min-w-0 flex-col overflow-visible rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+      [class.border-emerald-500]="isSelected"
+      [class.ring-4]="isSelected"
+      [class.ring-emerald-500]="isSelected"
+      [class.ring-inset]="isSelected"
+      [attr.data-tour]="tourTarget ? 'first-listing-card' : null"
+      (click)="selectCard()"
+      (keydown.enter)="selectCard()"
+      (keydown.space)="selectCard(); $event.preventDefault()">
+      <div class="relative h-52 overflow-hidden rounded-t-3xl bg-slate-200">
         @if (listing.imageUrl) {
           <img [src]="listing.imageUrl" [alt]="listing.specificResidue" class="h-full w-full object-cover" />
         } @else {
-          <div class="grid h-full w-full place-items-center bg-gradient-to-br from-slate-200 to-slate-300 text-slate-500">
+          <div class="grid h-full w-full place-items-center bg-linear-to-br from-slate-200 to-slate-300 text-slate-500">
             <span class="text-xs font-semibold uppercase tracking-[0.1em]">Sin imagen</span>
           </div>
         }
@@ -66,6 +75,7 @@ import { MyListing } from '../../domain/my-listing.model';
             <a
               [routerLink]="['/app/marketplace', listing.id]"
               class="inline-flex items-center gap-1 text-base font-semibold text-emerald-700 transition hover:text-emerald-800"
+              (click)="$event.stopPropagation()"
             >
               <svg lucideEye size="15"></svg>
               Ver detalle
@@ -77,7 +87,7 @@ import { MyListing } from '../../domain/my-listing.model';
                   type="button"
                   class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
                   aria-label="Editar publicación"
-                  (click)="edit.emit(listing.id)"
+                  (click)="$event.stopPropagation(); edit.emit(listing.id)"
                 >
                   <svg lucidePencil size="16"></svg>
                 </button>
@@ -85,7 +95,7 @@ import { MyListing } from '../../domain/my-listing.model';
                   type="button"
                   class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-rose-50 hover:text-rose-700"
                   aria-label="Desactivar publicación"
-                  (click)="deactivate.emit(listing.id)"
+                  (click)="$event.stopPropagation(); deactivate.emit(listing.id)"
                 >
                   <svg lucideBan size="16"></svg>
                 </button>
@@ -94,7 +104,7 @@ import { MyListing } from '../../domain/my-listing.model';
               <button
                 type="button"
                 class="inline-flex items-center gap-1 rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-sm font-medium text-emerald-700 transition hover:bg-emerald-100"
-                (click)="restore.emit(listing.id)"
+                (click)="$event.stopPropagation(); restore.emit(listing.id)"
               >
                 <svg lucideRotateCcw size="14"></svg>
                 Restaurar
@@ -110,7 +120,13 @@ import { MyListing } from '../../domain/my-listing.model';
 export class MyListingCardComponent {
   @Input({ required: true }) listing!: MyListing;
   @Input() tourTarget = false;
+  @Input() isSelected = false;
+  @Output() readonly selected = new EventEmitter<string>();
   @Output() readonly edit = new EventEmitter<string>();
   @Output() readonly deactivate = new EventEmitter<string>();
   @Output() readonly restore = new EventEmitter<string>();
+
+  protected selectCard(): void {
+    this.selected.emit(this.listing.id);
+  }
 }

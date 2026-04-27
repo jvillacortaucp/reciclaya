@@ -55,10 +55,11 @@ export class RecommendationsFacade {
     return market.potentialBuyers.filter((buyer) => buyer.type === selectedSegment);
   });
 
-  load(): void {
+  load(productId?: string | null, tab: RecommendationTab = 'process'): void {
+    this.activeTab.set(tab);
     this.loading.set(true);
     this.service
-      .getProcessRecommendation()
+      .getProcessRecommendation(productId)
       .pipe(finalize(() => this.loading.set(false)))
       .subscribe((process) => {
         this.recommendation.set(process);

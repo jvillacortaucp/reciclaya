@@ -9,7 +9,7 @@
       [class.border-slate-200]="selectedRouteId() !== route.id">
       <button
         type="button"
-        class="w-full p-5 text-left sm:p-6"
+        class="w-full p-5 text-left sm:p-6 cursor-pointer"
         [attr.data-tour]="isFirst ? 'first-value-sector-toggle' : null"
         (click)="onToggleRoute(route.id)">
         <div class="flex items-start justify-between gap-4">

@@ -18,8 +18,8 @@ export const PRE_ORDERS_ROUTES: Route[] = [
     loadComponent: () => import('./pre-order-new.page').then((m) => m.PreOrderNewPageComponent),
     data: {
       meta: {
-        title: 'Nueva pre-orden',
-        breadcrumb: 'Nueva pre-orden',
+        title: 'Generar pre-orden',
+        breadcrumb: 'Generar pre-orden',
         icon: 'clipboard-list',
         permissions: ['create:preorder']
       }

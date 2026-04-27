@@ -24,9 +24,13 @@
 
     <app-explanation-detail-card [step]="selectedStep()" />
 
-    <app-environmental-factors-card [factors]="selectedStep()?.environmentalFactors ?? null" />
+    <div data-tour="explanation-factors">
+      <app-environmental-factors-card [factors]="selectedStep()?.environmentalFactors ?? null" />
+    </div>
 
-    <app-nature-benefits-grid [benefits]="selectedStep()?.natureBenefits ?? []" />
+    <div data-tour="explanation-benefits">
+      <app-nature-benefits-grid [benefits]="selectedStep()?.natureBenefits ?? []" />
+    </div>
   </div>
 
   <div class="min-w-0">

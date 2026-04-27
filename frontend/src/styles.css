@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "driver.js/dist/driver.css";
+@import "notyf/notyf.min.css";
 @source "./**/*.{html,ts}";
 @source "../node_modules/flowbite";
 @plugin "flowbite/plugin";
