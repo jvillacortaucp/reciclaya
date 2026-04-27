@@ -15,6 +15,7 @@ export class TopbarComponent {
   toggleSidebar = output<void>();
 
   protected readonly displayName = computed(() => this.authFacade.user()?.fullName ?? 'Usuario');
+  protected readonly avatarUrl = computed(() => this.authFacade.user()?.avatarUrl ?? null);
   protected readonly initials = computed(() => {
     const name = this.displayName().trim();
     if (!name) {

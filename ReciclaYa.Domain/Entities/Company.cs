@@ -12,6 +12,8 @@ public sealed class Company
 
     public string BusinessName { get; set; } = string.Empty;
 
+    public string? LogoUrl { get; set; }
+
     public string MobilePhone { get; set; } = string.Empty;
 
     public string Address { get; set; } = string.Empty;

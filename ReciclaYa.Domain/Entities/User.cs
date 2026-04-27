@@ -12,6 +12,8 @@ public sealed class User
 
     public string FullName { get; set; } = string.Empty;
 
+    public string? AvatarUrl { get; set; }
+
     public UserRole Role { get; set; }
 
     public ProfileType ProfileType { get; set; }
@@ -49,4 +51,6 @@ public sealed class User
     public ICollection<MessageThread> SellerMessageThreads { get; set; } = new List<MessageThread>();
 
     public ICollection<Message> SentMessages { get; set; } = new List<Message>();
+
+    public ICollection<MediaAsset> MediaAssets { get; set; } = new List<MediaAsset>();
 }

@@ -3,7 +3,7 @@ import { Router } from '@angular/router';
 import { catchError, EMPTY, finalize, tap } from 'rxjs';
 import { getErrorMessage } from '../../../core/http/api-response.helpers';
 import { APP_ROUTES, PERMISSIONS } from '../../../core/constants/app.constants';
-import { UserRole } from '../../../core/models/app.models';
+import { User, UserRole } from '../../../core/models/app.models';
 import { SessionStorageService } from '../../../core/services/session-storage.service';
 import { LOGIN_VALIDATION_MESSAGES } from '../data/login.constants';
 import { LoginPayload } from '../domain/login-screen.models';
@@ -161,6 +161,21 @@ export class AuthFacade {
     this.sessionStorage.set({
       ...session,
       user
+    });
+  }
+
+  patchUser(patch: Partial<User>): void {
+    const session = this.session();
+    if (!session) {
+      return;
+    }
+
+    this.sessionStorage.set({
+      ...session,
+      user: {
+        ...session.user,
+        ...patch
+      }
     });
   }
 

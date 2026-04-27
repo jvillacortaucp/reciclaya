@@ -37,6 +37,8 @@ public sealed class ReciclaYaDbContext(DbContextOptions<ReciclaYaDbContext> opti
 
     public DbSet<ValorizationIdea> ValorizationIdeas => Set<ValorizationIdea>();
 
+    public DbSet<MediaAsset> MediaAssets => Set<MediaAsset>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ReciclaYaDbContext).Assembly);

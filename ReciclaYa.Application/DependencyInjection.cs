@@ -5,6 +5,7 @@ using ReciclaYa.Application.CommercialRequests.Services;
 using ReciclaYa.Application.Checkout.Services;
 using ReciclaYa.Application.Dashboard.Services;
 using ReciclaYa.Application.Listings.Services;
+using ReciclaYa.Application.Media.Services;
 using ReciclaYa.Application.Messages.Services;
 using ReciclaYa.Application.Orders.Services;
 using ReciclaYa.Application.Payments.Services;
@@ -31,6 +32,7 @@ public static class DependencyInjection
         services.AddScoped<IPreOrderService, PreOrderService>();
         services.AddScoped<IRecommendationService, RecommendationService>();
         services.AddScoped<ICommercialRequestService, CommercialRequestService>();
+        services.AddScoped<IMediaService, MediaService>();
         services.AddScoped<IMessageService, MessageService>();
         services.AddScoped<IValorizationIdeaService, ValorizationIdeaService>();
         services.AddScoped<ICheckoutService, CheckoutService>();

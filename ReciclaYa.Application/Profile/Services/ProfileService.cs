@@ -120,6 +120,7 @@ public sealed class ProfileService(IAuthDbContext dbContext) : IProfileService
             AuthFormatting.ToRoleValue(user.Role),
             AuthFormatting.ToProfileTypeValue(user.ProfileType),
             AuthFormatting.ToStatusValue(user.Status),
+            user.AvatarUrl,
             user.Company is null ? null : ToCompanyDto(user.Company),
             user.PersonProfile is null ? null : ToPersonDto(user.PersonProfile));
     }
@@ -130,6 +131,7 @@ public sealed class ProfileService(IAuthDbContext dbContext) : IProfileService
             company.Id,
             company.Ruc,
             company.BusinessName,
+            company.LogoUrl,
             company.MobilePhone,
             company.Address,
             company.PostalCode,

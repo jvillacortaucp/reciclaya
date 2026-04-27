@@ -1,7 +1,10 @@
 import { computed, effect, inject, Injectable, signal } from '@angular/core';
-import { catchError, EMPTY, finalize } from 'rxjs';
+import { catchError, EMPTY, finalize, firstValueFrom } from 'rxjs';
 import { getErrorMessage } from '../../../core/http/api-response.helpers';
+import { MediaHttpRepository } from '../../../core/media/media-http.repository';
 import { SessionStorageService } from '../../../core/services/session-storage.service';
+import { MarketplaceListing } from '../../marketplace/domain/marketplace.models';
+import { MyListingsRepository } from '../../my-listings/my-listings.repository';
 import { ValorizationIdea } from '../../listing-detail/domain/valorization-ideas.models';
 import { ValorizationIdeasHttpRepository } from '../../listing-detail/infrastructure/valorization-ideas-http.repository';
 import { WASTE_SELL_COPY } from '../data/waste-sell.constants';
@@ -12,8 +15,12 @@ import { WasteSellHttpRepository } from '../infrastructure/waste-sell.http.repos
 export class WasteSellFacade {
   private readonly repository = inject(WasteSellHttpRepository);
   private readonly valorizationIdeasRepository = inject(ValorizationIdeasHttpRepository);
+  private readonly mediaRepository = inject(MediaHttpRepository);
+  private readonly myListingsRepository = inject(MyListingsRepository);
   private readonly sessionStorage = inject(SessionStorageService);
   private lastUserId: string | null | undefined = undefined;
+  private readonly pendingFiles = new Map<string, File>();
+  private currentListingId: string | null = null;
 
   readonly loading = signal(false);
   readonly draftLoading = signal(false);
@@ -22,6 +29,7 @@ export class WasteSellFacade {
   readonly valorizationIdeasLoading = signal(false);
   readonly valorizationIdeasGenerated = signal(false);
   readonly valorizationIdeasStale = signal(false);
+  readonly mediaSyncLoading = signal(false);
 
   readonly state = signal<WasteSellPageState | null>(null);
   readonly preview = signal<ListingPreviewSummary | null>(null);
@@ -82,6 +90,10 @@ export class WasteSellFacade {
     });
   }
 
+  registerPendingFile(id: string, file: File): void {
+    this.pendingFiles.set(id, file);
+  }
+
   saveDraft(state: WasteSellPageState): void {
     this.draftLoading.set(true);
     this.repository
@@ -94,9 +106,11 @@ export class WasteSellFacade {
         finalize(() => this.draftLoading.set(false))
       )
       .subscribe((nextState) => {
-        this.state.set(nextState);
+        const mergedState = this.mergeServerStateWithVisualMedia(nextState, this.state()?.formValue.mediaUploads ?? []);
+        this.state.set(mergedState);
         this.toastMessage.set('Borrador guardado correctamente.');
         this.refreshPreview();
+        void this.syncListingMediaForCurrentState();
       });
   }
 
@@ -112,10 +126,36 @@ export class WasteSellFacade {
         finalize(() => this.publishLoading.set(false))
       )
       .subscribe((nextState) => {
-        this.state.set(nextState);
+        const mergedState = this.mergeServerStateWithVisualMedia(nextState, this.state()?.formValue.mediaUploads ?? []);
+        this.state.set(mergedState);
         this.toastMessage.set('Listado publicado correctamente.');
         this.refreshPreview();
+        void this.syncListingMediaForCurrentState();
       });
+  }
+
+  removeMedia(id: string): void {
+    const current = this.state();
+    if (!current) {
+      return;
+    }
+
+    const media = current.formValue.mediaUploads.find((item) => item.id === id);
+    if (!media) {
+      return;
+    }
+
+    const nextMedia = current.formValue.mediaUploads.filter((item) => item.id !== id);
+    this.pendingFiles.delete(id);
+    this.updateMedia(nextMedia);
+
+    if (media.mediaId && this.currentListingId) {
+      this.mediaRepository.deleteListingImage(this.currentListingId, media.mediaId).subscribe({
+        error: () => {
+          this.toastMessage.set('No se pudo eliminar la imagen del listing.');
+        }
+      });
+    }
   }
 
   clearToast(): void {
@@ -209,6 +249,190 @@ export class WasteSellFacade {
     this.publishLoading.set(false);
     this.previewLoading.set(false);
     this.valorizationIdeasLoading.set(false);
+    this.mediaSyncLoading.set(false);
     this.resetValorizationIdeas();
+    this.pendingFiles.clear();
+    this.currentListingId = null;
+  }
+
+  private async syncListingMediaForCurrentState(): Promise<void> {
+    const current = this.state();
+    if (!current) {
+      return;
+    }
+
+    const pendingMedia = current.formValue.mediaUploads.filter(
+      (media) => media.uploadStatus === 'pending' || media.uploadStatus === 'failed'
+    );
+
+    if (pendingMedia.length === 0) {
+      return;
+    }
+
+    this.mediaSyncLoading.set(true);
+    const listingId = await this.resolveCurrentListingId(current);
+    if (!listingId) {
+      this.markMediaUploadsAsFailed(
+        pendingMedia.map((media) => media.id),
+        'No se pudo identificar el listing guardado para subir las imagenes.'
+      );
+      this.mediaSyncLoading.set(false);
+      return;
+    }
+
+    this.currentListingId = listingId;
+    this.patchMediaStatuses(pendingMedia.map((media) => media.id), 'uploading');
+
+    let failedUploads = 0;
+
+    for (const [index, media] of pendingMedia.entries()) {
+      const file = this.pendingFiles.get(media.id);
+      if (!file) {
+        failedUploads += 1;
+        this.markMediaUploadsAsFailed([media.id], 'No se encontro el archivo local para subir.');
+        continue;
+      }
+
+      try {
+        const uploadedAsset = await firstValueFrom(
+          this.mediaRepository.uploadListingImage(listingId, file, media.name, index)
+        );
+
+        this.pendingFiles.delete(media.id);
+        this.replaceMediaUpload(media.id, {
+          id: uploadedAsset.id,
+          mediaId: uploadedAsset.id,
+          previewUrl: uploadedAsset.url ?? media.previewUrl,
+          uploadStatus: 'uploaded',
+          warningMessage: null
+        });
+      } catch {
+        failedUploads += 1;
+        this.markMediaUploadsAsFailed([media.id], 'No se pudo subir una de las imagenes.');
+      }
+    }
+
+    this.mediaSyncLoading.set(false);
+    if (failedUploads > 0) {
+      this.toastMessage.set('Algunas imagenes no se pudieron subir. Puedes continuar y volver a intentarlo.');
+    }
+  }
+
+  private async resolveCurrentListingId(state: WasteSellPageState): Promise<string | null> {
+    if (this.currentListingId) {
+      return this.currentListingId;
+    }
+
+    try {
+      const listings = await firstValueFrom(this.myListingsRepository.getMyListings());
+      const match = this.findMatchingListing(listings, state);
+      return match?.id ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  private findMatchingListing(
+    listings: readonly MarketplaceListing[],
+    state: WasteSellPageState
+  ): MarketplaceListing | null {
+    const form = state.formValue;
+    const normalizedResidue = form.specificResidue.trim().toLowerCase();
+    const normalizedLocation = form.logistics.warehouseAddress.trim().toLowerCase();
+
+    const candidates = [...listings]
+      .filter(
+        (listing) =>
+          listing.productType === form.productType &&
+          listing.wasteType === form.residueType &&
+          listing.sector === form.sector &&
+          listing.specificResidue.trim().toLowerCase() === normalizedResidue &&
+          listing.location.trim().toLowerCase() === normalizedLocation &&
+          listing.quantity === form.volume.quantity
+      )
+      .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime());
+
+    return candidates[0] ?? null;
+  }
+
+  private mergeServerStateWithVisualMedia(
+    serverState: WasteSellPageState,
+    visualMedia: readonly WasteMediaUpload[]
+  ): WasteSellPageState {
+    return {
+      ...serverState,
+      formValue: {
+        ...serverState.formValue,
+        mediaUploads: visualMedia
+      }
+    };
+  }
+
+  private patchMediaStatuses(ids: readonly string[], uploadStatus: WasteMediaUpload['uploadStatus']): void {
+    const current = this.state();
+    if (!current) {
+      return;
+    }
+
+    this.state.set({
+      ...current,
+      formValue: {
+        ...current.formValue,
+        mediaUploads: current.formValue.mediaUploads.map((media) =>
+          ids.includes(media.id)
+            ? {
+                ...media,
+                uploadStatus,
+                warningMessage: uploadStatus === 'uploading' ? null : media.warningMessage
+              }
+            : media
+        )
+      }
+    });
+  }
+
+  private markMediaUploadsAsFailed(ids: readonly string[], warningMessage: string): void {
+    const current = this.state();
+    if (!current) {
+      return;
+    }
+
+    this.state.set({
+      ...current,
+      formValue: {
+        ...current.formValue,
+        mediaUploads: current.formValue.mediaUploads.map((media) =>
+          ids.includes(media.id)
+            ? {
+                ...media,
+                uploadStatus: 'failed',
+                warningMessage
+              }
+            : media
+        )
+      }
+    });
+  }
+
+  private replaceMediaUpload(id: string, patch: Partial<WasteMediaUpload>): void {
+    const current = this.state();
+    if (!current) {
+      return;
+    }
+
+    this.state.set({
+      ...current,
+      formValue: {
+        ...current.formValue,
+        mediaUploads: current.formValue.mediaUploads.map((media) =>
+          media.id === id
+            ? {
+                ...media,
+                ...patch
+              }
+            : media
+        )
+      }
+    });
   }
 }

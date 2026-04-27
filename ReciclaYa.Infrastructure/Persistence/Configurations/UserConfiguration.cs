@@ -27,6 +27,9 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
             .HasMaxLength(200)
             .IsRequired();
 
+        builder.Property(user => user.AvatarUrl)
+            .HasMaxLength(1200);
+
         builder.Property(user => user.Role)
             .HasConversion<string>()
             .HasMaxLength(30)

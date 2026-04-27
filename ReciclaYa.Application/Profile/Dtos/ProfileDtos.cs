@@ -7,6 +7,7 @@ public sealed record ProfileDto(
     string Role,
     string ProfileType,
     string Status,
+    string? AvatarUrl,
     ProfileCompanyDto? Company,
     ProfilePersonDto? PersonProfile);
 
@@ -14,6 +15,7 @@ public sealed record ProfileCompanyDto(
     Guid Id,
     string Ruc,
     string BusinessName,
+    string? LogoUrl,
     string MobilePhone,
     string Address,
     string PostalCode,

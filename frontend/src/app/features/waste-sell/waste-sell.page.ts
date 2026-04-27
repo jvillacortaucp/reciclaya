@@ -88,6 +88,7 @@ export class WasteSellPageComponent implements OnInit, OnDestroy, PendingChanges
   protected readonly draftLoading = this.facade.draftLoading;
   protected readonly publishLoading = this.facade.publishLoading;
   protected readonly previewLoading = this.facade.previewLoading;
+  protected readonly mediaSyncLoading = this.facade.mediaSyncLoading;
   protected readonly state = this.facade.state;
   protected readonly preview = this.facade.preview;
   protected readonly completion = this.facade.completion;
@@ -268,16 +269,32 @@ export class WasteSellPageComponent implements OnInit, OnDestroy, PendingChanges
       return;
     }
 
-    const accepted = files.slice(0, availableSlots).map((file) => {
+    const accepted = files
+      .slice(0, availableSlots)
+      .filter((file) => {
+        const validationMessage = this.validateMediaFile(file);
+        if (validationMessage) {
+          this.facade.toastMessage.set(validationMessage);
+          return false;
+        }
+
+        return true;
+      })
+      .map((file) => {
       const previewUrl = URL.createObjectURL(file);
       this.createdObjectUrls.add(previewUrl);
 
+      const id = crypto.randomUUID();
+      this.facade.registerPendingFile(id, file);
+
       const upload: WasteMediaUpload = {
-        id: crypto.randomUUID(),
+        id,
         name: file.name,
         previewUrl,
         sizeKb: Math.round(file.size / 1024),
-        type: file.type
+        type: file.type,
+        uploadStatus: 'pending',
+        warningMessage: null
       };
 
       return upload;
@@ -287,8 +304,13 @@ export class WasteSellPageComponent implements OnInit, OnDestroy, PendingChanges
   }
 
   protected onFileRemoved(id: string): void {
-    const nextMedia = this.mediaUploads().filter((media) => media.id !== id);
-    this.facade.updateMedia(nextMedia);
+    const media = this.mediaUploads().find((item) => item.id === id);
+    if (media?.previewUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(media.previewUrl);
+      this.createdObjectUrls.delete(media.previewUrl);
+    }
+
+    this.facade.removeMedia(id);
   }
 
   protected fieldError(fieldName: keyof typeof this.form.controls): string {
@@ -385,5 +407,17 @@ export class WasteSellPageComponent implements OnInit, OnDestroy, PendingChanges
     ]
       .filter((field) => !field.value || !field.value.toString().trim())
       .map((field) => field.label);
+  }
+
+  private validateMediaFile(file: File): string | null {
+    if (file.size > 5 * 1024 * 1024) {
+      return 'Cada imagen debe pesar como maximo 5 MB.';
+    }
+
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      return 'Solo se permiten imagenes JPG, PNG o WEBP.';
+    }
+
+    return null;
   }
 }

@@ -5,49 +5,17 @@ using ReciclaYa.Api.Responses;
 using ReciclaYa.Application.Auth.Models;
 using ReciclaYa.Application.Media.Models;
 using ReciclaYa.Application.Media.Services;
-using ReciclaYa.Application.Profile.Requests;
-using ReciclaYa.Application.Profile.Services;
 
 namespace ReciclaYa.Api.Controllers;
 
 [ApiController]
 [Authorize]
-[Route("api/profile")]
-public sealed class ProfileController(
-    IProfileService profileService,
-    IMediaService mediaService) : ControllerBase
+[Route("api/companies")]
+public sealed class CompaniesController(IMediaService mediaService) : ControllerBase
 {
-    [HttpGet]
-    public async Task<IActionResult> GetProfile(CancellationToken cancellationToken)
-    {
-        if (!TryGetUserId(out var userId))
-        {
-            return Unauthorized(ApiResponse<object>.Fail("Unauthorized.", ["INVALID_TOKEN_SUBJECT"]));
-        }
-
-        var result = await profileService.GetProfileAsync(userId, cancellationToken);
-
-        return ToActionResult(result);
-    }
-
-    [HttpPut]
-    public async Task<IActionResult> UpdateProfile(
-        [FromBody] UpdateProfileRequest request,
-        CancellationToken cancellationToken)
-    {
-        if (!TryGetUserId(out var userId))
-        {
-            return Unauthorized(ApiResponse<object>.Fail("Unauthorized.", ["INVALID_TOKEN_SUBJECT"]));
-        }
-
-        var result = await profileService.UpdateProfileAsync(userId, request, cancellationToken);
-
-        return ToActionResult(result);
-    }
-
-    [HttpPost("avatar")]
+    [HttpPost("me/logo")]
     [RequestSizeLimit(5 * 1024 * 1024)]
-    public async Task<IActionResult> UploadAvatar(
+    public async Task<IActionResult> UploadLogo(
         [FromForm] IFormFile? file,
         CancellationToken cancellationToken)
     {
@@ -56,16 +24,20 @@ public sealed class ProfileController(
             return Unauthorized(ApiResponse<object>.Fail("Unauthorized.", ["INVALID_TOKEN_SUBJECT"]));
         }
 
-        var role = User.FindFirst("role")?.Value ?? string.Empty;
         var payload = await ToFilePayloadAsync(file, cancellationToken);
         if (payload is null)
         {
             return BadRequest(ApiResponse<object>.Fail("A file is required.", ["FILE_REQUIRED"]));
         }
 
-        var result = await mediaService.UploadProfileAvatarAsync(userId, role, payload, cancellationToken);
+        var result = await mediaService.UploadCompanyLogoAsync(userId, GetRole(), payload, cancellationToken);
 
         return ToActionResult(result);
+    }
+
+    private string GetRole()
+    {
+        return User.FindFirst("role")?.Value ?? string.Empty;
     }
 
     private bool TryGetUserId(out Guid userId)

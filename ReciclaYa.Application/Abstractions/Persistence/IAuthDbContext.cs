@@ -35,5 +35,7 @@ public interface IAuthDbContext
 
     DbSet<ValorizationIdea> ValorizationIdeas { get; }
 
+    DbSet<MediaAsset> MediaAssets { get; }
+
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

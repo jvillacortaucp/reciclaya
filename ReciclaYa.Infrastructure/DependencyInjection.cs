@@ -4,10 +4,13 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ReciclaYa.Application.Abstractions.Persistence;
+using ReciclaYa.Application.Media.Options;
+using ReciclaYa.Application.Media.Services;
 using ReciclaYa.Application.ValorizationIdeas.Services;
 using ReciclaYa.Infrastructure.AI;
 using ReciclaYa.Infrastructure.Options;
 using ReciclaYa.Infrastructure.Persistence;
+using ReciclaYa.Infrastructure.Storage;
 
 namespace ReciclaYa.Infrastructure;
 
@@ -29,6 +32,19 @@ public static class DependencyInjection
             options.UseNpgsql(connectionString);
         });
         services.AddScoped<IAuthDbContext>(provider => provider.GetRequiredService<ReciclaYaDbContext>());
+        services.AddSingleton<IOptions<SupabaseOptions>>(_ =>
+        {
+            var section = configuration.GetSection("Supabase");
+            var supabaseOptions = new SupabaseOptions
+            {
+                Url = section["Url"] ?? string.Empty,
+                ServiceRoleKey = section["ServiceRoleKey"] ?? string.Empty,
+                PublicBucket = section["PublicBucket"] ?? "public-media",
+                PrivateBucket = section["PrivateBucket"] ?? "private-media"
+            };
+
+            return Microsoft.Extensions.Options.Options.Create(supabaseOptions);
+        });
         services.AddSingleton<IOptions<DeepSeekOptions>>(_ =>
         {
             var section = configuration.GetSection("DeepSeek");
@@ -40,6 +56,24 @@ public static class DependencyInjection
             };
 
             return Microsoft.Extensions.Options.Options.Create(deepSeekOptions);
+        });
+        services.AddScoped<IStorageService>(provider =>
+        {
+            var options = provider.GetRequiredService<IOptions<SupabaseOptions>>();
+            var client = new HttpClient
+            {
+                Timeout = TimeSpan.FromSeconds(30)
+            };
+
+            if (!string.IsNullOrWhiteSpace(options.Value.Url))
+            {
+                client.BaseAddress = new Uri($"{options.Value.Url.TrimEnd('/')}/");
+            }
+
+            return new SupabaseStorageService(
+                client,
+                options,
+                provider.GetRequiredService<ILogger<SupabaseStorageService>>());
         });
         services.AddScoped<IValorizationIdeaGenerator>(provider =>
         {

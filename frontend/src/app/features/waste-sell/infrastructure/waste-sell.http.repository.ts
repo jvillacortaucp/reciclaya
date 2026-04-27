@@ -18,7 +18,7 @@ export class WasteSellHttpRepository implements WasteSellRepository {
 
   saveDraft(state: WasteSellPageState): Observable<WasteSellPageState> {
     return this.http
-      .put<ApiResponse<WasteSellPageState>>(`${environment.apiBaseUrl}/waste-sell/draft`, state)
+      .put<ApiResponse<WasteSellPageState>>(`${environment.apiBaseUrl}/waste-sell/draft`, this.toRequestState(state))
       .pipe(
         map(unwrapApiResponse),
         catchError((error: unknown) => throwError(() => normalizeHttpError(error, 'No se pudo guardar el borrador.')))
@@ -27,7 +27,7 @@ export class WasteSellHttpRepository implements WasteSellRepository {
 
   publish(state: WasteSellPageState): Observable<WasteSellPageState> {
     return this.http
-      .post<ApiResponse<unknown>>(`${environment.apiBaseUrl}/waste-sell/publish`, state)
+      .post<ApiResponse<unknown>>(`${environment.apiBaseUrl}/waste-sell/publish`, this.toRequestState(state))
       .pipe(
         map((response) => {
           unwrapApiResponse(response);
@@ -42,10 +42,28 @@ export class WasteSellHttpRepository implements WasteSellRepository {
 
   buildPreview(state: WasteSellPageState): Observable<ListingPreviewSummary> {
     return this.http
-      .post<ApiResponse<ListingPreviewSummary>>(`${environment.apiBaseUrl}/waste-sell/preview`, state)
+      .post<ApiResponse<ListingPreviewSummary>>(`${environment.apiBaseUrl}/waste-sell/preview`, this.toRequestState(state))
       .pipe(
         map(unwrapApiResponse),
         catchError((error: unknown) => throwError(() => normalizeHttpError(error, 'No se pudo generar la vista previa.')))
       );
+  }
+
+  private toRequestState(state: WasteSellPageState): WasteSellPageState {
+    return {
+      ...state,
+      formValue: {
+        ...state.formValue,
+        mediaUploads: state.formValue.mediaUploads
+          .filter((media) => media.uploadStatus === 'uploaded' && !media.previewUrl.startsWith('blob:'))
+          .map((media) => ({
+            id: media.mediaId ?? media.id,
+            name: media.name,
+            previewUrl: media.previewUrl,
+            sizeKb: media.sizeKb,
+            type: media.type
+          }))
+      }
+    };
   }
 }

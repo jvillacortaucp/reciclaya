@@ -4,6 +4,7 @@ export interface ProfileCompany {
   readonly id: string;
   readonly ruc: string;
   readonly businessName: string;
+  readonly logoUrl?: string | null;
   readonly mobilePhone: string;
   readonly address: string;
   readonly postalCode: string;
@@ -30,6 +31,7 @@ export interface Profile {
   readonly role: User['role'];
   readonly profileType: User['profileType'];
   readonly status: string;
+  readonly avatarUrl?: string | null;
   readonly company: ProfileCompany | null;
   readonly personProfile: ProfilePerson | null;
 }

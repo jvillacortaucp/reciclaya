@@ -6,4 +6,5 @@ public sealed record AuthUserDto(
     string FullName,
     string Role,
     string ProfileType,
-    string Status);
+    string Status,
+    string? AvatarUrl);

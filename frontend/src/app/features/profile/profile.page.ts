@@ -1,7 +1,8 @@
-import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { catchError, EMPTY, finalize } from 'rxjs';
 import { getErrorMessage } from '../../core/http/api-response.helpers';
+import { MediaHttpRepository } from '../../core/media/media-http.repository';
 import { CardComponent } from '../../shared/ui/card/card.component';
 import { SectionHeaderComponent } from '../../shared/ui/section-header/section-header.component';
 import { AuthFacade } from '../auth/services/auth.facade';
@@ -31,6 +32,50 @@ import { ProfileHttpRepository } from './profile-http.repository';
         <p class="text-sm text-slate-600">Cargando perfil...</p>
       } @else if (profile()) {
         <form class="space-y-6" [formGroup]="form" (ngSubmit)="save()">
+          <section class="grid gap-4 md:grid-cols-[220px_minmax(0,1fr)]">
+            <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Foto de perfil</p>
+              <div class="mt-4 flex flex-col items-center gap-3">
+                <div class="h-28 w-28 overflow-hidden rounded-full border border-slate-200 bg-white">
+                  @if (avatarPreviewUrl()) {
+                    <img [src]="avatarPreviewUrl()!" [alt]="profile()!.fullName" class="h-full w-full object-cover" />
+                  } @else {
+                    <div class="grid h-full w-full place-items-center text-2xl font-bold text-slate-500">
+                      {{ profile()!.fullName.slice(0, 1).toUpperCase() }}
+                    </div>
+                  }
+                </div>
+                <label class="inline-flex cursor-pointer items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                  <input type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" class="hidden" (change)="onAvatarSelected($event)" />
+                  {{ avatarUploading() ? 'Subiendo...' : 'Cambiar foto' }}
+                </label>
+                <p class="text-center text-xs text-slate-500">JPG, PNG o WEBP. Maximo 5 MB.</p>
+              </div>
+            </div>
+
+            @if (profile()!.company) {
+              <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <div class="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Logo de empresa</p>
+                    <p class="mt-1 text-sm text-slate-500">Visible para tu perfil de empresa y futuros módulos.</p>
+                  </div>
+                  <label class="inline-flex cursor-pointer items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                    <input type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" class="hidden" (change)="onCompanyLogoSelected($event)" />
+                    {{ logoUploading() ? 'Subiendo...' : 'Subir logo' }}
+                  </label>
+                </div>
+                <div class="mt-4 rounded-2xl border border-dashed border-slate-300 bg-white p-4">
+                  @if (logoPreviewUrl()) {
+                    <img [src]="logoPreviewUrl()!" [alt]="profile()!.company!.businessName" class="h-20 max-w-full object-contain" />
+                  } @else {
+                    <p class="text-sm text-slate-500">Aun no tienes logo cargado.</p>
+                  }
+                </div>
+              </div>
+            }
+          </section>
+
           <section class="grid gap-4 md:grid-cols-2">
             <label class="block">
               <span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Nombre visible</span>
@@ -182,16 +227,23 @@ import { ProfileHttpRepository } from './profile-http.repository';
   `,
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class ProfilePageComponent implements OnInit {
+export class ProfilePageComponent implements OnInit, OnDestroy {
   private readonly fb = inject(FormBuilder);
   private readonly repository = inject(ProfileHttpRepository);
+  private readonly mediaRepository = inject(MediaHttpRepository);
   private readonly authFacade = inject(AuthFacade);
+  private avatarPreviewObjectUrl: string | null = null;
+  private logoPreviewObjectUrl: string | null = null;
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
   protected readonly profile = signal<Profile | null>(null);
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly toastMessage = signal<string | null>(null);
+  protected readonly avatarPreviewUrl = signal<string | null>(null);
+  protected readonly logoPreviewUrl = signal<string | null>(null);
+  protected readonly avatarUploading = signal(false);
+  protected readonly logoUploading = signal(false);
 
   protected readonly form = this.fb.nonNullable.group({
     fullName: ['', [Validators.required]],
@@ -207,6 +259,11 @@ export class ProfilePageComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadProfile();
+  }
+
+  ngOnDestroy(): void {
+    this.revokeAvatarPreview();
+    this.revokeLogoPreview();
   }
 
   protected save(): void {
@@ -237,15 +294,116 @@ export class ProfilePageComponent implements OnInit {
       .subscribe((profile) => {
         this.profile.set(profile);
         this.patchForm(profile);
-        this.authFacade.updateUser({
+        this.authFacade.patchUser({
           id: profile.id,
           email: profile.email,
           fullName: profile.fullName,
           role: profile.role,
           profileType: profile.profileType,
-          status: profile.status
+          status: profile.status,
+          avatarUrl: profile.avatarUrl ?? null
         });
         this.toastMessage.set('Perfil actualizado correctamente.');
+      });
+  }
+
+  protected onAvatarSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+
+    if (!file) {
+      return;
+    }
+
+    const validationError = this.validateImageFile(file);
+    if (validationError) {
+      this.errorMessage.set(validationError);
+      return;
+    }
+
+    this.errorMessage.set(null);
+    this.revokeAvatarPreview();
+    this.avatarPreviewObjectUrl = URL.createObjectURL(file);
+    this.avatarPreviewUrl.set(this.avatarPreviewObjectUrl);
+    this.avatarUploading.set(true);
+    this.toastMessage.set(null);
+
+    this.mediaRepository
+      .uploadProfileAvatar(file)
+      .pipe(
+        catchError((error: unknown) => {
+          this.errorMessage.set(getErrorMessage(error, 'No se pudo subir la foto de perfil.'));
+          return EMPTY;
+        }),
+        finalize(() => this.avatarUploading.set(false))
+      )
+      .subscribe((asset) => {
+        const current = this.profile();
+        if (!current || !asset.url) {
+          return;
+        }
+
+        const nextProfile: Profile = {
+          ...current,
+          avatarUrl: asset.url
+        };
+
+        this.profile.set(nextProfile);
+        this.revokeAvatarPreview();
+        this.avatarPreviewUrl.set(asset.url);
+        this.authFacade.patchUser({ avatarUrl: asset.url });
+        this.toastMessage.set('Foto de perfil actualizada correctamente.');
+      });
+  }
+
+  protected onCompanyLogoSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+
+    if (!file) {
+      return;
+    }
+
+    const validationError = this.validateImageFile(file);
+    if (validationError) {
+      this.errorMessage.set(validationError);
+      return;
+    }
+
+    this.errorMessage.set(null);
+    this.revokeLogoPreview();
+    this.logoPreviewObjectUrl = URL.createObjectURL(file);
+    this.logoPreviewUrl.set(this.logoPreviewObjectUrl);
+    this.logoUploading.set(true);
+    this.toastMessage.set(null);
+
+    this.mediaRepository
+      .uploadCompanyLogo(file)
+      .pipe(
+        catchError((error: unknown) => {
+          this.errorMessage.set(getErrorMessage(error, 'No se pudo subir el logo de empresa.'));
+          return EMPTY;
+        }),
+        finalize(() => this.logoUploading.set(false))
+      )
+      .subscribe((asset) => {
+        const current = this.profile();
+        if (!current || !current.company || !asset.url) {
+          return;
+        }
+
+        this.profile.set({
+          ...current,
+          company: {
+            ...current.company,
+            logoUrl: asset.url
+          }
+        });
+        this.revokeLogoPreview();
+        this.logoPreviewUrl.set(asset.url);
+        this.toastMessage.set('Logo de empresa actualizado correctamente.');
       });
   }
 
@@ -264,6 +422,8 @@ export class ProfilePageComponent implements OnInit {
       )
       .subscribe((profile) => {
         this.profile.set(profile);
+        this.avatarPreviewUrl.set(profile.avatarUrl ?? null);
+        this.logoPreviewUrl.set(profile.company?.logoUrl ?? null);
         this.patchForm(profile);
       });
   }
@@ -318,5 +478,33 @@ export class ProfilePageComponent implements OnInit {
         postalCode: value.postalCode
       }
     };
+  }
+
+  private validateImageFile(file: File): string | null {
+    if (file.size > 5 * 1024 * 1024) {
+      return 'La imagen supera el limite de 5 MB.';
+    }
+
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      return 'Solo se permiten imagenes JPG, PNG o WEBP.';
+    }
+
+    return null;
+  }
+
+  private revokeAvatarPreview(): void {
+    if (this.avatarPreviewObjectUrl?.startsWith('blob:')) {
+      URL.revokeObjectURL(this.avatarPreviewObjectUrl);
+    }
+
+    this.avatarPreviewObjectUrl = null;
+  }
+
+  private revokeLogoPreview(): void {
+    if (this.logoPreviewObjectUrl?.startsWith('blob:')) {
+      URL.revokeObjectURL(this.logoPreviewObjectUrl);
+    }
+
+    this.logoPreviewObjectUrl = null;
   }
 }

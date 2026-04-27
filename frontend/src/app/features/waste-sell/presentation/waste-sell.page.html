@@ -187,6 +187,9 @@
         (filesAdded)="onFilesAdded($event)"
         (fileRemoved)="onFileRemoved($event)"
       />
+      @if (mediaSyncLoading()) {
+        <p class="mt-3 text-xs font-medium text-blue-700">Subiendo imagenes al almacenamiento persistente...</p>
+      }
       @if (hasEmptyState()) {
         <p class="mt-4 text-center text-xs font-medium text-slate-400 italic">Agregar al menos una foto aumenta la visibilidad del anuncio.</p>
       }

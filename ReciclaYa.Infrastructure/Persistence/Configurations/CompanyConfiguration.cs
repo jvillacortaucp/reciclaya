@@ -23,6 +23,9 @@ public sealed class CompanyConfiguration : IEntityTypeConfiguration<Company>
             .HasMaxLength(200)
             .IsRequired();
 
+        builder.Property(company => company.LogoUrl)
+            .HasMaxLength(1200);
+
         builder.Property(company => company.MobilePhone)
             .HasMaxLength(30)
             .IsRequired();

@@ -247,7 +247,8 @@ public sealed class AuthService(
             user.FullName,
             AuthFormatting.ToRoleValue(user.Role),
             AuthFormatting.ToProfileTypeValue(user.ProfileType),
-            AuthFormatting.ToStatusValue(user.Status));
+            AuthFormatting.ToStatusValue(user.Status),
+            user.AvatarUrl);
     }
 
     private static string Normalize(string value)

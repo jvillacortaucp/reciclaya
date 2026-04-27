@@ -37,6 +37,7 @@ export interface User {
   readonly role: UserRole;
   readonly profileType: 'company' | 'person';
   readonly status?: string;
+  readonly avatarUrl?: string | null;
 }
 
 export interface CompanyProfile {
