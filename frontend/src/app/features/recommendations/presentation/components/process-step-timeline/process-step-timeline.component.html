@@ -1,0 +1,66 @@
+<div class="space-y-5">
+  @for (step of visibleSteps(); track step.id; let last = $last) {
+    <article class="relative min-w-0 pl-14 sm:pl-16">
+      <span class="absolute left-0 top-0 inline-flex h-10 w-10 items-center justify-center rounded-full bg-emerald-700 text-lg font-semibold text-white shadow-sm sm:h-11 sm:w-11">
+        {{ step.order }}
+      </span>
+      @if (!last || hasHiddenSteps()) {
+        <span class="absolute left-[19px] top-10 h-[calc(100%+22px)] w-px bg-slate-300 sm:left-[21px] sm:top-11"></span>
+      }
+
+      <button
+        type="button"
+        class="w-full rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:border-emerald-300 sm:p-5"
+        [class.border-emerald-300]="selectedStepId() === step.id"
+        (click)="onSelectStep(step.id)">
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0">
+            <div class="mb-2 flex items-center gap-2">
+              <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-600 sm:h-10 sm:w-10">
+                @switch (step.iconName) {
+                  @case ('package-search') { <svg lucideSearchCheck class="h-5 w-5"></svg> }
+                  @case ('droplets') { <svg lucideDroplets class="h-5 w-5"></svg> }
+                  @case ('wind') { <svg lucideWind class="h-5 w-5"></svg> }
+                  @case ('factory') { <svg lucideFactory class="h-5 w-5"></svg> }
+                  @case ('scan-line') { <svg lucideScanLine class="h-5 w-5"></svg> }
+                  @case ('package') { <svg lucidePackage class="h-5 w-5"></svg> }
+                  @default { <svg lucideArchive class="h-5 w-5"></svg> }
+                }
+              </span>
+              <h4 class="text-xl font-semibold leading-tight text-slate-900 sm:text-2xl">{{ step.title }}</h4>
+            </div>
+            <p class="max-w-4xl text-base leading-relaxed text-slate-600">{{ step.shortDescription }}</p>
+          </div>
+
+          <span class="inline-flex shrink-0 rounded-lg bg-slate-100 px-3 py-1 text-sm font-semibold text-slate-600">
+            {{ step.estimatedTime }}
+          </span>
+        </div>
+
+        <div class="mt-4 grid gap-3 border-t border-slate-100 pt-4 md:grid-cols-[minmax(0,1fr)_290px]">
+          <div>
+            <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Equipamiento</p>
+            <p class="mt-1 text-sm leading-relaxed text-slate-800">{{ step.requiredEquipment.join(', ') }}</p>
+          </div>
+
+          <div class="rounded-xl border px-3 py-2" [class]="riskTone(step)">
+            <p class="text-sm font-semibold">Quick Tip</p>
+            <p class="mt-1 text-sm">{{ step.quickTip }}</p>
+          </div>
+        </div>
+      </button>
+    </article>
+  }
+
+  @if (hasHiddenSteps()) {
+    <div class="pt-1 pl-14 sm:pl-16">
+      <button
+        type="button"
+        (click)="showMoreSteps()"
+        class="inline-flex items-center gap-2 text-base font-medium text-emerald-700 transition hover:text-emerald-800 cursor-pointer">
+        <svg lucideChevronDown class="h-5 w-5"></svg>
+        Mostrar {{ hiddenCount() }} pasos adicionales
+      </button>
+    </div>
+  }
+</div>

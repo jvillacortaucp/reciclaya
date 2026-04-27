@@ -97,7 +97,16 @@ export class ListingDetailPageComponent implements OnInit, OnDestroy {
     this.facade.save();
   }
 
-  protected contact(): void {
+  protected generatePreOrder(): void {
+    const detail = this.detail();
+    if (!detail) {
+      return;
+    }
+
+    void this.router.navigate(['/app/pre-orders/new', detail.id]);
+  }
+
+  protected requestInfo(): void {
     this.facade.contactSeller();
   }
 

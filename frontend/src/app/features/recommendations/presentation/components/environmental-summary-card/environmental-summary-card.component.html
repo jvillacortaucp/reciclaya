@@ -1,0 +1,66 @@
+@if (summary(); as data) {
+  <aside class="space-y-4">
+    <article data-tour="explanation-environment-summary" class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+      <h3 class="text-xl font-semibold text-slate-900">Resumen Ambiental</h3>
+
+      <div class="mt-5 flex items-center justify-between gap-3">
+        <div>
+          <p class="text-sm text-slate-500">Estimación de Impacto</p>
+          <p class="text-3xl font-semibold text-emerald-700">{{ data.impactScore }}</p>
+        </div>
+        <div class="relative h-16 w-16 rounded-full border-4 border-slate-200">
+          <div
+            class="absolute inset-0 rounded-full border-4 border-transparent border-t-emerald-500 border-r-emerald-500"
+            [style.transform]="'rotate(' + (data.impactScore * 36) + 'deg)'">
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-4 space-y-4">
+        <div>
+          <div class="mb-1 flex items-center justify-between text-sm">
+            <span class="text-slate-600">Nivel de aprovechamiento</span>
+            <span class="font-semibold text-emerald-700">{{ data.utilizationLevelLabel }} ({{ data.utilizationPercent }}%)</span>
+          </div>
+          <div class="h-2 rounded-full bg-slate-200">
+            <div class="h-2 rounded-full bg-emerald-600" [style.width.%]="data.utilizationPercent"></div>
+          </div>
+        </div>
+        <div>
+          <div class="mb-1 flex items-center justify-between text-sm">
+            <span class="text-slate-600">Riesgo ambiental</span>
+            <span class="font-semibold text-rose-600">{{ data.environmentalRiskLabel }}</span>
+          </div>
+          <div class="h-2 rounded-full bg-slate-200">
+            <div class="h-2 rounded-full bg-rose-500" [style.width.%]="data.environmentalRiskPercent"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-5 rounded-2xl bg-slate-50 p-4">
+        <p class="text-sm font-semibold text-slate-800">Recomendación clave</p>
+        <p class="mt-1 text-sm leading-relaxed text-slate-700">{{ data.keyRecommendation }}</p>
+      </div>
+
+      <button
+        type="button"
+        class="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-800">
+        Ver análisis de mercado
+        <svg lucideArrowRight class="h-4 w-4"></svg>
+      </button>
+    </article>
+
+    <article class="relative overflow-hidden rounded-2xl border border-slate-200 shadow-sm">
+      <img
+        src="https://images.unsplash.com/photo-1533158307587-828f0a76ef46?auto=format&fit=crop&w=1200&q=80"
+        alt="Del residuo al valor"
+        class="h-48 w-full object-cover" />
+      <div class="absolute inset-0 bg-gradient-to-t from-slate-900/75 via-slate-900/20 to-transparent p-4">
+        <p class="mt-24 text-xl font-semibold text-white">Del residuo al valor</p>
+        <p class="text-sm text-emerald-100">
+          Descubre cómo transformamos toneladas de cáscara en harina premium para la industria.
+        </p>
+      </div>
+    </article>
+  </aside>
+}

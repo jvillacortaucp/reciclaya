@@ -1,20 +1,84 @@
-<ui-section-header title="Recomendaciones" subtitle="Sugerencias inteligentes segun tus preferencias" />
-@if (loading()) {
-  <p class="text-sm text-slate-500">Analizando oportunidades...</p>
-} @else if (errorMessage()) {
-  <div class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-    {{ errorMessage() }}
-  </div>
-} @else if (!hasRecommendations()) {
-  <p class="text-sm text-slate-500">No hay recomendaciones disponibles en este momento.</p>
-} @else {
-  <section class="grid gap-3 md:grid-cols-2">
-    @for (item of recommendations(); track item.id) {
-      <ui-card>
-        <h3 class="text-base font-semibold text-slate-900">{{ item.title }}</h3>
-        <p class="mt-1 text-sm text-slate-600">{{ item.reason }}</p>
-        <p class="mt-2 text-xs text-primary-700">Confianza: {{ toConfidenceLabel(item.confidenceScore) | number: '1.0-0' }}%</p>
-      </ui-card>
+<section class="mx-auto w-full max-w-[1600px] overflow-x-hidden px-4 pb-10 pt-6 sm:px-6 lg:px-8">
+  <header data-tour="recommendations-header" class="mb-5 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between w-full">
+    <div class="min-w-0">
+      <h1 class="text-2xl font-semibold leading-tight text-slate-900 sm:text-3xl">Motor de recomendaciones</h1>
+      <p class="mt-2 max-w-2xl text-sm leading-relaxed text-slate-600 sm:text-base">
+        Descubre qué puedes fabricar a partir de tus residuos y cómo iniciar el proceso.
+      </p>
+    </div>
+
+    <div class="flex w-full items-center justify-end gap-2 sm:w-auto sm:flex-nowrap">
+      <button
+        type="button"
+        aria-label="Guardar recomendación"
+        class="group inline-flex h-10 items-center rounded-xl border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-200">
+        <svg lucideBookmark class="h-4 w-4 shrink-0"></svg>
+        <span class="max-w-0 overflow-hidden whitespace-nowrap opacity-0 transition-all duration-300 group-hover:ml-2 group-hover:max-w-[180px] group-hover:opacity-100 group-focus-visible:ml-2 group-focus-visible:max-w-[180px] group-focus-visible:opacity-100 cursor-pointer">
+          Guardar recomendación
+        </span>
+      </button>
+      <button
+        type="button"
+        aria-label="Generar nueva recomendación"
+        class="group inline-flex h-10 items-center rounded-xl border border-transparent bg-emerald-600 px-3 text-sm font-semibold text-white transition hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-300">
+        <svg lucideSparkles class="h-4 w-4 shrink-0"></svg>
+        <span class="max-w-0 overflow-hidden whitespace-nowrap opacity-0 transition-all duration-300 group-hover:ml-2 group-hover:max-w-[220px] group-hover:opacity-100 group-focus-visible:ml-2 group-focus-visible:max-w-[220px] group-focus-visible:opacity-100 cursor-pointer">
+          Generar nueva recomendación
+        </span>
+      </button>
+    </div>
+  </header>
+
+  <app-recommendation-tabs [activeTab]="activeTab()" (tabChanged)="setTab($event)" />
+
+  @if (loading()) {
+    <div class="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+      <div class="space-y-4">
+        @for (s of [1,2,3]; track s) {
+          <div class="h-28 animate-pulse rounded-3xl border border-slate-200 bg-white"></div>
+        }
+      </div>
+      <div class="h-80 animate-pulse rounded-3xl border border-slate-200 bg-white"></div>
+    </div>
+  } @else if (recommendation(); as data) {
+    @if (activeTab() === 'explanation') {
+      <div class="mt-6">
+        <app-recommendation-explanation
+          [recommendation]="data"
+          [selectedStep]="selectedExplanationStep()"
+          [selectedStepId]="selectedExplanationStepId()"
+          [environmentalSummary]="environmentalSummary()"
+          (stepSelected)="selectExplanationStep($event)" />
+      </div>
+    } @else if (activeTab() === 'market') {
+      <div class="mt-6">
+        <app-market-analysis
+          [recommendation]="data"
+          [buyers]="filteredBuyers()"
+          [selectedBuyerSegment]="selectedBuyerSegment()"
+          [selectedCostView]="selectedCostView()"
+          [selectedChartType]="selectedChartType()"
+          (buyerSegmentChanged)="selectBuyerSegment($event)"
+          (costViewChanged)="selectCostView($event)"
+          (chartTypeChanged)="selectChartType($event)" />
+      </div>
+    } @else {
+      <div class="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <div class="min-w-0">
+          <app-manufacturing-process
+            [recommendation]="data"
+            [selectedStepId]="selectedStepId()"
+            (stepSelected)="selectStep($event)" />
+        </div>
+
+        <div class="min-w-0">
+          <app-recommendation-summary-card
+            [recommendation]="data"
+            (explanationRequested)="goToExplanation()"
+            (marketRequested)="goToMarket()" />
+        </div>
+      </div>
     }
-  </section>
-}
+  }
+</section>
+

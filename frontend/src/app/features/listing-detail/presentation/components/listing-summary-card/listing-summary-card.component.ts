@@ -37,39 +37,24 @@ import { ListingDetailEntity } from '../../../domain/listing-detail.models';
           </div>
         </div>
 
-        @if (showBuyAction || showPrimaryAction || showSecondaryAction) {
-          <div class="mt-4 space-y-2">
-            @if (showBuyAction) {
-              <button
-                type="button"
-                class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-base font-semibold text-white transition hover:bg-slate-800"
-                (click)="buy.emit()"
-              >
-                <svg lucideSend size="16"></svg>
-                {{ buyActionLabel }}
-              </button>
-            }
-            @if (showPrimaryAction) {
-              <button
-                type="button"
-                class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-base font-semibold text-white transition hover:bg-emerald-700"
-                (click)="contact.emit()"
-              >
-                <svg lucideSend size="16"></svg>
-                {{ primaryActionLabel }}
-              </button>
-            }
-            @if (showSecondaryAction) {
-              <button
-                type="button"
-                class="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-base font-medium text-slate-700 transition hover:bg-slate-50"
-              >
-                <svg lucideMessageCircle size="16"></svg>
-                {{ secondaryActionLabel }}
-              </button>
-            }
-          </div>
-        }
+        <div class="mt-4 space-y-2">
+          <button
+            type="button"
+            class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-base font-semibold text-white transition hover:bg-emerald-700"
+            (click)="contact.emit()"
+          >
+            <svg lucideSend size="16"></svg>
+            {{ primaryActionLabel }}
+          </button>
+          <button
+            type="button"
+            class="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-base font-medium text-slate-700 transition hover:bg-slate-50"
+            (click)="requestInfo.emit()"
+          >
+            <svg lucideMessageCircle size="16"></svg>
+            {{ secondaryActionLabel }}
+          </button>
+        </div>
       </aside>
     }
   `,
@@ -77,12 +62,8 @@ import { ListingDetailEntity } from '../../../domain/listing-detail.models';
 })
 export class ListingSummaryCardComponent {
   @Input() detail: ListingDetailEntity | null = null;
-  @Input() primaryActionLabel = 'Contactar vendedor';
-  @Input() secondaryActionLabel = 'Solicitar informacion';
-  @Input() buyActionLabel = 'Comprar ahora';
-  @Input() showPrimaryAction = true;
-  @Input() showSecondaryAction = true;
-  @Input() showBuyAction = false;
+  @Input() primaryActionLabel = 'Generar pre-orden';
+  @Input() secondaryActionLabel = 'Solicitar información';
   @Output() readonly contact = new EventEmitter<void>();
-  @Output() readonly buy = new EventEmitter<void>();
+  @Output() readonly requestInfo = new EventEmitter<void>();
 }

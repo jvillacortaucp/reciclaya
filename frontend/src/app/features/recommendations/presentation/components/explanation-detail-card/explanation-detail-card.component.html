@@ -1,0 +1,54 @@
+@if (step(); as selectedStep) {
+  <article data-tour="explanation-detail-card" class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+    <div class="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_300px]">
+      <div>
+        <p class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700">
+          <svg lucideTarget class="h-4 w-4"></svg>
+          Etapa crítica
+        </p>
+        <h3 class="mt-2 text-3xl font-semibold leading-tight text-slate-900"> {{ selectedStep.title }} </h3>
+
+        <div class="mt-4 space-y-4 text-sm leading-relaxed text-slate-700">
+          <div>
+            <p class="text-base font-semibold text-slate-900">{{ selectedStep.transformationType }}</p>
+            <p class="mt-1">{{ selectedStep.whatHappens }}</p>
+          </div>
+          <div>
+            <p class="text-base font-semibold text-slate-900">Impacto biológico</p>
+            <p class="mt-1">{{ selectedStep.whyItMatters }}</p>
+          </div>
+          <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+            <p class="text-base font-semibold text-emerald-800">Importancia</p>
+            <p class="mt-1 text-emerald-900">{{ selectedStep.transformationOutcome }}</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="space-y-3">
+        <div class="overflow-hidden rounded-2xl">
+          <img [src]="selectedStep.processImageUrl" [alt]="selectedStep.title" class="h-48 w-full object-cover" />
+          <div class="-mt-8 px-3 pb-2 text-xs font-medium text-white">
+            <span class="inline-flex items-center gap-1 rounded-md bg-slate-900/70 px-2 py-1">
+              <svg lucideEye class="h-3.5 w-3.5"></svg>
+              Vista de proceso
+            </span>
+          </div>
+        </div>
+        <div class="rounded-xl border border-rose-200 bg-rose-50 p-3">
+          <p class="inline-flex items-center gap-2 text-base font-semibold text-rose-700">
+            <svg lucideAlertTriangle class="h-4 w-4"></svg>
+            Error a evitar
+          </p>
+          <p class="mt-1 text-sm text-rose-900">{{ selectedStep.avoidRisk }}</p>
+        </div>
+        <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+          <p class="inline-flex items-center gap-2 text-base font-semibold text-emerald-700">
+            <svg lucideLightbulb class="h-4 w-4"></svg>
+            Tip rápido
+          </p>
+          <p class="mt-1 text-sm text-emerald-900">{{ selectedStep.quickTip }}</p>
+        </div>
+      </div>
+    </div>
+  </article>
+}
