@@ -1,0 +1,140 @@
+<ui-section-header title="Checkout" subtitle="Compra directa del listing seleccionado" />
+
+@if (toastMessage()) {
+  <div class="fixed bottom-5 right-5 z-[100] rounded-2xl border border-slate-100 bg-white p-4 text-sm font-medium text-slate-800 shadow-xl" (click)="dismissToast()">
+    {{ toastMessage() }}
+  </div>
+}
+
+<section class="mt-6 grid gap-6 lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
+  <article class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+    <div class="flex items-center gap-3">
+      <span class="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700">
+        <svg lucideShoppingCart size="18"></svg>
+      </span>
+      <div>
+        <h3 class="text-xl font-semibold text-slate-900">Datos de la compra</h3>
+        <p class="text-sm text-slate-500">Configura la orden antes de simular el pago.</p>
+      </div>
+    </div>
+
+    <form class="mt-6 space-y-4" [formGroup]="orderForm">
+      <label class="flex flex-col gap-2">
+        <span class="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Cantidad</span>
+        <input class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none" type="number" formControlName="quantity" />
+      </label>
+
+      <label class="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+        <input type="checkbox" formControlName="reserveStock" />
+        Reservar stock
+      </label>
+
+      <label class="flex flex-col gap-2">
+        <span class="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Notas</span>
+        <textarea class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none" rows="3" formControlName="notes"></textarea>
+      </label>
+
+      <button
+        type="button"
+        class="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
+        [disabled]="createLoading()"
+        (click)="submitOrder()"
+      >
+        @if (createLoading()) { <svg lucideLoaderCircle size="16" class="animate-spin"></svg> }
+        Crear orden
+      </button>
+    </form>
+  </article>
+
+  <div class="space-y-6">
+    @if (order()) {
+      <article class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h3 class="text-xl font-semibold text-slate-900">Resumen de la orden</h3>
+        <div class="mt-4 grid gap-3 sm:grid-cols-2">
+          <div class="rounded-2xl bg-slate-50 p-4">
+            <p class="text-xs uppercase tracking-[0.08em] text-slate-400">Numero</p>
+            <p class="mt-1 text-lg font-semibold text-slate-900">{{ order()!.orderNumber }}</p>
+          </div>
+          <div class="rounded-2xl bg-slate-50 p-4">
+            <p class="text-xs uppercase tracking-[0.08em] text-slate-400">Seller</p>
+            <p class="mt-1 text-lg font-semibold text-slate-900">{{ order()!.sellerName }}</p>
+          </div>
+          <div class="rounded-2xl bg-slate-50 p-4 sm:col-span-2">
+            <p class="text-xs uppercase tracking-[0.08em] text-slate-400">Listing</p>
+            <p class="mt-1 text-lg font-semibold text-slate-900">{{ order()!.listingTitle }}</p>
+          </div>
+        </div>
+
+        <div class="mt-4 space-y-3 rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
+          <div class="flex justify-between text-sm"><span>Cantidad</span><strong>{{ order()!.quantity }}</strong></div>
+          <div class="flex justify-between text-sm"><span>Subtotal</span><strong>{{ order()!.pricing.subtotal }} {{ order()!.pricing.currency }}</strong></div>
+          <div class="flex justify-between text-sm"><span>Logistica</span><strong>{{ order()!.pricing.logisticsFee }} {{ order()!.pricing.currency }}</strong></div>
+          <div class="flex justify-between text-sm"><span>Total</span><strong>{{ order()!.pricing.total }} {{ order()!.pricing.currency }}</strong></div>
+        </div>
+      </article>
+
+      <article class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h3 class="text-xl font-semibold text-slate-900">Pago simulado</h3>
+
+        @if (paymentApproved()) {
+          <div class="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
+            <p class="text-lg font-semibold text-emerald-800">Pago aprobado</p>
+            <p class="mt-2 text-sm text-emerald-700">Orden {{ order()!.orderNumber }} confirmada.</p>
+            <button type="button" class="mt-4 rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white" (click)="goToOrders()">
+              Ver mis compras
+            </button>
+          </div>
+        } @else {
+          <form class="mt-4 space-y-4" [formGroup]="paymentForm">
+            <div class="grid gap-3 sm:grid-cols-3">
+              <button type="button" class="rounded-2xl border px-4 py-3 text-left" [class.border-slate-900]="paymentForm.controls.paymentMethod.value === 'card'" (click)="paymentForm.controls.paymentMethod.setValue('card')">
+                <svg lucideCreditCard size="16"></svg>
+                <p class="mt-2 text-sm font-semibold">Tarjeta demo</p>
+              </button>
+              <button type="button" class="rounded-2xl border px-4 py-3 text-left" [class.border-slate-900]="paymentForm.controls.paymentMethod.value === 'bank_transfer'" (click)="paymentForm.controls.paymentMethod.setValue('bank_transfer')">
+                <svg lucideUniversity size="16"></svg>
+                <p class="mt-2 text-sm font-semibold">Transferencia</p>
+              </button>
+              <button type="button" class="rounded-2xl border px-4 py-3 text-left" [class.border-slate-900]="paymentForm.controls.paymentMethod.value === 'yape'" (click)="paymentForm.controls.paymentMethod.setValue('yape')">
+                <span class="text-base font-bold">Y</span>
+                <p class="mt-2 text-sm font-semibold">Yape simulado</p>
+              </button>
+            </div>
+
+            @if (paymentForm.controls.paymentMethod.value === 'card') {
+              <div class="grid gap-4 sm:grid-cols-2">
+                <input class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none sm:col-span-2" placeholder="Titular" formControlName="cardHolder" />
+                <input class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none sm:col-span-2" placeholder="4111111111111111" formControlName="cardNumber" />
+                <input class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none" placeholder="MM" formControlName="expirationMonth" />
+                <input class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none" placeholder="YYYY" formControlName="expirationYear" />
+                <input class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none sm:col-span-2" placeholder="CVV" formControlName="cvv" />
+              </div>
+            }
+
+            <label class="flex flex-col gap-2">
+              <span class="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Resultado demo</span>
+              <select class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none" formControlName="simulateResult">
+                <option value="approved">approved</option>
+                <option value="rejected">rejected</option>
+              </select>
+            </label>
+
+            <button
+              type="button"
+              class="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
+              [disabled]="paymentLoading()"
+              (click)="submitPayment()"
+            >
+              @if (paymentLoading()) { <svg lucideLoaderCircle size="16" class="animate-spin"></svg> }
+              Pagar ahora
+            </button>
+          </form>
+        }
+      </article>
+    } @else {
+      <article class="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-6 text-slate-600">
+        Crea la orden para revisar el resumen y continuar con el pago simulado.
+      </article>
+    }
+  </div>
+</section>

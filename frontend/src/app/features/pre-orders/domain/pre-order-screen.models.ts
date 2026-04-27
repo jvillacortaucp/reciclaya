@@ -44,5 +44,16 @@ export interface PreOrderScreenState {
   readonly selectedPaymentType: PaymentMethod['type'];
   readonly draft: DraftInfo;
   readonly support: SupportInfo;
+  readonly economicSummary?: EconomicSummary;
+}
+
+export interface PreOrderRequest {
+  readonly listingId: string;
+  readonly quantity: number;
+  readonly desiredDate: string;
+  readonly reserveStock: boolean;
+  readonly notes: string;
+  readonly paymentMethod: PaymentMethod;
+  readonly status?: 'draft' | 'submitted';
 }
 

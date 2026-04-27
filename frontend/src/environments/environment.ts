@@ -1,4 +1,4 @@
 export const environment = {
   production: false,
-  apiBaseUrl: '/mock/api'
+  apiBaseUrl: 'http://localhost:5021/api'
 } as const;

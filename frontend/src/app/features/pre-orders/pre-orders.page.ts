@@ -15,6 +15,7 @@ export class PreOrdersPageComponent implements OnInit {
 
   protected readonly preOrders = this.facade.preOrders;
   protected readonly loading = this.facade.loading;
+  protected readonly toastMessage = this.facade.toastMessage;
 
   ngOnInit(): void {
     this.facade.load();

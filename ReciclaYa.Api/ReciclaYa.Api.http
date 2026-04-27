@@ -1,0 +1,222 @@
+@ReciclaYa.Api_HostAddress = http://localhost:5021
+@AccessToken = paste_jwt_access_token_here
+@AdminAccessToken = paste_admin_jwt_access_token_here
+@ListingId = paste_listing_id_here
+@CompanyId = paste_company_id_here
+
+# Confirmed frontend values:
+# residueType/wasteType: organic, inorganic
+# sector: agriculture, agroindustry, metallurgical, food, industrial
+# productType: mango, coffee, cacao, grape
+# exchangeType: sale, barter, pickup
+# deliveryMode: warehouse_pickup, coordinated_delivery, third_party_transport
+# condition/residueCondition: fresh, dry, wet, processed
+
+GET {{ReciclaYa.Api_HostAddress}}/api/health
+Accept: application/json
+
+###
+
+PUT {{ReciclaYa.Api_HostAddress}}/api/waste-sell/draft
+Authorization: Bearer {{AccessToken}}
+Content-Type: application/json
+
+{
+  "formValue": {
+    "residueType": "organic",
+    "sector": "agriculture",
+    "productType": "mango",
+    "specificResidue": "Mango fresco recuperable",
+    "shortDescription": "Lote de mango fresco con valor de recuperacion para transformacion.",
+    "volume": {
+      "quantity": 120,
+      "unit": "kg",
+      "generationFrequency": "weekly",
+      "estimatedCostPerUnit": 0.18
+    },
+    "logistics": {
+      "warehouseAddress": "Piura, Peru",
+      "maxStorageTime": "3 days",
+      "exchangeType": "sale",
+      "deliveryMode": "warehouse_pickup",
+      "immediateAvailability": true
+    },
+    "additional": {
+      "condition": "fresh",
+      "restrictionsNotes": "Mantener en ambiente ventilado.",
+      "nextAvailabilityDate": "2026-04-30"
+    },
+    "mediaUploads": [
+      {
+        "id": "sample-media-1",
+        "name": "mango-lote.jpg",
+        "previewUrl": "https://example.com/media/mango-lote.jpg",
+        "sizeKb": 256,
+        "type": "image/jpeg"
+      }
+    ]
+  },
+  "draftSavedAt": null,
+  "aiSuggestionNote": null
+}
+
+###
+
+POST {{ReciclaYa.Api_HostAddress}}/api/waste-sell/preview
+Authorization: Bearer {{AccessToken}}
+Content-Type: application/json
+
+{
+  "formValue": {
+    "residueType": "inorganic",
+    "sector": "industrial",
+    "productType": "coffee",
+    "specificResidue": "Sacos de cafe procesado",
+    "shortDescription": "Material procesado para reutilizacion en embalaje.",
+    "volume": {
+      "quantity": 80,
+      "unit": "units",
+      "generationFrequency": "monthly",
+      "estimatedCostPerUnit": 0
+    },
+    "logistics": {
+      "warehouseAddress": "Lima, Peru",
+      "maxStorageTime": "15 days",
+      "exchangeType": "barter",
+      "deliveryMode": "coordinated_delivery",
+      "immediateAvailability": false
+    },
+    "additional": {
+      "condition": "processed",
+      "restrictionsNotes": "",
+      "nextAvailabilityDate": "2026-05-05"
+    },
+    "mediaUploads": []
+  },
+  "draftSavedAt": null,
+  "aiSuggestionNote": null
+}
+
+###
+
+POST {{ReciclaYa.Api_HostAddress}}/api/waste-sell/publish
+Authorization: Bearer {{AccessToken}}
+Content-Type: application/json
+
+{
+  "formValue": {
+    "residueType": "organic",
+    "sector": "agroindustry",
+    "productType": "cacao",
+    "specificResidue": "Cascarilla de cacao seca",
+    "shortDescription": "Cascarilla seca disponible para aprovechamiento circular.",
+    "volume": {
+      "quantity": 250,
+      "unit": "kg",
+      "generationFrequency": "weekly",
+      "estimatedCostPerUnit": 0.12
+    },
+    "logistics": {
+      "warehouseAddress": "San Martin, Peru",
+      "maxStorageTime": "10 days",
+      "exchangeType": "pickup",
+      "deliveryMode": "third_party_transport",
+      "immediateAvailability": true
+    },
+    "additional": {
+      "condition": "dry",
+      "restrictionsNotes": "Recojo con transporte autorizado.",
+      "nextAvailabilityDate": "2026-04-30"
+    },
+    "mediaUploads": []
+  },
+  "draftSavedAt": null,
+  "aiSuggestionNote": null
+}
+
+###
+
+POST {{ReciclaYa.Api_HostAddress}}/api/waste-sell/preview
+Authorization: Bearer {{AccessToken}}
+Content-Type: application/json
+
+{
+  "formValue": {
+    "residueType": "organic",
+    "sector": "food",
+    "productType": "grape",
+    "specificResidue": "Orujo de uva humedo",
+    "shortDescription": "Residuo humedo de uva para valorizacion.",
+    "volume": {
+      "quantity": 60,
+      "unit": "kg",
+      "generationFrequency": "daily",
+      "estimatedCostPerUnit": 0.08
+    },
+    "logistics": {
+      "warehouseAddress": "Ica, Peru",
+      "maxStorageTime": "2 days",
+      "exchangeType": "sale",
+      "deliveryMode": "coordinated_delivery",
+      "immediateAvailability": true
+    },
+    "additional": {
+      "condition": "wet",
+      "restrictionsNotes": "",
+      "nextAvailabilityDate": "2026-04-29"
+    },
+    "mediaUploads": []
+  },
+  "draftSavedAt": null,
+  "aiSuggestionNote": null
+}
+
+###
+
+GET {{ReciclaYa.Api_HostAddress}}/api/marketplace/listings?page=1&pageSize=12&wasteType=organic&sector=agroindustry&productType=cacao
+Authorization: Bearer {{AccessToken}}
+Accept: application/json
+
+###
+
+GET {{ReciclaYa.Api_HostAddress}}/api/marketplace/listings?page=1&pageSize=12&wasteType=inorganic&sector=metallurgical&productType=grape
+Authorization: Bearer {{AccessToken}}
+Accept: application/json
+
+###
+
+GET {{ReciclaYa.Api_HostAddress}}/api/marketplace/listings?page=1&pageSize=12&wasteType=organic&sector=food&productType=grape
+Authorization: Bearer {{AccessToken}}
+Accept: application/json
+
+###
+
+GET {{ReciclaYa.Api_HostAddress}}/api/marketplace/listings/{{ListingId}}
+Authorization: Bearer {{AccessToken}}
+Accept: application/json
+
+###
+
+GET {{ReciclaYa.Api_HostAddress}}/api/my-listings
+Authorization: Bearer {{AccessToken}}
+Accept: application/json
+
+###
+
+GET {{ReciclaYa.Api_HostAddress}}/api/admin/companies
+Authorization: Bearer {{AdminAccessToken}}
+Accept: application/json
+
+###
+
+PATCH {{ReciclaYa.Api_HostAddress}}/api/admin/companies/{{CompanyId}}/verify
+Authorization: Bearer {{AdminAccessToken}}
+Accept: application/json
+
+###
+
+PATCH {{ReciclaYa.Api_HostAddress}}/api/admin/companies/{{CompanyId}}/reject
+Authorization: Bearer {{AdminAccessToken}}
+Accept: application/json
+
+###

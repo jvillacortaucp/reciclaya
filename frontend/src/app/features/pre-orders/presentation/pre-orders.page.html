@@ -1,4 +1,9 @@
 <ui-section-header title="Pre-ordenes" subtitle="Gestiona solicitudes y estado de aprobacion" />
+@if (toastMessage()) {
+  <div class="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800" role="alert">
+    {{ toastMessage() }}
+  </div>
+}
 @if (loading()) {
   <p class="text-sm text-slate-500">Cargando pre-ordenes...</p>
 } @else {

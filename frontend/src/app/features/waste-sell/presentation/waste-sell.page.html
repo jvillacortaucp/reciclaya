@@ -187,6 +187,9 @@
         (filesAdded)="onFilesAdded($event)"
         (fileRemoved)="onFileRemoved($event)"
       />
+      @if (mediaSyncLoading()) {
+        <p class="mt-3 text-xs font-medium text-blue-700">Subiendo imagenes al almacenamiento persistente...</p>
+      }
       @if (hasEmptyState()) {
         <p class="mt-4 text-center text-xs font-medium text-slate-400 italic">Agregar al menos una foto aumenta la visibilidad del anuncio.</p>
       }
@@ -224,6 +227,109 @@
         <span class="flex-shrink-0 text-indigo-500 mt-0.5"><svg lucideWandSparkles size="18"></svg></span>
         <p class="text-sm text-indigo-900 leading-relaxed italic">{{ state()?.aiSuggestionNote }}</p>
       </div>
+    </article>
+    <article class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm transition-all hover:shadow-md animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <header class="flex flex-wrap items-start justify-between gap-4 mb-6">
+        <div>
+          <div class="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-slate-600">
+            <svg lucideWandSparkles size="14"></svg>
+            Ideas con IA
+          </div>
+          <h3 class="mt-3 text-lg font-bold text-slate-800">Ideas de valorizacion antes de publicar</h3>
+          <p class="mt-2 text-sm leading-relaxed text-slate-600">
+            Estas ideas pueden ayudarte a decidir si conviene vender este residuo como esta, transformarlo antes de venderlo o dirigirlo a compradores especificos.
+          </p>
+          <p class="mt-2 text-sm font-medium" [class.text-amber-700]="valorizationIdeasStale()" [class.text-emerald-700]="valorizationIdeasGenerated() && !valorizationIdeasStale()" [class.text-slate-500]="!valorizationIdeasGenerated()">
+            {{ valorizationInfoMessage() }}
+          </p>
+        </div>
+
+        <button
+          type="button"
+          class="inline-flex items-center px-4 py-2 text-sm font-semibold text-white bg-slate-900 rounded-xl hover:bg-slate-800 transition-all shadow-sm disabled:opacity-50"
+          (click)="analyzeWithAi()"
+          [disabled]="valorizationIdeasLoading() || loading()"
+        >
+          @if (valorizationIdeasLoading()) { <svg lucideLoaderCircle size="16" class="animate-spin mr-2"></svg> }
+          @else { <svg lucideWandSparkles size="16" class="mr-2"></svg> }
+          {{ valorizationActionLabel() }}
+        </button>
+      </header>
+
+      @if (valorizationIdeas().length) {
+        <div class="grid gap-4 xl:grid-cols-3">
+          @for (idea of valorizationIdeas(); track idea.id ?? idea.title) {
+            <article class="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest" [class]="viabilityBadgeClasses(idea.viabilityLevel)">
+                  {{ viabilityLabel(idea.viabilityLevel) }}
+                </span>
+                <span class="rounded-full bg-slate-200 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-slate-700">
+                  {{ sourceBadge(idea.source) }}
+                </span>
+              </div>
+
+              <h4 class="mt-4 text-base font-bold leading-snug text-slate-900">{{ idea.title }}</h4>
+              <p class="mt-2 text-sm leading-relaxed text-slate-600">{{ idea.summary }}</p>
+
+              <div class="mt-4 rounded-2xl bg-emerald-50 p-4 border border-emerald-100">
+                <p class="text-[10px] font-bold uppercase tracking-widest text-emerald-700">Producto sugerido</p>
+                <p class="mt-1 text-sm font-semibold text-emerald-900">{{ idea.suggestedProduct }}</p>
+              </div>
+
+              <div class="mt-4 space-y-4">
+                <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                  <p class="text-[10px] font-bold uppercase tracking-widest text-emerald-700">Recomendacion para seller</p>
+                  <p class="mt-1 text-sm leading-relaxed text-slate-800">{{ idea.sellerRecommendation }}</p>
+                </div>
+
+                <div class="rounded-2xl border border-slate-200 bg-white p-4">
+                  <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Vision para buyer</p>
+                  <p class="mt-1 text-sm leading-relaxed text-slate-700">{{ idea.buyerRecommendation }}</p>
+                </div>
+
+                <div>
+                  <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Compradores potenciales</p>
+                  <div class="mt-2 flex flex-wrap gap-2">
+                    @for (buyer of idea.potentialBuyers; track buyer) {
+                      <span class="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-700 border border-slate-200">{{ buyer }}</span>
+                    }
+                  </div>
+                </div>
+
+                <div>
+                  <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Condiciones requeridas</p>
+                  <div class="mt-2 flex flex-wrap gap-2">
+                    @for (condition of idea.requiredConditions; track condition) {
+                      <span class="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">{{ condition }}</span>
+                    }
+                  </div>
+                </div>
+
+                <div>
+                  <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Impacto estimado</p>
+                  <p class="mt-1 text-sm leading-relaxed text-slate-700">{{ idea.estimatedImpact }}</p>
+                </div>
+
+                @if (idea.warnings.length) {
+                  <div>
+                    <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Advertencias</p>
+                    <div class="mt-2 space-y-2">
+                      @for (warning of idea.warnings; track warning) {
+                        <p class="rounded-2xl bg-rose-50 px-3 py-2 text-xs leading-relaxed text-rose-800">{{ warning }}</p>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            </article>
+          }
+        </div>
+      } @else {
+        <div class="rounded-3xl border border-dashed border-slate-200 bg-slate-50 p-5 text-sm leading-relaxed text-slate-600">
+          Ejecuta el analisis con IA para obtener ideas de valorizacion antes de publicar. Esto no bloquea guardar borrador ni publicar.
+        </div>
+      }
     </article>
   </form>
 

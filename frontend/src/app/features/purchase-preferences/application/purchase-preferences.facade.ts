@@ -1,15 +1,16 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
-import { finalize } from 'rxjs';
+import { catchError, EMPTY, finalize } from 'rxjs';
+import { getErrorMessage } from '../../../core/http/api-response.helpers';
 import { PURCHASE_PREFERENCES_MESSAGES } from '../data/purchase-preferences.constants';
 import {
   PurchasePreferencesPageState,
   SummaryPreviewData
 } from '../domain/purchase-preferences.models';
-import { PurchasePreferencesMockRepository } from '../infrastructure/purchase-preferences.repository';
+import { PurchasePreferencesHttpRepository } from '../infrastructure/purchase-preferences-http.repository';
 
 @Injectable({ providedIn: 'root' })
 export class PurchasePreferencesFacade {
-  private readonly repository = inject(PurchasePreferencesMockRepository);
+  private readonly repository = inject(PurchasePreferencesHttpRepository);
 
   readonly loading = signal(false);
   readonly saveLoading = signal(false);
@@ -25,7 +26,13 @@ export class PurchasePreferencesFacade {
     this.loading.set(true);
     this.repository
       .getInitialState()
-      .pipe(finalize(() => this.loading.set(false)))
+      .pipe(
+        catchError((error: unknown) => {
+          this.toastMessage.set(getErrorMessage(error, 'No se pudieron cargar las preferencias de compra.'));
+          return EMPTY;
+        }),
+        finalize(() => this.loading.set(false))
+      )
       .subscribe((state) => {
         this.state.set(state);
         this.refreshSummary();
@@ -41,7 +48,13 @@ export class PurchasePreferencesFacade {
     this.saveLoading.set(true);
     this.repository
       .savePreference(state)
-      .pipe(finalize(() => this.saveLoading.set(false)))
+      .pipe(
+        catchError((error: unknown) => {
+          this.toastMessage.set(getErrorMessage(error, 'No se pudo guardar la preferencia.'));
+          return EMPTY;
+        }),
+        finalize(() => this.saveLoading.set(false))
+      )
       .subscribe((nextState) => {
         this.state.set(nextState);
         this.toastMessage.set(PURCHASE_PREFERENCES_MESSAGES.saved);
@@ -53,7 +66,13 @@ export class PurchasePreferencesFacade {
     this.activateLoading.set(true);
     this.repository
       .activateAlert(state)
-      .pipe(finalize(() => this.activateLoading.set(false)))
+      .pipe(
+        catchError((error: unknown) => {
+          this.toastMessage.set(getErrorMessage(error, 'No se pudo activar la alerta.'));
+          return EMPTY;
+        }),
+        finalize(() => this.activateLoading.set(false))
+      )
       .subscribe((nextState) => {
         this.state.set(nextState);
         this.toastMessage.set(PURCHASE_PREFERENCES_MESSAGES.activated);
@@ -74,7 +93,13 @@ export class PurchasePreferencesFacade {
     this.previewLoading.set(true);
     this.repository
       .buildSummary(current)
-      .pipe(finalize(() => this.previewLoading.set(false)))
+      .pipe(
+        catchError((error: unknown) => {
+          this.toastMessage.set(getErrorMessage(error, 'No se pudo generar el resumen.'));
+          return EMPTY;
+        }),
+        finalize(() => this.previewLoading.set(false))
+      )
       .subscribe((summary) => this.summary.set(summary));
   }
 }

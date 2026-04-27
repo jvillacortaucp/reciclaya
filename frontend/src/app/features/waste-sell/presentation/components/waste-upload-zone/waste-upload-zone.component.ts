@@ -57,4 +57,30 @@ export class WasteUploadZoneComponent {
       this.fileRemoved.emit(id);
     }
   }
+
+  protected uploadStatusLabel(status: WasteMediaUpload['uploadStatus']): string {
+    switch (status) {
+      case 'uploading':
+        return 'Subiendo';
+      case 'uploaded':
+        return 'Subida';
+      case 'failed':
+        return 'Error';
+      default:
+        return 'Pendiente';
+    }
+  }
+
+  protected uploadStatusClasses(status: WasteMediaUpload['uploadStatus']): string {
+    switch (status) {
+      case 'uploading':
+        return 'bg-blue-600 text-white';
+      case 'uploaded':
+        return 'bg-emerald-600 text-white';
+      case 'failed':
+        return 'bg-rose-600 text-white';
+      default:
+        return 'bg-amber-500 text-white';
+    }
+  }
 }

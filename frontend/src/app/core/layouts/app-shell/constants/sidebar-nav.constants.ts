@@ -8,23 +8,26 @@ export const SIDEBAR_NAV_ITEMS: readonly SidebarNavItem[] = [
     icon: 'layout-dashboard',
     route: APP_ROUTES.dashboard,
     exact: true,
-    permissions: [PERMISSIONS.VIEW_DASHBOARD]
+    permissions: [PERMISSIONS.VIEW_DASHBOARD],
+    roles: ['seller', 'buyer', 'admin']
   },
   {
-    label: 'Registrar Residuo',
+    label: 'Publicar residuo',
     group: 'Marketplace',
     icon: 'package-plus',
     route: APP_ROUTES.wasteSell,
     exact: true,
-    permissions: [PERMISSIONS.MANAGE_WASTE]
+    permissions: [PERMISSIONS.MANAGE_WASTE],
+    roles: ['seller']
   },
   {
-    label: 'Preferencias',
+    label: 'Preferencias de compra',
     group: 'Marketplace',
     icon: 'sliders-horizontal',
     route: APP_ROUTES.preferences,
     exact: true,
-    permissions: [PERMISSIONS.MANAGE_PREFERENCES]
+    permissions: [PERMISSIONS.MANAGE_PREFERENCES],
+    roles: ['buyer']
   },
   {
     label: 'Marketplace',
@@ -33,7 +36,8 @@ export const SIDEBAR_NAV_ITEMS: readonly SidebarNavItem[] = [
     route: APP_ROUTES.marketplace,
     activePaths: [APP_ROUTES.marketplace],
     exact: false,
-    permissions: [PERMISSIONS.VIEW_MARKETPLACE]
+    permissions: [PERMISSIONS.VIEW_MARKETPLACE],
+    roles: ['seller', 'buyer', 'admin']
   },
   {
     label: 'Mis publicaciones',
@@ -41,15 +45,59 @@ export const SIDEBAR_NAV_ITEMS: readonly SidebarNavItem[] = [
     icon: 'clipboard-list',
     route: APP_ROUTES.myListings,
     exact: true,
-    permissions: [PERMISSIONS.VIEW_MY_LISTINGS]
+    permissions: [PERMISSIONS.VIEW_MY_LISTINGS],
+    roles: ['seller']
   },
   {
-    label: 'Matches',
+    label: 'Pre-ordenes',
+    group: 'Marketplace',
+    icon: 'clipboard-list',
+    route: APP_ROUTES.preOrders,
+    exact: true,
+    permissions: [PERMISSIONS.CREATE_PRE_ORDER],
+    roles: ['buyer']
+  },
+  {
+    label: 'Mis compras',
+    group: 'Marketplace',
+    icon: 'clipboard-list',
+    route: APP_ROUTES.orders,
+    exact: false,
+    roles: ['buyer']
+  },
+  {
+    label: 'Ventas recibidas',
+    group: 'Marketplace',
+    icon: 'clipboard-list',
+    route: APP_ROUTES.orders,
+    exact: false,
+    roles: ['seller']
+  },
+  {
+    label: 'Ordenes',
+    group: 'Marketplace',
+    icon: 'clipboard-list',
+    route: APP_ROUTES.orders,
+    exact: false,
+    roles: ['admin']
+  },
+  {
+    label: 'Solicitudes',
     group: 'Marketplace',
     icon: 'sparkles',
     route: APP_ROUTES.requests,
     exact: true,
-    permissions: [PERMISSIONS.VIEW_REQUESTS]
+    permissions: [PERMISSIONS.VIEW_REQUESTS],
+    roles: ['seller', 'buyer']
+  },
+  {
+    label: 'Recomendaciones',
+    group: 'Intelligence',
+    icon: 'sparkles',
+    route: APP_ROUTES.recommendations,
+    exact: true,
+    permissions: [PERMISSIONS.VIEW_RECOMMENDATIONS],
+    roles: ['buyer']
   },
   // {
   //   label: 'Sector de valor',
@@ -73,7 +121,17 @@ export const SIDEBAR_NAV_ITEMS: readonly SidebarNavItem[] = [
     icon: 'messages',
     route: APP_ROUTES.messages,
     exact: true,
-    permissions: [PERMISSIONS.VIEW_MESSAGES]
+    permissions: [PERMISSIONS.VIEW_MESSAGES],
+    roles: ['seller', 'buyer']
+  },
+  {
+    label: 'Admin empresas',
+    group: 'Account',
+    icon: 'settings',
+    route: APP_ROUTES.admin,
+    exact: true,
+    permissions: [PERMISSIONS.MANAGE_USERS],
+    roles: ['admin']
   },
   {
     label: 'Perfil',
@@ -81,7 +139,8 @@ export const SIDEBAR_NAV_ITEMS: readonly SidebarNavItem[] = [
     icon: 'circle-user-round',
     route: APP_ROUTES.profile,
     exact: true,
-    permissions: [PERMISSIONS.MANAGE_PROFILE]
+    permissions: [PERMISSIONS.MANAGE_PROFILE],
+    roles: ['seller', 'buyer', 'admin']
   },
   {
     label: 'Configuración',
@@ -89,6 +148,7 @@ export const SIDEBAR_NAV_ITEMS: readonly SidebarNavItem[] = [
     icon: 'settings',
     route: APP_ROUTES.settings,
     exact: true,
-    permissions: [PERMISSIONS.MANAGE_PROFILE]
+    permissions: [PERMISSIONS.MANAGE_PROFILE],
+    roles: ['seller', 'buyer', 'admin']
   }
 ];
