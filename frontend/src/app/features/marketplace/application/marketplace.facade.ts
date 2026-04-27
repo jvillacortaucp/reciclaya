@@ -1,6 +1,5 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
-import { catchError, EMPTY, finalize } from 'rxjs';
-import { getErrorMessage } from '../../../core/http/api-response.helpers';
+import { finalize } from 'rxjs';
 import { ListingDetail } from '../../../core/models/app.models';
 import { DEFAULT_FILTER_STATE, MARKETPLACE_MESSAGES } from '../data/marketplace.constants';
 import {
@@ -76,10 +75,7 @@ export class MarketplaceFacade {
   });
 
   loadMarketplace(): void {
-    this.repository
-      .getDataset()
-      .pipe(catchError(() => EMPTY))
-      .subscribe((dataset) => this.dataset.set(dataset));
+    this.repository.getDataset().subscribe((dataset) => this.dataset.set(dataset));
     this.reloadFromStart();
   }
 
@@ -170,10 +166,6 @@ export class MarketplaceFacade {
         sortBy: this.search().sortBy
       })
       .pipe(
-        catchError((error: unknown) => {
-          this.toastMessage.set(getErrorMessage(error, 'No se pudieron cargar los listados.'));
-          return EMPTY;
-        }),
         finalize(() => {
           this.requestInFlight.set(false);
           if (mode === 'replace') {

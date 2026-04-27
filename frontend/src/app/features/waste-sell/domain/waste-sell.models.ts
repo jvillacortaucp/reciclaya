@@ -33,9 +33,6 @@ export interface WasteMediaUpload {
   readonly previewUrl: string;
   readonly sizeKb: number;
   readonly type: string;
-  readonly mediaId?: string | null;
-  readonly uploadStatus?: 'pending' | 'uploading' | 'uploaded' | 'failed';
-  readonly warningMessage?: string | null;
 }
 
 export interface WasteAdditionalData {

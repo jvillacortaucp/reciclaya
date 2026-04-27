@@ -88,16 +88,11 @@ export class WasteSellPageComponent implements OnInit, OnDestroy, PendingChanges
   protected readonly draftLoading = this.facade.draftLoading;
   protected readonly publishLoading = this.facade.publishLoading;
   protected readonly previewLoading = this.facade.previewLoading;
-  protected readonly mediaSyncLoading = this.facade.mediaSyncLoading;
   protected readonly state = this.facade.state;
   protected readonly preview = this.facade.preview;
   protected readonly completion = this.facade.completion;
   protected readonly statusLabel = this.facade.statusLabel;
   protected readonly toastMessage = this.facade.toastMessage;
-  protected readonly valorizationIdeasLoading = this.facade.valorizationIdeasLoading;
-  protected readonly valorizationIdeas = this.facade.valorizationIdeas;
-  protected readonly valorizationIdeasGenerated = this.facade.valorizationIdeasGenerated;
-  protected readonly valorizationIdeasStale = this.facade.valorizationIdeasStale;
 
   protected readonly form = this.fb.nonNullable.group({
     residueType: ['organic'],
@@ -184,7 +179,6 @@ export class WasteSellPageComponent implements OnInit, OnDestroy, PendingChanges
     this.subscriptions.unsubscribe();
     this.createdObjectUrls.forEach((url) => URL.revokeObjectURL(url));
     this.createdObjectUrls.clear();
-    this.facade.resetTransientValorizationIdeas();
   }
 
   hasPendingChanges(): boolean {
@@ -225,37 +219,6 @@ export class WasteSellPageComponent implements OnInit, OnDestroy, PendingChanges
     this.facade.updateState(nextState);
   }
 
-  protected analyzeWithAi(): void {
-    const nextState = this.state();
-    if (!nextState) {
-      return;
-    }
-
-    const missingFields = this.getMissingValorizationFields();
-    if (missingFields.length > 0) {
-      this.facade.toastMessage.set(`Completa estos campos antes de analizar con IA: ${missingFields.join(', ')}.`);
-      return;
-    }
-
-    this.facade.generateValorizationIdeas(nextState);
-  }
-
-  protected valorizationInfoMessage(): string {
-    if (this.valorizationIdeasStale()) {
-      return 'Los datos cambiaron. Actualiza las ideas para obtener recomendaciones mas precisas.';
-    }
-
-    if (this.valorizationIdeasGenerated()) {
-      return 'Ideas generadas segun los datos actuales del formulario.';
-    }
-
-    return 'Completa los datos principales y analiza oportunidades antes de publicar.';
-  }
-
-  protected valorizationActionLabel(): string {
-    return this.valorizationIdeasGenerated() ? 'Actualizar ideas' : 'Analizar con IA antes de publicar';
-  }
-
   protected dismissToast(): void {
     this.facade.clearToast();
   }
@@ -269,32 +232,16 @@ export class WasteSellPageComponent implements OnInit, OnDestroy, PendingChanges
       return;
     }
 
-    const accepted = files
-      .slice(0, availableSlots)
-      .filter((file) => {
-        const validationMessage = this.validateMediaFile(file);
-        if (validationMessage) {
-          this.facade.toastMessage.set(validationMessage);
-          return false;
-        }
-
-        return true;
-      })
-      .map((file) => {
+    const accepted = files.slice(0, availableSlots).map((file) => {
       const previewUrl = URL.createObjectURL(file);
       this.createdObjectUrls.add(previewUrl);
 
-      const id = crypto.randomUUID();
-      this.facade.registerPendingFile(id, file);
-
       const upload: WasteMediaUpload = {
-        id,
+        id: crypto.randomUUID(),
         name: file.name,
         previewUrl,
         sizeKb: Math.round(file.size / 1024),
-        type: file.type,
-        uploadStatus: 'pending',
-        warningMessage: null
+        type: file.type
       };
 
       return upload;
@@ -304,13 +251,8 @@ export class WasteSellPageComponent implements OnInit, OnDestroy, PendingChanges
   }
 
   protected onFileRemoved(id: string): void {
-    const media = this.mediaUploads().find((item) => item.id === id);
-    if (media?.previewUrl.startsWith('blob:')) {
-      URL.revokeObjectURL(media.previewUrl);
-      this.createdObjectUrls.delete(media.previewUrl);
-    }
-
-    this.facade.removeMedia(id);
+    const nextMedia = this.mediaUploads().filter((media) => media.id !== id);
+    this.facade.updateMedia(nextMedia);
   }
 
   protected fieldError(fieldName: keyof typeof this.form.controls): string {
@@ -328,32 +270,6 @@ export class WasteSellPageComponent implements OnInit, OnDestroy, PendingChanges
     }
 
     return this.messages.required;
-  }
-
-  protected sourceBadge(source: string): string {
-    return source === 'deepseek' ? 'Generado con IA' : 'Recomendacion base';
-  }
-
-  protected viabilityLabel(level: string): string {
-    switch (level) {
-      case 'high':
-        return 'Alta viabilidad';
-      case 'low':
-        return 'Viabilidad baja';
-      default:
-        return 'Viabilidad media';
-    }
-  }
-
-  protected viabilityBadgeClasses(level: string): string {
-    switch (level) {
-      case 'high':
-        return 'bg-emerald-100 text-emerald-700';
-      case 'low':
-        return 'bg-rose-100 text-rose-700';
-      default:
-        return 'bg-amber-100 text-amber-700';
-    }
   }
 
   private syncStateFromForm(): void {
@@ -394,30 +310,5 @@ export class WasteSellPageComponent implements OnInit, OnDestroy, PendingChanges
     };
 
     this.facade.updateState(nextState);
-  }
-
-  private getMissingValorizationFields(): string[] {
-    const raw = this.form.getRawValue();
-
-    return [
-      { value: raw.residueType, label: 'tipo de residuo' },
-      { value: raw.productType, label: 'producto relacionado' },
-      { value: raw.specificResidue, label: 'residuo especifico' },
-      { value: raw.shortDescription, label: 'descripcion detallada' }
-    ]
-      .filter((field) => !field.value || !field.value.toString().trim())
-      .map((field) => field.label);
-  }
-
-  private validateMediaFile(file: File): string | null {
-    if (file.size > 5 * 1024 * 1024) {
-      return 'Cada imagen debe pesar como maximo 5 MB.';
-    }
-
-    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
-      return 'Solo se permiten imagenes JPG, PNG o WEBP.';
-    }
-
-    return null;
   }
 }

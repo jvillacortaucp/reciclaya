@@ -1,9 +1,8 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { catchError, EMPTY, finalize, tap } from 'rxjs';
-import { getErrorMessage } from '../../../core/http/api-response.helpers';
-import { APP_ROUTES, PERMISSIONS } from '../../../core/constants/app.constants';
-import { User, UserRole } from '../../../core/models/app.models';
+import { APP_ROUTES } from '../../../core/constants/app.constants';
+import { UserRole } from '../../../core/models/app.models';
 import { SessionStorageService } from '../../../core/services/session-storage.service';
 import { LOGIN_VALIDATION_MESSAGES } from '../data/login.constants';
 import { LoginPayload } from '../domain/login-screen.models';
@@ -13,13 +12,11 @@ import {
   NaturalPersonRegistrationPayload,
   RegisterPayload
 } from '../domain/register.models';
-import { AuthHttpRepository } from '../infrastructure/auth-http.repository';
 import { MockAuthService } from './mock-auth.service';
 
 @Injectable({ providedIn: 'root' })
 export class AuthFacade {
-  private readonly authRepository = inject(AuthHttpRepository);
-  private readonly mockAuthService = inject(MockAuthService);
+  private readonly authService = inject(MockAuthService);
   private readonly sessionStorage = inject(SessionStorageService);
   private readonly router = inject(Router);
 
@@ -37,14 +34,14 @@ export class AuthFacade {
     this.authError.set(null);
     this.emailLoginLoading.set(true);
 
-    this.authRepository
+    this.authService
       .loginWithEmail(payload)
       .pipe(
         tap((session) => {
           this.persistSession(session, payload.rememberMe);
         }),
-        catchError((error: unknown) => {
-          this.authError.set(this.resolveLoginErrorMessage(error));
+        catchError(() => {
+          this.authError.set(LOGIN_VALIDATION_MESSAGES.invalidCredentials);
           return EMPTY;
         }),
         finalize(() => this.emailLoginLoading.set(false))
@@ -58,7 +55,7 @@ export class AuthFacade {
     this.authError.set(null);
     this.socialLoginLoading.set(true);
 
-    this.mockAuthService
+    this.authService
       .loginWithGoogle()
       .pipe(
         tap((session) => this.persistSession(session, true)),
@@ -86,7 +83,7 @@ export class AuthFacade {
     this.authError.set(null);
     this.emailLoginLoading.set(true);
 
-    this.authRepository
+    this.authService
       .registerCompany(payload)
       .pipe(finalize(() => this.emailLoginLoading.set(false)))
       .subscribe({
@@ -94,7 +91,7 @@ export class AuthFacade {
           this.persistSession(session, true);
           void this.router.navigateByUrl(APP_ROUTES.dashboard);
         },
-        error: (error: unknown) => this.authError.set(getErrorMessage(error, 'No se pudo completar el registro de empresa.'))
+        error: () => this.authError.set('No se pudo completar el registro de empresa.')
       });
   }
 
@@ -102,7 +99,7 @@ export class AuthFacade {
     this.authError.set(null);
     this.emailLoginLoading.set(true);
 
-    this.authRepository
+    this.authService
       .registerNaturalPerson(payload)
       .pipe(finalize(() => this.emailLoginLoading.set(false)))
       .subscribe({
@@ -110,8 +107,7 @@ export class AuthFacade {
           this.persistSession(session, true);
           void this.router.navigateByUrl(APP_ROUTES.dashboard);
         },
-        error: (error: unknown) =>
-          this.authError.set(getErrorMessage(error, 'No se pudo completar el registro de persona natural.'))
+        error: () => this.authError.set('No se pudo completar el registro de persona natural.')
       });
   }
 
@@ -120,11 +116,7 @@ export class AuthFacade {
   }
 
   hasPermission(permission: string): boolean {
-    if (this.permissions().includes(permission)) {
-      return true;
-    }
-
-    return permission === PERMISSIONS.MANAGE_USERS && this.user()?.role === UserRole.Admin;
+    return this.permissions().includes(permission);
   }
 
   hasAnyRole(roles: readonly string[]): boolean {
@@ -152,41 +144,10 @@ export class AuthFacade {
     });
   }
 
-  updateUser(user: NonNullable<ReturnType<typeof this.user>>): void {
-    const session = this.session();
-    if (!session) {
-      return;
-    }
-
-    this.sessionStorage.set({
-      ...session,
-      user
-    });
-  }
-
-  patchUser(patch: Partial<User>): void {
-    const session = this.session();
-    if (!session) {
-      return;
-    }
-
-    this.sessionStorage.set({
-      ...session,
-      user: {
-        ...session.user,
-        ...patch
-      }
-    });
-  }
-
   private persistSession(session: NonNullable<ReturnType<typeof this.session>>, rememberSession: boolean): void {
     this.sessionStorage.set(session);
     if (!rememberSession) {
       sessionStorage.setItem('volatile.session', JSON.stringify(session));
     }
-  }
-
-  private resolveLoginErrorMessage(error: unknown): string {
-    return getErrorMessage(error, LOGIN_VALIDATION_MESSAGES.invalidCredentials);
   }
 }

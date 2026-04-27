@@ -26,8 +26,7 @@ export interface SidebarNavItem {
 export interface ApiResponse<T> {
   readonly success: boolean;
   readonly data: T;
-  readonly message?: string | null;
-  readonly errors?: readonly string[];
+  readonly message?: string;
 }
 
 export interface User {
@@ -36,8 +35,6 @@ export interface User {
   readonly fullName: string;
   readonly role: UserRole;
   readonly profileType: 'company' | 'person';
-  readonly status?: string;
-  readonly avatarUrl?: string | null;
 }
 
 export interface CompanyProfile {
@@ -118,7 +115,7 @@ export interface PreOrder {
   readonly buyerId: string;
   readonly quantity: number;
   readonly desiredDate: string;
-  readonly status: 'draft' | 'submitted' | 'approved' | 'rejected' | 'accepted' | 'cancelled';
+  readonly status: 'draft' | 'submitted' | 'approved' | 'rejected';
   readonly paymentMethod: PaymentMethod;
   readonly pricing: PricingSummary;
 }

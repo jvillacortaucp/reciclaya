@@ -38,14 +38,7 @@ export const SIDEBAR_NAV_ITEMS: readonly SidebarNavItem[] = [
     permissions: [PERMISSIONS.VIEW_MY_LISTINGS]
   },
   {
-    label: 'Pre-ordenes',
-    group: 'Marketplace',
-    icon: 'clipboard-list',
-    route: APP_ROUTES.preOrders,
-    permissions: [PERMISSIONS.CREATE_PRE_ORDER]
-  },
-  {
-    label: 'Solicitudes',
+    label: 'Matches',
     group: 'Marketplace',
     icon: 'sparkles',
     route: APP_ROUTES.requests,
@@ -71,13 +64,6 @@ export const SIDEBAR_NAV_ITEMS: readonly SidebarNavItem[] = [
     icon: 'messages',
     route: APP_ROUTES.messages,
     permissions: [PERMISSIONS.VIEW_MESSAGES]
-  },
-  {
-    label: 'Admin empresas',
-    group: 'Account',
-    icon: 'settings',
-    route: APP_ROUTES.admin,
-    permissions: [PERMISSIONS.MANAGE_USERS]
   },
   {
     label: 'Profile',
