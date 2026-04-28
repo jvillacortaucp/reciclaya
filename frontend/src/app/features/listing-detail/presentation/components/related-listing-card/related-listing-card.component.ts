@@ -16,7 +16,7 @@ import { RelatedListingPreview } from '../../../domain/listing-detail.models';
           <span class="text-slate-600">{{ item.quantityLabel }}</span>
           <span class="font-semibold text-emerald-700">{{ item.priceLabel }}</span>
         </div>
-        <a [routerLink]="['/app/marketplace', item.id]" class="inline-flex w-full items-center justify-center rounded-lg border border-emerald-500 px-3 py-1.5 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-50">
+        <a [routerLink]="['/marketplace', item.id]" class="inline-flex w-full items-center justify-center rounded-lg border border-emerald-500 px-3 py-1.5 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-50">
           Ver detalle
         </a>
       </div>

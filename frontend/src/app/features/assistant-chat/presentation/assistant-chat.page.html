@@ -1,0 +1,72 @@
+<section class="mx-auto flex h-[calc(100vh-4rem)] w-full max-w-[1720px] flex-col overflow-hidden px-3 pb-3 pt-4 sm:px-6 lg:px-8">
+  <header class="mb-3 flex flex-wrap items-end justify-between gap-2">
+    <div>
+      <h1 class="text-2xl font-semibold tracking-tight text-emerald-700 sm:text-3xl">ReciclaIA</h1>
+      <p class="mt-1 max-w-3xl text-sm leading-relaxed text-slate-500 sm:text-base">{{ copy.subtitle }}</p>
+    </div>
+  </header>
+
+  <div class="flex-1 overflow-y-auto rounded-3xl border border-slate-200 bg-slate-50 p-3 md:p-4">
+    <div class="mx-auto min-h-[180px] w-full max-w-[1380px] space-y-2 md:min-h-[220px] md:space-y-3">
+      @for (message of messages(); track message.id) {
+        @if (message.type === 'text') {
+          <app-chat-message-bubble [message]="message" />
+        } @else {
+          <div class="pl-0 sm:pl-12">
+            <app-product-suggestion-cards
+              [suggestions]="message.suggestions ?? []"
+              [selectedSuggestionId]="selectedSuggestionId()"
+              (selected)="onProductSelected($event)" />
+          </div>
+        }
+      }
+
+      @if (typing()) {
+        <app-typing-indicator />
+      }
+
+      @if (hasSelection()) {
+        <div class="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium leading-relaxed text-emerald-800 sm:text-base">
+          {{ copy.selectionMessage }}
+        </div>
+
+        <div class="flex flex-wrap gap-3">
+          <button
+            type="button"
+            class="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-200"
+            (click)="goToRecommendations('process')">
+            {{ copy.routeProcess }}
+          </button>
+          <button
+            type="button"
+            class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-200"
+            (click)="goToRecommendations('explanation')">
+            {{ copy.routeExplanation }}
+          </button>
+          <button
+            type="button"
+            class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-200"
+            (click)="goToRecommendations('market')">
+            {{ copy.routeMarket }}
+          </button>
+        </div>
+      }
+    </div>
+  </div>
+
+  <footer class="mt-3 rounded-3xl border border-slate-200 bg-white px-4 py-4">
+    <div class="mx-auto w-full max-w-[1380px]">
+      <div class="mb-3 flex flex-wrap items-center gap-3">
+        <p class="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">{{ copy.suggestionsLabel }}</p>
+        <app-quick-suggestion-chips
+          [suggestions]="quickSuggestions"
+          (selected)="applySuggestion($event)" />
+      </div>
+
+      <app-chat-input
+        [control]="form.controls.input"
+        [placeholder]="copy.inputPlaceholder"
+        (submitted)="sendMessage()" />
+    </div>
+  </footer>
+</section>

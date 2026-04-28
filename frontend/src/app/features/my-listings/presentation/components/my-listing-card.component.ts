@@ -73,7 +73,7 @@ import { MyListing } from '../../domain/my-listing.model';
         <div class="mt-auto border-t border-slate-200 pt-3">
           <div class="flex items-center justify-between gap-2">
             <a
-              [routerLink]="['/app/marketplace', listing.id]"
+              [routerLink]="['/marketplace', listing.id]"
               class="inline-flex items-center gap-1 text-base font-semibold text-emerald-700 transition hover:text-emerald-800"
               (click)="$event.stopPropagation()"
             >

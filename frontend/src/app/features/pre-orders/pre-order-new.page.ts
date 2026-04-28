@@ -141,7 +141,7 @@ export class PreOrderNewPageComponent implements OnInit, OnDestroy {
   }
 
   protected goToDetail(): void {
-    void this.router.navigate(['/app/marketplace', this.listingId]);
+    void this.router.navigate(['/marketplace', this.listingId]);
   }
 
   protected requestInfo(): void {

@@ -1,4 +1,16 @@
 export type RecommendationTourTab = 'process' | 'explanation' | 'market';
+export type TourFlowStep =
+    | 'idle'
+    | 'my_listings_focus_first_card'
+    | 'my_listings_wait_listing_selection'
+    | 'value_sector_focus_first_sector'
+    | 'value_sector_wait_sector_selection'
+    | 'value_sector_focus_first_product'
+    | 'value_sector_wait_product_selection'
+    | 'value_sector_explain_options'
+    | 'value_sector_wait_option_selection'
+    | 'recommendations_running'
+    | 'completed';
 
 export const RECOMMENDATION_TOUR_ORDER_BY_INITIAL_TAB: Record<
     RecommendationTourTab,
@@ -40,6 +52,8 @@ export const TOUR_GUIDE_STORAGE_KEYS = {
     HAS_COMPLETED_MAIN_FLOW: 'ecovalor_has_completed_main_tour',
     ATTEMPT_COUNT: 'ecovalor_tour_attempt_count',
     CURRENT_STEP: 'ecovalor_tour_current_step',
+    LAST_ERROR: 'ecovalor_tour_last_error',
+    FLOW_STEP: 'ecovalor_tour_flow_step',
     PENDING_RECOMMENDATION_TOUR: 'ecovalor_pending_recommendation_tour',
     RECOMMENDATION_TOUR_ORDER: 'ecovalor_recommendation_tour_order',
     RECOMMENDATION_TOUR_INDEX: 'ecovalor_recommendation_tour_index',
@@ -47,8 +61,13 @@ export const TOUR_GUIDE_STORAGE_KEYS = {
 } as const;
 
 export const TOUR_GUIDE_TEST_CONFIG = {
-    ENABLED: false,
-    MAX_ATTEMPTS: 10,
+    ENABLED: true,
+    DEBUG: true,
+    MAX_ATTEMPTS: 20,
+    ATTEMPT_TIMEOUT_MS: 250,
+    MAX_ATTEMPT_TIMEOUT_MS: 650,
+    BACKOFF_FACTOR: 1.15,
+    ON_STEP_NOT_FOUND: 'skip' as 'skip' | 'finish',
     RESET_ON_RELOAD: false,
 } as const;
 

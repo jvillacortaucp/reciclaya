@@ -97,7 +97,7 @@ export const SIDEBAR_NAV_ITEMS: readonly SidebarNavItem[] = [
     route: APP_ROUTES.recommendations,
     exact: true,
     permissions: [PERMISSIONS.VIEW_RECOMMENDATIONS],
-    roles: ['buyer']
+    roles: ['buyer', 'seller']
   },
   // {
   //   label: 'Sector de valor',
@@ -105,7 +105,8 @@ export const SIDEBAR_NAV_ITEMS: readonly SidebarNavItem[] = [
   //   icon: 'sparkles',
   //   route: APP_ROUTES.valueSector,
   //   exact: true,
-  //   permissions: [PERMISSIONS.VIEW_VALUE_SECTOR]
+  //   permissions: [PERMISSIONS.VIEW_VALUE_SECTOR],
+  //   roles: ['buyer', 'seller']
   // },
   // {
   //   label: 'Recomendaciones',

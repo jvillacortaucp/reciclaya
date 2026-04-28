@@ -28,7 +28,7 @@ import { MarketplaceListing } from '../../../domain/marketplace.models';
           </span>
         </div>
         <p class="mt-2 truncate text-sm text-slate-600">{{ listing.quantity }} {{ listing.unit }} · {{ listing.location }}</p>
-        <a [routerLink]="['/app/marketplace', listing.id]" class="mt-auto inline-flex w-full items-center justify-center rounded-xl bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100">
+        <a [routerLink]="['/marketplace', listing.id]" class="mt-auto inline-flex w-full items-center justify-center rounded-xl bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100">
           Ver detalle
         </a>
       </div>
