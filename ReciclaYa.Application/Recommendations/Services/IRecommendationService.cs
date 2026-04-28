@@ -12,7 +12,7 @@ public interface IRecommendationService
         bool includeExplanation = true,
         CancellationToken cancellationToken = default);
 
-    Task<RecommendationDetailDto?> GetListingAnalysisAsync(
+    Task<ReciclaYa.Application.ValueSectors.Dtos.ValueRouteDetailDto?> GetListingAnalysisAsync(
         Guid userId,
         bool isAdmin,
         Guid listingId,
