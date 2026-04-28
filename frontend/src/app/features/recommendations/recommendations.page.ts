@@ -1,7 +1,8 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { Location } from '@angular/common';
+import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
-import { LucideBookmark, LucideSparkles } from '@lucide/angular';
+import { LucideArrowLeft, LucideBookmark, LucideSparkles } from '@lucide/angular';
 import { combineLatest } from 'rxjs';
 import { RecommendationsFacade } from './application/recommendations.facade';
 import { MarketAnalysisComponent } from './presentation/components/market-analysis/market-analysis.component';
@@ -15,6 +16,7 @@ import { BuyerScope, RecommendationTab } from './models/recommendation.model';
   standalone: true,
   providers: [RecommendationsFacade],
   imports: [
+    LucideArrowLeft,
     LucideBookmark,
     LucideSparkles,
     RecommendationTabsComponent,
@@ -29,8 +31,10 @@ export class RecommendationsPageComponent implements OnInit {
   private readonly facade = inject(RecommendationsFacade);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly location = inject(Location);
   private readonly destroyRef = inject(DestroyRef);
   private loadedProductId: string | null = null;
+  private readonly sourceListingId = signal<string | null>(null);
 
   protected readonly loading = this.facade.loading;
   protected readonly error = this.facade.error;
@@ -53,6 +57,7 @@ export class RecommendationsPageComponent implements OnInit {
       .subscribe(([params, query]) => {
         const productId = params.get('productId');
         const tab = this.parseTab(query.get('tab'));
+        this.sourceListingId.set(query.get('listing'));
 
         if (this.loadedProductId !== productId) {
           this.loadedProductId = productId;
@@ -99,6 +104,21 @@ export class RecommendationsPageComponent implements OnInit {
     }
 
     void this.router.navigate(['/marketplace', listingId]);
+  }
+
+  protected goBackToSectorSelection(): void {
+    const listingId = this.sourceListingId();
+
+    if (window.history.length > 1) {
+      this.location.back();
+      return;
+    }
+
+    void this.router.navigate(['/app/value-sector'], {
+      queryParams: {
+        listing: listingId ?? undefined
+      }
+    });
   }
 
   private parseTab(tab: string | null): RecommendationTab {

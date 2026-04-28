@@ -23,7 +23,6 @@ import { SectionHeaderComponent } from '../../shared/ui/section-header/section-h
 @Component({
   selector: 'app-value-sector-page',
   standalone: true,
-  providers: [ValueSectorFacade],
   imports: [
     LucideLeaf,
     ValueSectorAccordionComponent,
@@ -65,7 +64,16 @@ export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestro
       this.route.queryParamMap.subscribe((params) => {
         const listingId = params.get('listing');
         if (listingId) {
+          const shouldRestoreScroll = this.facade.hasCachedListing(listingId);
           this.facade.loadForListing(listingId);
+          if (shouldRestoreScroll) {
+            queueMicrotask(() => {
+              window.scrollTo({
+                top: this.facade.getRememberedScrollPosition(listingId),
+                behavior: 'auto'
+              });
+            });
+          }
           return;
         }
 
@@ -126,11 +134,15 @@ export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestro
     if (!productId) {
       return;
     }
+    this.facade.rememberScrollPosition(window.scrollY);
 
     this.tourGuide.notifyRecommendationRouteChosen(tab, productId);
 
     void this.router.navigate(['/app/recommendations', productId], {
-      queryParams: { tab }
+      queryParams: {
+        tab,
+        listing: this.listingId() ?? undefined
+      }
     });
   }
 }
