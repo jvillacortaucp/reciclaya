@@ -12,6 +12,7 @@ import { Router } from '@angular/router';
 import { LucideLeaf } from '@lucide/angular';
 import { ValueSectorFacade } from './application/value-sector.facade';
 import { VALUE_SECTOR_TEXT } from './data/value-sector.constants';
+import { TourGuideService } from '../../core/services/tour-guide.service';
 import { ValueSectorAccordionComponent } from './presentation/components/value-sector-accordion/value-sector-accordion.component';
 import { ValueSectorFloatingActionsComponent } from './presentation/components/value-sector-floating-actions/value-sector-floating-actions.component';
 import { ValueSectorSummaryComponent } from './presentation/components/value-sector-summary/value-sector-summary.component';
@@ -35,6 +36,7 @@ import { SectionHeaderComponent } from '../../shared/ui/section-header/section-h
 export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly facade = inject(ValueSectorFacade);
   private readonly router = inject(Router);
+  private readonly tourGuide = inject(TourGuideService);
   private observer: IntersectionObserver | null = null;
 
   @ViewChild('infiniteScrollSentinel') private sentinelRef?: ElementRef<HTMLDivElement>;
@@ -51,6 +53,7 @@ export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestro
   protected readonly text = VALUE_SECTOR_TEXT;
 
   ngOnInit(): void {
+    this.tourGuide.init();
     this.facade.loadInitial();
   }
 
@@ -76,10 +79,12 @@ export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestro
 
   protected onRouteToggled(routeId: string): void {
     this.facade.toggleExpandedRoute(routeId);
+    this.tourGuide.notifyValueSectorSelected(routeId);
   }
 
   protected onProductSelected(payload: { routeId: string; productId: string }): void {
     this.facade.selectProduct(payload.routeId, payload.productId);
+    this.tourGuide.notifyValueProductSelected(payload.routeId, payload.productId);
   }
 
   protected onProcessRequested(): void {
@@ -99,6 +104,8 @@ export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestro
     if (!productId) {
       return;
     }
+
+    this.tourGuide.notifyRecommendationRouteChosen(tab, productId);
 
     void this.router.navigate(['/app/recommendations', productId], {
       queryParams: { tab }

@@ -49,7 +49,7 @@ export class AuthFacade {
         finalize(() => this.emailLoginLoading.set(false))
       )
       .subscribe(() => {
-        void this.router.navigateByUrl(APP_ROUTES.dashboard);
+        this.navigateAfterAuth();
       });
   }
 
@@ -76,7 +76,7 @@ export class AuthFacade {
       .subscribe({
         next: (session) => {
           this.persistSession(session, true);
-          void this.router.navigateByUrl(APP_ROUTES.dashboard);
+          this.navigateAfterAuth();
         },
         error: (error: unknown) => this.authError.set(getErrorMessage(error, 'No se pudo completar el registro de empresa.'))
       });
@@ -92,7 +92,7 @@ export class AuthFacade {
       .subscribe({
         next: (session) => {
           this.persistSession(session, true);
-          void this.router.navigateByUrl(APP_ROUTES.dashboard);
+          this.navigateAfterAuth();
         },
         error: (error: unknown) =>
           this.authError.set(getErrorMessage(error, 'No se pudo completar el registro de persona natural.'))
@@ -210,5 +210,25 @@ export class AuthFacade {
 
   private resolveLoginErrorMessage(error: unknown): string {
     return getErrorMessage(error, LOGIN_VALIDATION_MESSAGES.invalidCredentials);
+  }
+
+  private navigateAfterAuth(): void {
+    const returnUrl = this.extractReturnUrl();
+    void this.router.navigateByUrl(returnUrl ?? APP_ROUTES.dashboard);
+  }
+
+  private extractReturnUrl(): string | null {
+    const queryParams = this.router.parseUrl(this.router.url).queryParams;
+    const returnUrl = queryParams['returnUrl'];
+
+    if (typeof returnUrl !== 'string' || !returnUrl.startsWith('/')) {
+      return null;
+    }
+
+    if (returnUrl.startsWith('/auth')) {
+      return null;
+    }
+
+    return returnUrl;
   }
 }

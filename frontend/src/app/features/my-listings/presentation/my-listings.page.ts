@@ -85,6 +85,7 @@ export class MyListingsPageComponent implements OnInit, OnDestroy {
   });
 
   ngOnInit(): void {
+    this.tourGuide.init();
     this.facade.loadListings();
     this.subscriptions.add(
       this.filtersForm.valueChanges.subscribe((value) => {
@@ -144,6 +145,7 @@ export class MyListingsPageComponent implements OnInit, OnDestroy {
   protected selectListing(listingId: string): void {
     this.selectedListingId.set(listingId);
     this.hasSelectedListing.set(true);
+    this.tourGuide.notifyListingSelected(listingId);
   }
 
   protected goToValueSector(): void {

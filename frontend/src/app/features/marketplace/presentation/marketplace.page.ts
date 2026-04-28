@@ -2,7 +2,6 @@ import {
   AfterViewInit,
   ChangeDetectionStrategy,
   Component,
-  computed,
   ElementRef,
   inject,
   OnDestroy,
@@ -11,11 +10,11 @@ import {
   ViewChild
 } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { LucideBookmark, LucideInfo, LucidePlus, LucideSlidersHorizontal } from '@lucide/angular';
-import { APP_ROUTES, PERMISSIONS } from '../../../core/constants/app.constants';
-import { AuthFacade } from '../../auth/services/auth.facade';
+import { APP_ROUTES } from '../../../core/constants/app.constants';
+import { ProtectedActionService } from '../../../core/services/protected-action.service';
 import { EmptyStateComponent } from '../../../shared/ui/empty-state/empty-state.component';
 import {
   EXCHANGE_FILTER_OPTIONS,
@@ -36,7 +35,6 @@ import { MarketplaceProductCardComponent } from './components/marketplace-produc
   standalone: true,
   imports: [
     ReactiveFormsModule,
-    RouterLink,
     EmptyStateComponent,
     MarketplaceFiltersComponent,
     RecommendedListingCardComponent,
@@ -51,7 +49,8 @@ import { MarketplaceProductCardComponent } from './components/marketplace-produc
 })
 export class MarketplacePageComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly facade = inject(MarketplaceFacade);
-  private readonly authFacade = inject(AuthFacade);
+  private readonly protectedActions = inject(ProtectedActionService);
+  private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
   private readonly subscriptions = new Subscription();
   private observer: IntersectionObserver | null = null;
@@ -66,8 +65,6 @@ export class MarketplacePageComponent implements OnInit, AfterViewInit, OnDestro
   protected readonly exchangeOptions = EXCHANGE_FILTER_OPTIONS;
   protected readonly sortOptions = SORT_OPTIONS;
   protected readonly routes = APP_ROUTES;
-  protected readonly canSaveSearch = computed(() => this.authFacade.hasPermission(PERMISSIONS.MANAGE_PREFERENCES));
-  protected readonly canPublishWaste = computed(() => this.authFacade.hasPermission(PERMISSIONS.MANAGE_WASTE));
 
   protected readonly loading = this.facade.loading;
   protected readonly isLoadingMore = this.facade.isLoadingMore;
@@ -113,7 +110,21 @@ export class MarketplacePageComponent implements OnInit, AfterViewInit, OnDestro
   }
 
   protected saveSearch(): void {
-    this.facade.saveSearch();
+    this.protectedActions.requireAuthForAction({
+      actionName: 'Guardar búsqueda',
+      returnUrl: this.router.url,
+      onAllowed: () => this.facade.saveSearch()
+    });
+  }
+
+  protected publishWaste(): void {
+    this.protectedActions.requireAuthForAction({
+      actionName: 'Publicar residuo',
+      returnUrl: APP_ROUTES.wasteSell,
+      onAllowed: () => {
+        void this.router.navigateByUrl(APP_ROUTES.wasteSell);
+      }
+    });
   }
 
   protected toggleFilters(): void {

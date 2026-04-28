@@ -114,7 +114,7 @@ export class RecommendationsPageComponent implements OnInit {
       return;
     }
 
-    void this.router.navigate(['/app/marketplace', listingId]);
+    void this.router.navigate(['/marketplace', listingId]);
   }
 
   private parseTab(tab: string | null): RecommendationTab {

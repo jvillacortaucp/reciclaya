@@ -6,6 +6,7 @@ import { APP_ROUTES } from '../constants/app.constants';
 import {
   RECOMMENDATION_TOUR_ORDER_BY_INITIAL_TAB,
   RecommendationTourTab,
+  TourFlowStep,
   TOUR_STEP_LABELS,
   TOUR_TOTAL_STEPS,
   TOUR_GUIDE_SELECTORS,
@@ -20,7 +21,8 @@ interface GuidedFlowStep {
   readonly selector: string;
   readonly title: string;
   readonly description: string;
-  readonly onAdvance?: () => void;
+  readonly onAdvance?: () => void | Promise<void>;
+  readonly expectedSelectorAfterAdvance?: string;
 }
 
 interface RecommendationsTourStep {
@@ -57,7 +59,8 @@ const FLOW_STEPS: readonly GuidedFlowStep[] = [
     onAdvance: () => {
       const toggle = document.querySelector(TOUR_GUIDE_SELECTORS.firstValueSectorToggle);
       if (toggle instanceof HTMLElement) toggle.click();
-    }
+    },
+    expectedSelectorAfterAdvance: TOUR_GUIDE_SELECTORS.firstValueProduct
   },
   {
     id: 3,
@@ -69,7 +72,8 @@ const FLOW_STEPS: readonly GuidedFlowStep[] = [
     onAdvance: () => {
       const product = document.querySelector(TOUR_GUIDE_SELECTORS.firstValueProduct);
       if (product instanceof HTMLElement) product.click();
-    }
+    },
+    expectedSelectorAfterAdvance: TOUR_GUIDE_SELECTORS.processButton
   },
   {
     id: 4,
@@ -197,7 +201,18 @@ export class TourGuideService {
   private readonly router = inject(Router);
   private activeDriver: ReturnType<typeof driver> | null = null;
   private isInitialized = false;
+  private isRunningStepResolver = false;
   private recommendationsTourRunning = false;
+  private readonly stepFlowMap: Record<number, TourFlowStep> = {
+    0: 'my_listings_focus_first_card',
+    1: 'my_listings_wait_listing_selection',
+    2: 'value_sector_focus_first_sector',
+    3: 'value_sector_focus_first_product',
+    4: 'value_sector_explain_options',
+    5: 'value_sector_explain_options',
+    6: 'value_sector_explain_options',
+    7: 'value_sector_wait_option_selection'
+  };
 
   init(): void {
     if (this.isInitialized) return;
@@ -206,14 +221,16 @@ export class TourGuideService {
     if (!TOUR_GUIDE_TEST_CONFIG.ENABLED) return;
 
     this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe(() => {
-      this.runCurrentStepIfPending();
+      this.logDebug('NavigationEnd detectado; reintentando montaje de paso.');
+      void this.runCurrentStepIfPending('navigation');
     });
 
-    this.runCurrentStepIfPending();
+    void this.runCurrentStepIfPending('init');
   }
 
   launchFromBot(): void {
     if (!TOUR_GUIDE_TEST_CONFIG.ENABLED) return;
+    this.init();
 
     const currentPath = this.getCurrentPath();
     const startStep = currentPath.startsWith(APP_ROUTES.valueSector) ? 2 : 0;
@@ -223,12 +240,65 @@ export class TourGuideService {
     this.setPendingRecommendationTour(false);
     this.removeRecommendationTourState();
     this.setAttemptCount(0);
+    this.setFlowStep(this.stepFlowMap[startStep] ?? 'idle');
     this.recommendationsTourRunning = false;
-    this.runCurrentStepIfPending();
+    this.clearLastError();
+    this.logDebug(`Tour lanzado desde bot en ruta ${currentPath}. Paso inicial: ${startStep}.`);
+    void this.runCurrentStepIfPending('launch-from-bot');
   }
 
-  private runCurrentStepIfPending(): void {
+  notifyListingSelected(listingId: string): void {
+    const flow = this.getFlowStep();
+    if (flow === 'my_listings_focus_first_card' || flow === 'my_listings_wait_listing_selection') {
+      this.logDebug(`Listing seleccionado (${listingId}). Avanzando flujo hacia Value Sector.`);
+      this.setCurrentStep(1);
+      this.setFlowStep('my_listings_wait_listing_selection');
+      void this.runCurrentStepIfPending('listing-selected');
+    }
+  }
+
+  notifyValueSectorSelected(routeId: string): void {
+    const flow = this.getFlowStep();
+    if (flow === 'value_sector_focus_first_sector' || flow === 'value_sector_wait_sector_selection') {
+      this.logDebug(`Sector seleccionado (${routeId}). Avanzando a selección de producto.`);
+      this.setCurrentStep(3);
+      this.setFlowStep('value_sector_focus_first_product');
+      this.destroyDriver();
+      void this.runCurrentStepIfPending('value-sector-selected');
+    }
+  }
+
+  notifyValueProductSelected(routeId: string, productId: string): void {
+    const flow = this.getFlowStep();
+    if (flow === 'value_sector_focus_first_product' || flow === 'value_sector_wait_product_selection') {
+      this.logDebug(`Producto seleccionado (${productId}) en ruta ${routeId}. Habilitando opciones de continuación.`);
+      this.setCurrentStep(4);
+      this.setFlowStep('value_sector_explain_options');
+      this.destroyDriver();
+      void this.runCurrentStepIfPending('value-product-selected');
+    }
+  }
+
+  notifyRecommendationRouteChosen(tab: RecommendationTourTab, productId: string): void {
+    this.logDebug(`Ruta de recomendación elegida por usuario: ${tab}, producto ${productId}.`);
+    const order = RECOMMENDATION_TOUR_ORDER_BY_INITIAL_TAB[tab];
+    this.setRecommendationProductId(productId);
+    this.setRecommendationTourOrder(order);
+    this.setRecommendationTourIndex(0);
+    this.setPendingRecommendationTour(true);
+    this.setFlowStep('recommendations_running');
+  }
+
+  private async runCurrentStepIfPending(origin: string): Promise<void> {
+    if (this.isRunningStepResolver) {
+      this.logDebug(`Se omite runCurrentStepIfPending (${origin}) porque ya hay una resolución en curso.`);
+      return;
+    }
+
+    this.isRunningStepResolver = true;
+    try {
     if (this.isPendingRecommendationTour()) {
+      this.setFlowStep('recommendations_running');
       if (this.getCurrentPath().startsWith(APP_ROUTES.recommendations)) {
         void this.runRecommendationsFlow();
       }
@@ -244,19 +314,28 @@ export class TourGuideService {
       return;
     }
 
+    this.setFlowStep(this.stepFlowMap[stepIndex] ?? 'idle');
+
     if (!this.getCurrentPath().startsWith(step.route)) {
-      void this.router.navigateByUrl(step.route);
+      await this.navigateToRoute(step.route);
       return;
     }
 
-    void this.mountStep(step);
+    await this.mountStep(step);
+    } finally {
+      this.isRunningStepResolver = false;
+    }
   }
 
   private async mountStep(step: GuidedFlowStep): Promise<void> {
-    const element = await this.waitForElement(step.selector, TOUR_GUIDE_TEST_CONFIG.MAX_ATTEMPTS);
-    if (!element) return;
+    const element = await this.waitForElement(step.selector, TOUR_GUIDE_TEST_CONFIG.MAX_ATTEMPTS, `flow-step-${step.id}`);
+    if (!element) {
+      this.handleMissingFlowStep(step);
+      return;
+    }
 
     this.destroyDriver();
+    this.prepareElementForFocus(element);
 
     const isChoiceStep = step.id === FLOW_STEPS.length - 1;
     const tourStep: DriveStep = {
@@ -269,7 +348,7 @@ export class TourGuideService {
         showButtons: ['close', 'next'],
         nextBtnText: isChoiceStep ? 'Entendido' : 'Siguiente',
         prevBtnText: 'Atrás',
-        onNextClick: () => this.handleNext(step.id),
+        onNextClick: () => void this.handleNext(step.id),
         onCloseClick: () => this.finishFlow()
       }
     };
@@ -288,24 +367,31 @@ export class TourGuideService {
     this.activeDriver.drive();
   }
 
-  private handleNext(currentStep: number): void {
-    FLOW_STEPS[currentStep]?.onAdvance?.();
+  private async handleNext(currentStep: number): Promise<void> {
+    const current = FLOW_STEPS[currentStep];
+    if (!current) return;
+
+    await this.runOnAdvance(current);
     this.destroyDriver();
 
     const nextStep = currentStep + 1;
     this.setCurrentStep(nextStep);
+    this.setFlowStep(this.stepFlowMap[nextStep] ?? 'idle');
 
     if (currentStep === 1) {
-      void this.router.navigateByUrl(APP_ROUTES.valueSector);
+      this.setFlowStep('value_sector_focus_first_sector');
+      await this.navigateToRoute(APP_ROUTES.valueSector);
       return;
     }
 
     if (currentStep === FLOW_STEPS.length - 1) {
       this.setPendingRecommendationTour(true);
+      this.setFlowStep('value_sector_wait_option_selection');
+      this.logDebug('Tour marcado como pendiente de recomendaciones. Esperando selección de botón del usuario.');
       return;
     }
 
-    this.runCurrentStepIfPending();
+    await this.runCurrentStepIfPending('next-flow-step');
   }
 
   private async runRecommendationsFlow(): Promise<void> {
@@ -326,7 +412,7 @@ export class TourGuideService {
     const currentTab = this.getRecommendationsTab();
 
     if (currentTab !== targetTab) {
-      void this.router.navigate(['/app/recommendations', productId], {
+      await this.router.navigate(['/app/recommendations', productId], {
         queryParams: { tab: targetTab }
       });
       return;
@@ -353,13 +439,19 @@ export class TourGuideService {
     }
 
     const step = steps[index];
-    const element = await this.waitForElement(step.selector, TOUR_GUIDE_TEST_CONFIG.MAX_ATTEMPTS);
+    const element = await this.waitForElement(
+      step.selector,
+      TOUR_GUIDE_TEST_CONFIG.MAX_ATTEMPTS,
+      `recommendations-${tab}-${index}`
+    );
     if (!element) {
+      this.logDebug(`No se encontró selector ${step.selector} en tab ${tab}. Se salta al siguiente paso.`);
       void this.mountRecommendationsStep(tab, steps, index + 1);
       return;
     }
 
     this.destroyDriver();
+    this.prepareElementForFocus(element);
 
     const isLastStepInTab = index === steps.length - 1;
     const isLastOverall = isLastStepInTab && this.isLastRecommendationTab();
@@ -524,7 +616,8 @@ export class TourGuideService {
   private async mountTourCompletionStep(): Promise<void> {
     const element = await this.waitForElement(
       TOUR_GUIDE_SELECTORS.recommendationsHeader,
-      TOUR_GUIDE_TEST_CONFIG.MAX_ATTEMPTS
+      TOUR_GUIDE_TEST_CONFIG.MAX_ATTEMPTS,
+      'tour-complete'
     );
 
     if (!element) {
@@ -533,6 +626,7 @@ export class TourGuideService {
     }
 
     this.destroyDriver();
+    this.prepareElementForFocus(element);
 
     const completionStep: DriveStep = {
       element,
@@ -573,25 +667,156 @@ export class TourGuideService {
   private finishFlow(): void {
     this.setCompleted(true);
     this.setPendingRecommendationTour(false);
+    this.setFlowStep('completed');
     this.removeKey(TOUR_GUIDE_STORAGE_KEYS.CURRENT_STEP);
     this.removeKey(TOUR_GUIDE_STORAGE_KEYS.ATTEMPT_COUNT);
+    this.recommendationsTourRunning = false;
     this.removeRecommendationTourState();
     this.destroyDriver();
   }
 
-  private async waitForElement(selector: string, maxAttempts: number): Promise<HTMLElement | null> {
+  private async waitForElement(selector: string, maxAttempts: number, context: string): Promise<HTMLElement | null> {
     let attempts = 0;
+    let timeoutMs: number = TOUR_GUIDE_TEST_CONFIG.ATTEMPT_TIMEOUT_MS;
+
     while (attempts < maxAttempts) {
-      const element = document.querySelector(selector);
-      if (element instanceof HTMLElement) {
+      const directElement = document.querySelector(selector);
+      if (directElement instanceof HTMLElement) {
+        this.logDebug(`[${context}] selector encontrado inmediatamente: ${selector}`);
         this.setAttemptCount(0);
-        return element;
+        return directElement;
       }
+
       attempts += 1;
       this.setAttemptCount(attempts);
-      await new Promise((resolve) => window.setTimeout(resolve, 220));
+      this.logDebug(`[${context}] intento ${attempts}/${maxAttempts} para selector: ${selector}`);
+
+      const observed = await this.observeSelector(selector, timeoutMs);
+      if (observed) {
+        this.logDebug(`[${context}] selector encontrado por MutationObserver: ${selector}`);
+        this.setAttemptCount(0);
+        return observed;
+      }
+
+      timeoutMs = Math.min(
+        Math.round(timeoutMs * TOUR_GUIDE_TEST_CONFIG.BACKOFF_FACTOR),
+        TOUR_GUIDE_TEST_CONFIG.MAX_ATTEMPT_TIMEOUT_MS
+      );
     }
+
+    const errorMessage = `[${context}] No se encontró selector "${selector}" tras ${maxAttempts} intentos.`;
+    this.setLastError(errorMessage);
+    console.error(errorMessage);
     return null;
+  }
+
+  private async observeSelector(selector: string, timeoutMs: number): Promise<HTMLElement | null> {
+    return new Promise<HTMLElement | null>((resolve) => {
+      let resolved = false;
+      const resolveOnce = (element: HTMLElement | null): void => {
+        if (resolved) return;
+        resolved = true;
+        observer.disconnect();
+        window.clearTimeout(timer);
+        resolve(element);
+      };
+
+      const immediate = document.querySelector(selector);
+      if (immediate instanceof HTMLElement) {
+        resolve(immediate);
+        return;
+      }
+
+      const observer = new MutationObserver(() => {
+        const element = document.querySelector(selector);
+        if (element instanceof HTMLElement) {
+          resolveOnce(element);
+        }
+      });
+
+      observer.observe(document.body, {
+        childList: true,
+        subtree: true,
+        attributes: true
+      });
+
+      const timer = window.setTimeout(() => resolveOnce(null), timeoutMs);
+    });
+  }
+
+  private async navigateToRoute(route: string): Promise<void> {
+    this.logDebug(`Navegando a ${route}`);
+    await this.router.navigateByUrl(route);
+    await this.waitForNavigationEnd();
+  }
+
+  private async waitForNavigationEnd(timeoutMs = 2000): Promise<void> {
+    await new Promise<void>((resolve) => {
+      const timer = window.setTimeout(() => {
+        subscription.unsubscribe();
+        this.logDebug('Timeout esperando NavigationEnd; se continúa con fallback.');
+        resolve();
+      }, timeoutMs);
+
+      const subscription = this.router.events
+        .pipe(filter((event) => event instanceof NavigationEnd))
+        .subscribe(() => {
+          window.clearTimeout(timer);
+          subscription.unsubscribe();
+          resolve();
+        });
+    });
+  }
+
+  private async runOnAdvance(step: GuidedFlowStep): Promise<void> {
+    if (!step.onAdvance) return;
+
+    try {
+      this.logDebug(`Ejecutando onAdvance para step ${step.id}`);
+      await step.onAdvance();
+      if (step.expectedSelectorAfterAdvance) {
+        await this.waitForElement(
+          step.expectedSelectorAfterAdvance,
+          TOUR_GUIDE_TEST_CONFIG.MAX_ATTEMPTS,
+          `on-advance-step-${step.id}`
+        );
+      } else {
+        await this.observeSelector('body', 120);
+      }
+    } catch (error) {
+      const message = `Error ejecutando onAdvance en step ${step.id}`;
+      this.setLastError(message);
+      console.error(message, error);
+    }
+  }
+
+  private handleMissingFlowStep(step: GuidedFlowStep): void {
+    const reason = `No se pudo montar el step ${step.id} (${step.selector}).`;
+    this.setLastError(reason);
+    this.logDebug(reason);
+
+    if (TOUR_GUIDE_TEST_CONFIG.ON_STEP_NOT_FOUND === 'skip') {
+      const nextStep = step.id + 1;
+      this.setCurrentStep(nextStep);
+      this.setFlowStep(this.stepFlowMap[nextStep] ?? 'idle');
+      void this.runCurrentStepIfPending('missing-step-skip');
+      return;
+    }
+
+    this.finishFlow();
+  }
+
+  private prepareElementForFocus(element: HTMLElement): void {
+    element.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+    const hasTabIndex = element.hasAttribute('tabindex');
+    if (!hasTabIndex) {
+      element.setAttribute('tabindex', '-1');
+    }
+    try {
+      element.focus({ preventScroll: true });
+    } catch {
+      element.focus();
+    }
   }
 
   private destroyDriver(): void {
@@ -631,6 +856,43 @@ export class TourGuideService {
 
   private setAttemptCount(value: number): void {
     this.setValue(TOUR_GUIDE_STORAGE_KEYS.ATTEMPT_COUNT, String(value));
+  }
+
+  private getFlowStep(): TourFlowStep {
+    const raw = this.getValue(TOUR_GUIDE_STORAGE_KEYS.FLOW_STEP);
+    if (
+      raw === 'idle' ||
+      raw === 'my_listings_focus_first_card' ||
+      raw === 'my_listings_wait_listing_selection' ||
+      raw === 'value_sector_focus_first_sector' ||
+      raw === 'value_sector_wait_sector_selection' ||
+      raw === 'value_sector_focus_first_product' ||
+      raw === 'value_sector_wait_product_selection' ||
+      raw === 'value_sector_explain_options' ||
+      raw === 'value_sector_wait_option_selection' ||
+      raw === 'recommendations_running' ||
+      raw === 'completed'
+    ) {
+      return raw;
+    }
+    return 'idle';
+  }
+
+  private setFlowStep(step: TourFlowStep): void {
+    this.setValue(TOUR_GUIDE_STORAGE_KEYS.FLOW_STEP, step);
+  }
+
+  private setLastError(message: string): void {
+    this.setValue(TOUR_GUIDE_STORAGE_KEYS.LAST_ERROR, message);
+  }
+
+  private clearLastError(): void {
+    this.removeKey(TOUR_GUIDE_STORAGE_KEYS.LAST_ERROR);
+  }
+
+  private logDebug(message: string): void {
+    if (!TOUR_GUIDE_TEST_CONFIG.DEBUG) return;
+    console.log(`[TourGuide] ${message}`);
   }
 
   private getValue(key: string): string | null {

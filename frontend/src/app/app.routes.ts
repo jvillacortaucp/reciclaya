@@ -10,6 +10,51 @@ export const appRoutes: AppRoute[] = [
     loadChildren: () => import('./features/auth/routes/auth.routes').then((m) => m.AUTH_ROUTES)
   },
   {
+    path: 'app/marketplace',
+    pathMatch: 'full',
+    redirectTo: '/marketplace'
+  },
+  {
+    path: 'app/marketplace/:listingId',
+    redirectTo: '/marketplace/:listingId'
+  },
+  {
+    path: 'app/assistant-chat',
+    pathMatch: 'full',
+    redirectTo: '/assistant-chat'
+  },
+  {
+    path: 'app/chat',
+    pathMatch: 'full',
+    redirectTo: '/assistant-chat'
+  },
+  {
+    path: '',
+    component: AppShellLayoutComponent,
+    children: [
+      {
+        path: 'marketplace',
+        loadChildren: () =>
+          import('./features/marketplace/marketplace.routes').then((m) => m.MARKETPLACE_ROUTES)
+      },
+      {
+        path: 'marketplace/:listingId',
+        loadChildren: () =>
+          import('./features/listing-detail/listing-detail.routes').then((m) => m.LISTING_DETAIL_ROUTES)
+      },
+      {
+        path: 'assistant-chat',
+        loadChildren: () =>
+          import('./features/assistant-chat/assistant-chat.routes').then((m) => m.ASSISTANT_CHAT_ROUTES)
+      }
+    ]
+  },
+  {
+    path: 'chat',
+    pathMatch: 'full',
+    redirectTo: 'assistant-chat'
+  },
+  {
     path: 'app',
     component: AppShellLayoutComponent,
     canMatch: [featureAccessMatchGuard],
@@ -44,21 +89,6 @@ export const appRoutes: AppRoute[] = [
           import('./features/purchase-preferences/purchase-preferences.routes').then(
             (m) => m.PURCHASE_PREFERENCES_ROUTES
           )
-      },
-      {
-        path: 'marketplace',
-        children: [
-          {
-            path: '',
-            loadChildren: () =>
-              import('./features/marketplace/marketplace.routes').then((m) => m.MARKETPLACE_ROUTES)
-          },
-          {
-            path: ':id',
-            loadChildren: () =>
-              import('./features/listing-detail/listing-detail.routes').then((m) => m.LISTING_DETAIL_ROUTES)
-          }
-        ]
       },
       {
         path: 'pre-orders',
@@ -102,6 +132,6 @@ export const appRoutes: AppRoute[] = [
       { path: '**', redirectTo: 'dashboard' }
     ]
   },
-  { path: '', pathMatch: 'full', redirectTo: 'auth/login' },
-  { path: '**', redirectTo: 'auth/login' }
+  { path: '', pathMatch: 'full', redirectTo: 'marketplace' },
+  { path: '**', redirectTo: 'marketplace' }
 ];

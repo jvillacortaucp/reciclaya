@@ -12,6 +12,23 @@ export const SIDEBAR_NAV_ITEMS: readonly SidebarNavItem[] = [
     roles: ['seller', 'buyer', 'admin']
   },
   {
+    label: 'Marketplace',
+    group: 'Marketplace',
+    icon: 'store',
+    route: APP_ROUTES.marketplace,
+    activePaths: [APP_ROUTES.marketplace],
+    exact: false,
+    publicAccess: true
+  },
+  {
+    label: 'EcoInnovador',
+    group: 'Intelligence',
+    icon: 'bot-message-square',
+    route: APP_ROUTES.assistantChat,
+    exact: true,
+    publicAccess: true
+  },
+  {
     label: 'Publicar residuo',
     group: 'Marketplace',
     icon: 'package-plus',
@@ -30,16 +47,6 @@ export const SIDEBAR_NAV_ITEMS: readonly SidebarNavItem[] = [
     roles: ['buyer']
   },
   {
-    label: 'Marketplace',
-    group: 'Marketplace',
-    icon: 'store',
-    route: APP_ROUTES.marketplace,
-    activePaths: [APP_ROUTES.marketplace],
-    exact: false,
-    permissions: [PERMISSIONS.VIEW_MARKETPLACE],
-    roles: ['seller', 'buyer', 'admin']
-  },
-  {
     label: 'Mis publicaciones',
     group: 'Marketplace',
     icon: 'clipboard-list',
@@ -53,7 +60,7 @@ export const SIDEBAR_NAV_ITEMS: readonly SidebarNavItem[] = [
     group: 'Marketplace',
     icon: 'clipboard-list',
     route: APP_ROUTES.preOrders,
-    exact: true,
+    exact: false,
     permissions: [PERMISSIONS.CREATE_PRE_ORDER],
     roles: ['buyer']
   },
@@ -113,7 +120,8 @@ export const SIDEBAR_NAV_ITEMS: readonly SidebarNavItem[] = [
   //   icon: 'sparkles',
   //   route: APP_ROUTES.recommendations,
   //   exact: true,
-  //   permissions: [PERMISSIONS.VIEW_RECOMMENDATIONS]
+  //   permissions: [PERMISSIONS.VIEW_RECOMMENDATIONS],
+  //   roles: ['buyer', 'seller']
   // },
   {
     label: 'Mensajes',

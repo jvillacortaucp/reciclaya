@@ -20,7 +20,8 @@ import {
   LucideSettings,
   LucideSlidersHorizontal,
   LucideSparkles,
-  LucideStore
+  LucideStore,
+  LucideBotMessageSquare
 } from '@lucide/angular';
 import { SIDEBAR_NAV_ITEMS } from '../constants/sidebar-nav.constants';
 import { SidebarNavItem } from '../models/sidebar-nav-item.model';
@@ -40,7 +41,8 @@ import { AuthFacade } from '../../../../features/auth/services/auth.facade';
     LucideMessageSquare,
     LucideSparkles,
     LucideSettings,
-    LucideLogOut
+    LucideLogOut,
+    LucideBotMessageSquare
   ],
   templateUrl: './sidebar.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -53,9 +55,14 @@ export class SidebarComponent {
   isOpen = input<boolean>(false);
   closeSidebar = output<void>();
   protected readonly currentUrl = signal(this.normalizeUrl(this.router.url));
+  protected readonly isAuthenticated = this.authFacade.isAuthenticated;
 
   protected readonly navItems = computed(() =>
     SIDEBAR_NAV_ITEMS.filter((item) => {
+      if (!this.isAuthenticated()) {
+        return item.publicAccess === true;
+      }
+
       const hasPermissions = !item.permissions?.length || item.permissions.every((p) => this.authFacade.hasPermission(p));
       const hasRole = !item.roles?.length || this.authFacade.hasAnyRole(item.roles);
       return hasPermissions && hasRole;
@@ -82,6 +89,13 @@ export class SidebarComponent {
 
   onLogout(): void {
     this.authFacade.logout();
+  }
+
+  onLogin(): void {
+    const returnUrl = this.currentUrl();
+    void this.router.navigate(['/auth/login'], {
+      queryParams: { returnUrl }
+    });
   }
 
   onLinkClick(): void {

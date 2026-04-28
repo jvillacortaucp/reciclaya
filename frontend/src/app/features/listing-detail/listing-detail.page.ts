@@ -12,6 +12,7 @@ import {
 import { EmptyStateComponent } from '../../shared/ui/empty-state/empty-state.component';
 import { APP_ROUTES, PERMISSIONS } from '../../core/constants/app.constants';
 import { AuthFacade } from '../auth/services/auth.facade';
+import { ProtectedActionService } from '../../core/services/protected-action.service';
 import { LISTING_DETAIL_COPY, LISTING_DETAIL_MESSAGES, buildDeliveryModeLabel, buildExchangeTypeLabel } from './data/listing-detail.constants';
 import { ListingDetailFacade } from './application/listing-detail.facade';
 import { DetailBreadcrumbComponent } from './presentation/components/detail-breadcrumb/detail-breadcrumb.component';
@@ -44,6 +45,7 @@ export class ListingDetailPageComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly facade = inject(ListingDetailFacade);
   private readonly authFacade = inject(AuthFacade);
+  private readonly protectedActions = inject(ProtectedActionService);
 
   protected readonly copy = LISTING_DETAIL_COPY;
   protected readonly messages = LISTING_DETAIL_MESSAGES;
@@ -75,7 +77,9 @@ export class ListingDetailPageComponent implements OnInit, OnDestroy {
   });
 
   ngOnInit(): void {
-    const id = this.route.snapshot.paramMap.get('id');
+    const id =
+      this.route.snapshot.paramMap.get('listingId') ??
+      this.route.snapshot.paramMap.get('id');
     if (id) {
       this.facade.load(id);
     }
@@ -86,11 +90,15 @@ export class ListingDetailPageComponent implements OnInit, OnDestroy {
   }
 
   protected goBack(): void {
-    this.router.navigateByUrl('/app/marketplace');
+    this.router.navigateByUrl(APP_ROUTES.marketplace);
   }
 
   protected save(): void {
-    this.facade.save();
+    this.protectedActions.requireAuthForAction({
+      actionName: 'Guardar publicación',
+      returnUrl: this.router.url,
+      onAllowed: () => this.facade.save()
+    });
   }
 
   protected generatePreOrder(): void {
@@ -99,11 +107,21 @@ export class ListingDetailPageComponent implements OnInit, OnDestroy {
       return;
     }
 
-    void this.router.navigate(['/app/pre-orders/new', detail.id]);
+    this.protectedActions.requireAuthForAction({
+      actionName: 'Generar pre-orden',
+      returnUrl: `${APP_ROUTES.preOrders}/new/${detail.id}`,
+      onAllowed: () => {
+        void this.router.navigate([APP_ROUTES.preOrders, 'new', detail.id]);
+      }
+    });
   }
 
   protected requestInfo(): void {
-    this.facade.contactSeller();
+    this.protectedActions.requireAuthForAction({
+      actionName: 'Solicitar información',
+      returnUrl: this.router.url,
+      onAllowed: () => this.facade.contactSeller()
+    });
   }
 
   protected buyNow(): void {
