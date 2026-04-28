@@ -40,6 +40,7 @@ export class MyListingsFacade {
 
   loadListings(): void {
     this.loading.set(true);
+    this.toast.set(null);
     this.repository
       .getMyListings()
       .pipe(
@@ -52,7 +53,10 @@ export class MyListingsFacade {
         }),
         finalize(() => this.loading.set(false))
       )
-      .subscribe((items) => this.listings.set(items.map((item) => this.toMyListing(item))));
+      .subscribe((items) => {
+        this.listings.set(items.map((item) => this.toMyListing(item)));
+        this.toast.set(null);
+      });
   }
 
   setFilters(nextFilters: MyListingsFilterState): void {

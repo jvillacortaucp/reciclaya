@@ -39,6 +39,17 @@
         <p class="mb-1 text-sm font-semibold text-emerald-800">{{ texts.insightTitle }}</p>
         <p class="text-sm leading-relaxed text-emerald-900">{{ selected.insight }}</p>
         <p class="mt-2 text-xs font-medium text-emerald-700">Uso sugerido: {{ selected.potentialUse }}</p>
+        @if (selected.buyerBenefit) {
+          <p class="mt-2 text-xs text-emerald-800"><span class="font-semibold">Beneficio:</span> {{ selected.buyerBenefit }}</p>
+        }
+        @if (selected.suggestedAction) {
+          <p class="mt-2 text-xs text-emerald-800"><span class="font-semibold">Siguiente acción:</span> {{ selected.suggestedAction }}</p>
+        }
+        @if (selected.confidenceScore !== undefined) {
+          <p class="mt-2 text-xs font-semibold uppercase tracking-[0.12em] text-emerald-700">
+            Confianza IA: {{ selected.confidenceScore }}%
+          </p>
+        }
       </div>
     } @else {
       <div class="mt-4 rounded-2xl border border-dashed border-slate-200 p-6 text-center text-sm text-slate-500">

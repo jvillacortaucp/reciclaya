@@ -6,6 +6,8 @@ using Microsoft.Extensions.Options;
 using ReciclaYa.Application.Abstractions.Persistence;
 using ReciclaYa.Application.Media.Options;
 using ReciclaYa.Application.Media.Services;
+using ReciclaYa.Application.Recommendations.Services;
+using ReciclaYa.Application.ValueSectors.Services;
 using ReciclaYa.Application.ValorizationIdeas.Services;
 using ReciclaYa.Infrastructure.AI;
 using ReciclaYa.Infrastructure.Options;
@@ -92,6 +94,42 @@ public static class DependencyInjection
                 client,
                 deepSeekOptions,
                 provider.GetRequiredService<ILogger<DeepSeekValorizationIdeaGenerator>>());
+        });
+        services.AddScoped<IRecommendationAiGenerator>(provider =>
+        {
+            var deepSeekOptions = provider.GetRequiredService<IOptions<DeepSeekOptions>>();
+            var baseUrl = string.IsNullOrWhiteSpace(deepSeekOptions.Value.BaseUrl)
+                ? "https://api.deepseek.com"
+                : deepSeekOptions.Value.BaseUrl;
+
+            var client = new HttpClient
+            {
+                BaseAddress = new Uri($"{baseUrl.TrimEnd('/')}/"),
+                Timeout = TimeSpan.FromSeconds(25)
+            };
+
+            return new DeepSeekRecommendationGenerator(
+                client,
+                deepSeekOptions,
+                provider.GetRequiredService<ILogger<DeepSeekRecommendationGenerator>>());
+        });
+        services.AddScoped<IValueSectorAiGenerator>(provider =>
+        {
+            var deepSeekOptions = provider.GetRequiredService<IOptions<DeepSeekOptions>>();
+            var baseUrl = string.IsNullOrWhiteSpace(deepSeekOptions.Value.BaseUrl)
+                ? "https://api.deepseek.com"
+                : deepSeekOptions.Value.BaseUrl;
+
+            var client = new HttpClient
+            {
+                BaseAddress = new Uri($"{baseUrl.TrimEnd('/')}/"),
+                Timeout = TimeSpan.FromSeconds(25)
+            };
+
+            return new DeepSeekValueSectorGenerator(
+                client,
+                deepSeekOptions,
+                provider.GetRequiredService<ILogger<DeepSeekValueSectorGenerator>>());
         });
 
         return services;

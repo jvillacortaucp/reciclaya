@@ -62,6 +62,11 @@
             <div>
               <p class="text-xs font-semibold uppercase tracking-[0.12em] text-emerald-700">Recomendacion</p>
               <h2 class="mt-2 text-xl font-semibold text-slate-900">{{ item.title }}</h2>
+              @if (item.source) {
+                <p class="mt-1 text-xs text-slate-500">
+                  {{ item.source === 'deepseek' ? 'Generado con IA' : 'Recomendacion base' }}
+                </p>
+              }
             </div>
             <span class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
               {{ item.confidenceScore }}%
@@ -69,9 +74,31 @@
           </div>
 
           <p class="mt-4 text-sm leading-relaxed text-slate-600">{{ item.reason }}</p>
+          @if (item.recommendedUse) {
+            <p class="mt-3 text-sm text-slate-700">
+              <span class="font-semibold">Uso sugerido:</span> {{ item.recommendedUse }}
+            </p>
+          }
+          @if (item.buyerBenefit) {
+            <p class="mt-2 text-sm text-slate-700">
+              <span class="font-semibold">Beneficio:</span> {{ item.buyerBenefit }}
+            </p>
+          }
+          @if (item.suggestedAction) {
+            <p class="mt-2 text-sm text-slate-700">
+              <span class="font-semibold">Siguiente accion:</span> {{ item.suggestedAction }}
+            </p>
+          }
 
           <div class="mt-6 flex items-center justify-between gap-3">
-            <p class="text-xs text-slate-400">Listing {{ item.listingId || 'sin referencia' }}</p>
+            <p class="text-xs text-slate-400">
+              Listing {{ item.listingId || 'sin referencia' }}
+              @if (item.viabilityLevel) {
+                <span class="ml-2 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600 uppercase">
+                  {{ item.viabilityLevel }}
+                </span>
+              }
+            </p>
             <button
               type="button"
               class="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"

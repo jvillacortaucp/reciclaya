@@ -13,7 +13,11 @@ namespace ReciclaYa.Api.Controllers;
 public sealed class RecommendationsController(IRecommendationService recommendationService) : ControllerBase
 {
     [HttpGet]
-    public async Task<IActionResult> GetRecommendations(CancellationToken cancellationToken)
+    public async Task<IActionResult> GetRecommendations(
+        [FromQuery] int? limit = 5,
+        [FromQuery] bool useAi = true,
+        [FromQuery] bool includeExplanation = true,
+        CancellationToken cancellationToken = default)
     {
         if (!TryGetUserContext(out var userId, out var role))
         {
@@ -30,9 +34,48 @@ public sealed class RecommendationsController(IRecommendationService recommendat
         var recommendations = await recommendationService.GetRecommendationsAsync(
             userId,
             IsAdmin(role),
+            NormalizeLimit(limit),
+            useAi,
+            includeExplanation,
             cancellationToken);
 
         return Ok(ApiResponse<IReadOnlyCollection<RecommendationDto>>.Ok(recommendations));
+    }
+
+    [HttpGet("listings/{listingId:guid}/analysis")]
+    public async Task<IActionResult> GetListingAnalysis(
+        Guid listingId,
+        [FromQuery] bool useAi = true,
+        [FromQuery] bool includeExplanation = true,
+        CancellationToken cancellationToken = default)
+    {
+        if (!TryGetUserContext(out var userId, out var role))
+        {
+            return Unauthorized(ApiResponse<object>.Fail("Unauthorized.", ["INVALID_TOKEN"]));
+        }
+
+        if (!CanUseRecommendations(role))
+        {
+            return StatusCode(
+                StatusCodes.Status403Forbidden,
+                ApiResponse<object>.Fail("Forbidden.", ["FORBIDDEN"]));
+        }
+
+        var analysis = await recommendationService.GetListingAnalysisAsync(
+            userId,
+            IsAdmin(role),
+            listingId,
+            useAi,
+            includeExplanation,
+            cancellationToken);
+
+        if (analysis is null)
+        {
+            return NotFound(ApiResponse<object>.Fail("Listing not found.", ["LISTING_NOT_FOUND"]));
+        }
+
+        // Return unified ValueRouteDetailDto so frontend receives full structure.
+        return Ok(ApiResponse<ReciclaYa.Application.ValueSectors.Dtos.ValueRouteDetailDto>.Ok(analysis));
     }
 
     private static bool CanUseRecommendations(string role)
@@ -53,5 +96,15 @@ public sealed class RecommendationsController(IRecommendationService recommendat
 
         return Guid.TryParse(subject, out userId)
             && !string.IsNullOrWhiteSpace(role);
+    }
+
+    private static int NormalizeLimit(int? limit)
+    {
+        if (!limit.HasValue)
+        {
+            return 5;
+        }
+
+        return Math.Clamp(limit.Value, 1, 10);
     }
 }

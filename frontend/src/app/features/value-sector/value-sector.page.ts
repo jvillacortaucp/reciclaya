@@ -2,14 +2,16 @@ import {
   AfterViewInit,
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   ElementRef,
   OnDestroy,
   OnInit,
   ViewChild,
   inject
 } from '@angular/core';
-import { Router } from '@angular/router';
-import { LucideLeaf } from '@lucide/angular';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ActivatedRoute, Router } from '@angular/router';
+import { LucideLeaf, LucideLoaderCircle, LucideWandSparkles } from '@lucide/angular';
 import { ValueSectorFacade } from './application/value-sector.facade';
 import { VALUE_SECTOR_TEXT } from './data/value-sector.constants';
 import { TourGuideService } from '../../core/services/tour-guide.service';
@@ -25,6 +27,8 @@ import { SectionHeaderComponent } from '../../shared/ui/section-header/section-h
   providers: [ValueSectorFacade],
   imports: [
     LucideLeaf,
+    LucideWandSparkles,
+    LucideLoaderCircle,
     ValueSectorAccordionComponent,
     ValueSectorSummaryComponent,
     ValueSectorFloatingActionsComponent,
@@ -36,6 +40,8 @@ import { SectionHeaderComponent } from '../../shared/ui/section-header/section-h
 export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly facade = inject(ValueSectorFacade);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly tourGuide = inject(TourGuideService);
   private observer: IntersectionObserver | null = null;
 
@@ -45,6 +51,10 @@ export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestro
   protected readonly items = this.facade.items;
   protected readonly hasMore = this.facade.hasMore;
   protected readonly isLoadingMore = this.facade.isLoadingMore;
+  protected readonly isGenerating = this.facade.isGenerating;
+  protected readonly loadError = this.facade.loadError;
+  protected readonly fromListingMode = this.facade.fromListingMode;
+  protected readonly listingResidueLabel = this.facade.listingResidueLabel;
   protected readonly selectedRouteId = this.facade.selectedRouteId;
   protected readonly selectedProductId = this.facade.selectedProductId;
   protected readonly expandedRouteId = this.facade.expandedRouteId;
@@ -54,7 +64,11 @@ export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestro
 
   ngOnInit(): void {
     this.tourGuide.init();
-    this.facade.loadInitial();
+    this.route.queryParamMap
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((params) => {
+        this.facade.initialize(params.get('listing'));
+      });
   }
 
   ngAfterViewInit(): void {
@@ -97,6 +111,10 @@ export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestro
 
   protected onMarketRequested(): void {
     this.navigateToRecommendations('market');
+  }
+
+  protected onGenerateRequested(): void {
+    this.facade.generateForSelectedListing();
   }
 
   private navigateToRecommendations(tab: 'process' | 'explanation' | 'market'): void {

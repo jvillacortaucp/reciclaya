@@ -6,25 +6,281 @@ using ReciclaYa.Domain.Enums;
 
 namespace ReciclaYa.Application.Recommendations.Services;
 
-public sealed class RecommendationService(IAuthDbContext dbContext) : IRecommendationService
+public sealed class RecommendationService(
+    IAuthDbContext dbContext,
+    IRecommendationAiGenerator aiGenerator) : IRecommendationService
 {
-    private const int MaxRecommendations = 12;
     private const string ActiveStatus = "active";
+    private const int MaxLimit = 10;
+    private const int DefaultLimit = 5;
 
     public async Task<IReadOnlyCollection<RecommendationDto>> GetRecommendationsAsync(
         Guid userId,
         bool isAdmin,
+        int limit = DefaultLimit,
+        bool useAi = true,
+        bool includeExplanation = true,
+        CancellationToken cancellationToken = default)
+    {
+        var safeLimit = NormalizeLimit(limit);
+        var preference = await GetCurrentPreferenceAsync(userId, cancellationToken);
+        var candidates = await GetCandidateListingsAsync(userId, MaxLimit, cancellationToken);
+
+        if (candidates.Count == 0)
+        {
+            return Array.Empty<RecommendationDto>();
+        }
+
+        if (useAi)
+        {
+            var context = BuildAiContext(
+                userId,
+                safeLimit,
+                includeExplanation,
+                preference,
+                candidates.Select(ToCandidate).ToArray());
+            var aiRecommendations = await aiGenerator.GenerateAsync(context, cancellationToken);
+            if (aiRecommendations.Count > 0)
+            {
+                return aiRecommendations
+                    .OrderByDescending(item => item.ConfidenceScore)
+                    .ThenBy(item => item.Title)
+                    .Take(safeLimit)
+                    .ToArray();
+            }
+        }
+
+        return BuildFallbackRecommendations(preference, candidates, safeLimit);
+    }
+
+    public async Task<ReciclaYa.Application.ValueSectors.Dtos.ValueRouteDetailDto?> GetListingAnalysisAsync(
+        Guid userId,
+        bool isAdmin,
+        Guid listingId,
+        bool useAi = true,
+        bool includeExplanation = true,
         CancellationToken cancellationToken = default)
     {
         var preference = await GetCurrentPreferenceAsync(userId, cancellationToken);
-        var listings = await GetPublishedListingsAsync(userId, cancellationToken);
+        var listing = await dbContext.Listings
+            .AsNoTracking()
+            .Where(item => item.Id == listingId
+                && item.Status == ListingStatus.Published
+                && item.DeletedAt == null
+                && item.SellerId != userId)
+            .FirstOrDefaultAsync(cancellationToken);
 
-        return listings
-            .Select(listing => ToRecommendation(listing, preference))
-            .OrderByDescending(recommendation => recommendation.ConfidenceScore)
-            .ThenBy(recommendation => recommendation.Title)
-            .Take(MaxRecommendations)
-            .ToArray();
+        if (listing is null)
+        {
+            return null;
+        }
+
+        var candidate = ToCandidate(listing);
+
+        // Try AI analysis if requested
+        if (useAi)
+        {
+            try
+            {
+                var context = BuildAiContext(userId, 1, includeExplanation, preference, [candidate]);
+                var aiAnalysis = await aiGenerator.AnalyzeListingAsync(context, candidate, cancellationToken);
+                if (aiAnalysis is not null)
+                {
+                    // Map RecommendationDetailDto (legacy) to ValueRouteDetailDto shape
+                    return MapRecommendationDetailToValueRoute(aiAnalysis, listing);
+                }
+            }
+            catch (Exception)
+            {
+                // AI generator errors are intentionally swallowed here so we always return a usable fallback.
+                // The IA implementation is responsible for its own logging; avoid exposing sensitive details.
+            }
+        }
+
+        // Always return a full fallback constructed from DB data
+        return BuildFullFallbackValueRoute(preference, listing);
+    }
+
+    private static ReciclaYa.Application.ValueSectors.Dtos.ValueRouteDetailDto MapRecommendationDetailToValueRoute(
+        RecommendationDetailDto detail,
+        Domain.Entities.Listing listing)
+    {
+        // Map the minimal RecommendationDetailDto into the full ValueRouteDetailDto expected by frontend.
+        var recommendedProduct = ((detail.PotentialProducts ?? Array.Empty<string>()).FirstOrDefault() ?? detail.ListingTitle) ?? string.Empty;
+        var baseResidue = detail.ListingTitle;
+
+        var processSteps = new List<ReciclaYa.Application.ValueSectors.Dtos.ValueRouteProcessStepDto>
+        {
+            new ReciclaYa.Application.ValueSectors.Dtos.ValueRouteProcessStepDto(
+                "proc-1",
+                1,
+                "Validacion inicial",
+                (detail.RequiredConditions ?? Array.Empty<string>()).FirstOrDefault() ?? "Verificar trazabilidad y condiciones.",
+                "1 dia",
+                new[] { "Ficha tecnica" },
+                new[] { detail.SuggestedAction ?? "Contactar al seller" },
+                "Solicitar muestras para evaluacion",
+                detail.ViabilityLevel,
+                "package-search"),
+            new ReciclaYa.Application.ValueSectors.Dtos.ValueRouteProcessStepDto(
+                "proc-2",
+                2,
+                "Acondicionamiento y prueba",
+                detail.RecommendedUse ?? "Acondicionar segun uso propuesto",
+                "2-3 dias",
+                new[] { "Equipo basico" },
+                new[] { "Estandarizar lotes" },
+                "Realiza pruebas en pequeña escala",
+                "medium",
+                "factory")
+        };
+
+        var explanationSteps = new List<ReciclaYa.Application.ValueSectors.Dtos.ValueRouteExplanationStepDto>
+        {
+            new ReciclaYa.Application.ValueSectors.Dtos.ValueRouteExplanationStepDto(
+                "exp-1",
+                1,
+                "Resumen",
+                "Justificacion",
+                "Analisis IA",
+                detail.AiExplanation ?? string.Empty,
+                detail.BuyerBenefit ?? string.Empty,
+                detail.RecommendedUse ?? "Resultado esperado del proceso de valorización.",
+                detail.SuggestedAction ?? "Validar condiciones técnicas antes de escalar el proceso.",
+                (detail.Risks ?? Array.Empty<string>()).FirstOrDefault() ?? "Validar riesgos",
+                string.Empty,
+                new ReciclaYa.Application.ValueSectors.Dtos.ValueRouteEnvironmentalFactorsDto(new[] { "Aprovecha residuos" }, detail.Risks ?? Array.Empty<string>()),
+                new[] { "Economia circular" },
+                "scan-line")
+        };
+
+        var marketAnalysis = new ReciclaYa.Application.ValueSectors.Dtos.ValueRouteMarketAnalysisDto(
+            new ReciclaYa.Application.ValueSectors.Dtos.ValueRouteFinishedProductDto(
+                recommendedProduct,
+                detail.RecommendedUse ?? "Uso sugerido",
+                "Compra por lote",
+                0m,
+                detail.ViabilityLevel ?? "",
+                string.Empty),
+            new[] { new ReciclaYa.Application.ValueSectors.Dtos.ValueRouteBuyerSegmentDto("buyer-1", "Segmento industrial", "B2B", "Segun disponibilidad", detail.ConfidenceScore, "Directo", "enterprise", "building") },
+            new[] { new ReciclaYa.Application.ValueSectors.Dtos.ValueRouteMarketKpiDto("kpi-1", "Confianza IA", $"{detail.ConfidenceScore}%", $"Fuente: {detail.Source}", detail.ConfidenceScore - 50, detail.ConfidenceScore >= 70 ? "emerald" : "amber") },
+            new[] { new ReciclaYa.Application.ValueSectors.Dtos.ValueRouteCostStructureItemDto("cost-1", "Materia prima", 0m, 50) },
+            Math.Max(15, detail.ConfidenceScore - 20),
+            0m,
+            0m,
+            new ReciclaYa.Application.ValueSectors.Dtos.ValueRouteCompetitionInsightDto("Media", (detail.PotentialProducts ?? Array.Empty<string>()).Take(3).ToArray(), detail.SuggestedAction ?? string.Empty),
+            new ReciclaYa.Application.ValueSectors.Dtos.ValueRouteOpportunitySummaryDto(DateTime.UtcNow.ToString("yyyy-MM-dd"), "Validar segun cotizacion", "Depende", detail.BuyerBenefit ?? string.Empty, $"{Math.Max(40, detail.ConfidenceScore)}/100", new[] { detail.NextStep }, (detail.Risks ?? Array.Empty<string>()).FirstOrDefault() ?? string.Empty),
+            new[] { "Confianza", "Viabilidad" },
+            new decimal[] { detail.ConfidenceScore, detail.ViabilityLevel == "high" ? 85m : detail.ViabilityLevel == "low" ? 45m : 65m }
+        );
+
+        var envSummary = new ReciclaYa.Application.ValueSectors.Dtos.ValueRouteEnvironmentalSummaryDto(
+            detail.ConfidenceScore / 100m,
+            detail.ViabilityLevel == "high" ? "Alto" : detail.ViabilityLevel == "low" ? "Bajo" : "Medio",
+            detail.ConfidenceScore,
+            detail.ViabilityLevel == "low" ? "Alto" : "Controlado",
+            detail.ViabilityLevel == "low" ? 65 : 28,
+            detail.NextStep);
+
+        return new ReciclaYa.Application.ValueSectors.Dtos.ValueRouteDetailDto(
+            $"rec-{listing.Id:N}",
+            recommendedProduct,
+            baseResidue,
+            detail.ViabilityLevel ?? "medium",
+            "48-72 horas para evaluacion comercial",
+            "Costo aproximado según escala y logistica",
+            detail.ViabilityLevel ?? "medium",
+            new[] { "Validacion tecnica", "Logistica" },
+            detail.BuyerBenefit ?? string.Empty,
+            detail.AiExplanation ?? string.Empty,
+            explanationSteps,
+            envSummary,
+            marketAnalysis,
+            processSteps,
+            detail.Source ?? "deepseek");
+    }
+
+    private static ReciclaYa.Application.ValueSectors.Dtos.ValueRouteDetailDto BuildFullFallbackValueRoute(
+        PurchasePreference? preference,
+        Domain.Entities.Listing listing)
+    {
+        // Build a complete fallback ValueRouteDetailDto using DB data, ensuring no empty arrays for UI.
+        var baseResidue = string.IsNullOrWhiteSpace(listing.SpecificResidue) ? (string.IsNullOrWhiteSpace(listing.ProductType) ? "residuo" : listing.ProductType) : listing.SpecificResidue;
+        var recommendedProduct = $"Producto valorizado de {baseResidue}";
+
+        var processSteps = new List<ReciclaYa.Application.ValueSectors.Dtos.ValueRouteProcessStepDto>();
+        for (var i = 1; i <= 4; i++)
+        {
+            processSteps.Add(new ReciclaYa.Application.ValueSectors.Dtos.ValueRouteProcessStepDto(
+                $"proc-{i}",
+                i,
+                i == 1 ? "Validacion inicial" : i == 2 ? "Acondicionamiento" : i == 3 ? "Transformacion piloto" : "Escalamiento",
+                i == 1 ? "Verificar estado y trazabilidad" : i == 2 ? "Acondicionar y homogeneizar" : i == 3 ? "Probar proceso en pequena escala" : "Ajustar para produccion",
+                i == 1 ? "1 dia" : i == 2 ? "2 dias" : i == 3 ? "3 dias" : "Variable",
+                new[] { "Equipo basico" },
+                new[] { "Accion clave 1", "Accion clave 2" },
+                "Tip rapido",
+                "medium",
+                "factory"));
+        }
+
+        var explanationSteps = new List<ReciclaYa.Application.ValueSectors.Dtos.ValueRouteExplanationStepDto>
+        {
+            new ReciclaYa.Application.ValueSectors.Dtos.ValueRouteExplanationStepDto(
+                "exp-1",
+                1,
+                "Justificacion comercial",
+                "Justificacion",
+                "Analisis practico",
+                $"El residuo {baseResidue} puede aprovecharse como...",
+                "Es relevante por demanda local.",
+                "Resultado esperado",
+                "Solicitar muestras",
+                "Evitar riesgo X",
+                string.Empty,
+                new ReciclaYa.Application.ValueSectors.Dtos.ValueRouteEnvironmentalFactorsDto(new[] { "Reduce merma" }, new[] { "Validar inocuidad" }),
+                new[] { "Economia circular" },
+                "scan-line")
+        };
+
+        var marketAnalysis = new ReciclaYa.Application.ValueSectors.Dtos.ValueRouteMarketAnalysisDto(
+            new ReciclaYa.Application.ValueSectors.Dtos.ValueRouteFinishedProductDto(
+                recommendedProduct,
+                "Uso industrial",
+                "Compra por lote",
+                0m,
+                "Potencial",
+                string.Empty),
+            new[] { new ReciclaYa.Application.ValueSectors.Dtos.ValueRouteBuyerSegmentDto("buyer-1", "Segmento industrial", "B2B", "Segun disponibilidad", 60, "Directo", "enterprise", "building") },
+            new[] { new ReciclaYa.Application.ValueSectors.Dtos.ValueRouteMarketKpiDto("kpi-1", "Estimacion", "Media", "Fuente: fallback", 0, "slate") },
+            new[] { new ReciclaYa.Application.ValueSectors.Dtos.ValueRouteCostStructureItemDto("cost-1", "Materia prima", 0m, 50) },
+            30m,
+            0m,
+            0m,
+            new ReciclaYa.Application.ValueSectors.Dtos.ValueRouteCompetitionInsightDto("Desconocido", new[] { "Sustituto 1" }, "Posicionamiento conservador"),
+            new ReciclaYa.Application.ValueSectors.Dtos.ValueRouteOpportunitySummaryDto(DateTime.UtcNow.ToString("yyyy-MM-dd"), "Validar segun cotizacion", "Depende", "Potencial inicial", "50/100", new[] { "Contactar seller" }, "Validar impacto"),
+            new[] { "Confianza", "Viabilidad" },
+            new decimal[] { 50m, 60m }
+        );
+
+        var envSummary = new ReciclaYa.Application.ValueSectors.Dtos.ValueRouteEnvironmentalSummaryDto(0.5m, "Medio", 50, "Controlado", 28, "Validar trazabilidad");
+
+        return new ReciclaYa.Application.ValueSectors.Dtos.ValueRouteDetailDto(
+            $"rec-{listing.Id:N}",
+            recommendedProduct,
+            baseResidue,
+            "medium",
+            "48-72 horas",
+            "Costo aproximado segun escala",
+            "medium",
+            new[] { "Equipo basico" },
+            "Resultado esperado",
+            "Explicacion fallback",
+            explanationSteps,
+            envSummary,
+            marketAnalysis,
+            processSteps,
+            "fallback");
     }
 
     private async Task<PurchasePreference?> GetCurrentPreferenceAsync(
@@ -39,8 +295,9 @@ public sealed class RecommendationService(IAuthDbContext dbContext) : IRecommend
             .FirstOrDefaultAsync(cancellationToken);
     }
 
-    private async Task<IReadOnlyCollection<Listing>> GetPublishedListingsAsync(
+    private async Task<IReadOnlyCollection<Listing>> GetCandidateListingsAsync(
         Guid userId,
+        int limit,
         CancellationToken cancellationToken)
     {
         return await dbContext.Listings
@@ -50,43 +307,81 @@ public sealed class RecommendationService(IAuthDbContext dbContext) : IRecommend
                 && listing.SellerId != userId)
             .OrderByDescending(listing => listing.MatchScore ?? 0)
             .ThenByDescending(listing => listing.PublishedAt ?? listing.CreatedAt)
-            .Take(50)
+            .Take(Math.Clamp(limit, 1, MaxLimit))
             .ToListAsync(cancellationToken);
     }
 
-    private static RecommendationDto ToRecommendation(
+    private static IReadOnlyCollection<RecommendationDto> BuildFallbackRecommendations(
+        PurchasePreference? preference,
+        IReadOnlyCollection<Listing> candidates,
+        int limit)
+    {
+        return candidates
+            .Select(listing => ToFallbackRecommendation(listing, preference))
+            .OrderByDescending(recommendation => recommendation.ConfidenceScore)
+            .ThenBy(recommendation => recommendation.Title)
+            .Take(limit)
+            .ToArray();
+    }
+
+    private static RecommendationDto ToFallbackRecommendation(
         Listing listing,
         PurchasePreference? preference)
+    {
+        var confidenceScore = Math.Clamp(ScoreCandidate(preference, listing), 0, 100);
+
+        return new RecommendationDto(
+            $"rec-{listing.Id:N}",
+            listing.Id,
+            BuildTitle(listing),
+            BuildReason(confidenceScore, preference is not null),
+            confidenceScore,
+            "fallback",
+            listing.WasteType,
+            listing.Sector,
+            listing.ProductType,
+            listing.PricePerUnitUsd,
+            listing.Location,
+            BuildSuggestedAction(listing, confidenceScore),
+            BuildBuyerBenefit(listing, confidenceScore),
+            BuildRecommendedUse(listing),
+            BuildPotentialProducts(listing),
+            BuildRequiredConditions(listing, preference),
+            BuildRisks(listing),
+            BuildNextStep(listing),
+            BuildViabilityLevel(confidenceScore));
+    }
+
+    private static int ScoreCandidate(PurchasePreference? preference, Listing listing)
     {
         var calculatedScore = preference is null
             ? CalculateGeneralScore(listing)
             : CalculatePreferenceScore(listing, preference);
+
         var finalScore = listing.MatchScore.HasValue
             ? (int)Math.Round((calculatedScore + listing.MatchScore.Value) / 2m, MidpointRounding.AwayFromZero)
             : calculatedScore;
-        var confidenceScore = Math.Clamp(finalScore, 0, 100);
 
-        return new RecommendationDto(
-            $"rec-{listing.Id:N}",
-            BuildTitle(listing),
-            confidenceScore,
-            BuildReason(confidenceScore, preference is not null),
-            listing.Id);
+        return Math.Clamp(finalScore, 0, 100);
     }
 
-    private static int CalculatePreferenceScore(
-        Listing listing,
-        PurchasePreference preference)
+    private static int CalculatePreferenceScore(Listing listing, PurchasePreference preference)
     {
         var score = 0;
 
-        score += Matches(listing.WasteType, preference.ResidueType) ? 35 : 0;
-        score += Matches(listing.Sector, preference.Sector) ? 25 : 0;
-        score += Matches(listing.ProductType, preference.ProductType) ? 20 : 0;
-        score += Matches(listing.Condition, preference.DesiredCondition) ? 10 : 0;
-        score += Matches(listing.ExchangeType, preference.AcceptedExchangeType) ? 10 : 0;
+        score += Matches(listing.WasteType, preference.ResidueType) ? 22 : 0;
+        score += Matches(listing.Sector, preference.Sector) ? 14 : 0;
+        score += Matches(listing.ProductType, preference.ProductType) ? 12 : 0;
+        score += Matches(listing.SpecificResidue, preference.SpecificResidue) ? 15 : 0;
+        score += Matches(listing.Condition, preference.DesiredCondition) ? 8 : 0;
+        score += Matches(listing.ExchangeType, preference.AcceptedExchangeType) ? 8 : 0;
+        score += Matches(listing.DeliveryMode, preference.PreferredMode) ? 6 : 0;
         score += listing.ImmediateAvailability ? 5 : 0;
-        score += LocationMatches(listing.Location, preference.ReceivingLocation) ? 5 : 0;
+        score += LocationMatches(listing.Location, preference.ReceivingLocation) ? 6 : 0;
+        score += PriceFits(listing.PricePerUnitUsd, preference.MinPriceUsd, preference.MaxPriceUsd) ? 8 : 0;
+        score += VolumeCompatible(listing.Quantity, listing.Unit, preference.RequiredVolume, preference.Unit) ? 6 : 0;
+        score += HasPriorityBoost(preference.Priority, listing.ImmediateAvailability) ? 4 : 0;
+        score += HasPreferenceNotes(preference.Notes) && !string.IsNullOrWhiteSpace(listing.Description) ? 2 : 0;
 
         return Math.Clamp(score, 0, 100);
     }
@@ -94,30 +389,107 @@ public sealed class RecommendationService(IAuthDbContext dbContext) : IRecommend
     private static int CalculateGeneralScore(Listing listing)
     {
         var score = listing.MatchScore ?? 60;
-
-        if (listing.ImmediateAvailability)
-        {
-            score += 5;
-        }
-
-        if (listing.PricePerUnitUsd.HasValue)
-        {
-            score += 5;
-        }
+        score += listing.ImmediateAvailability ? 8 : 0;
+        score += listing.PricePerUnitUsd.HasValue ? 6 : 0;
+        score += !string.IsNullOrWhiteSpace(listing.Description) ? 4 : 0;
+        score += !string.IsNullOrWhiteSpace(listing.Restrictions) ? -4 : 0;
 
         return Math.Clamp(score, 0, 100);
+    }
+
+    private static RecommendationAiContext BuildAiContext(
+        Guid buyerId,
+        int limit,
+        bool includeExplanation,
+        PurchasePreference? preference,
+        IReadOnlyCollection<RecommendationCandidateDto> candidates)
+    {
+        return new RecommendationAiContext(
+            buyerId,
+            NormalizeLimit(limit),
+            includeExplanation,
+            ToPreferenceDto(preference),
+            candidates);
+    }
+
+    private static RecommendationPreferenceDto? ToPreferenceDto(PurchasePreference? preference)
+    {
+        if (preference is null)
+        {
+            return null;
+        }
+
+        return new RecommendationPreferenceDto(
+            preference.ResidueType,
+            preference.Sector,
+            preference.ProductType,
+            preference.SpecificResidue,
+            preference.RequiredVolume,
+            preference.Unit,
+            preference.MinPriceUsd,
+            preference.MaxPriceUsd,
+            preference.DesiredCondition,
+            preference.ReceivingLocation,
+            preference.RadiusKm,
+            preference.AcceptedExchangeType,
+            preference.PreferredMode,
+            preference.Notes,
+            preference.Priority);
+    }
+
+    private static RecommendationCandidateDto ToCandidate(Listing listing)
+    {
+        return new RecommendationCandidateDto(
+            listing.Id,
+            BuildTitle(listing),
+            listing.WasteType,
+            listing.Sector,
+            listing.ProductType,
+            listing.SpecificResidue,
+            listing.Description,
+            listing.Quantity,
+            listing.Unit,
+            listing.PricePerUnitUsd,
+            listing.Condition,
+            listing.Location,
+            listing.ExchangeType,
+            listing.DeliveryMode,
+            listing.ImmediateAvailability,
+            listing.MatchScore);
+    }
+
+    private static RecommendationDetailDto BuildFallbackDetail(PurchasePreference? preference, Listing listing)
+    {
+        var score = Math.Clamp(ScoreCandidate(preference, listing), 0, 100);
+        var requiredConditions = BuildRequiredConditions(listing, preference);
+        var risks = BuildRisks(listing);
+
+        return new RecommendationDetailDto(
+            listing.Id,
+            BuildTitle(listing),
+            BuildReason(score, preference is not null),
+            BuildRecommendedUse(listing),
+            BuildBuyerBenefit(listing, score),
+            BuildSuggestedAction(listing, score),
+            BuildPotentialProducts(listing),
+            requiredConditions,
+            risks,
+            BuildNextStep(listing),
+            score,
+            BuildViabilityLevel(score),
+            "fallback");
     }
 
     private static string BuildTitle(Listing listing)
     {
         if (!string.IsNullOrWhiteSpace(listing.SpecificResidue))
         {
-            return listing.SpecificResidue;
+            return listing.SpecificResidue.Trim();
         }
 
         if (!string.IsNullOrWhiteSpace(listing.ProductType))
         {
-            return listing.ProductType;
+            return listing.ProductType.Trim();
         }
 
         return $"Listing {listing.ReferenceCode}";
@@ -127,17 +499,153 @@ public sealed class RecommendationService(IAuthDbContext dbContext) : IRecommend
     {
         if (hasPreference && confidenceScore >= 90)
         {
-            return "Alta coincidencia con tus preferencias de compra";
+            return "Alta coincidencia con tus preferencias de compra.";
         }
 
         if (confidenceScore >= 70)
         {
             return hasPreference
-                ? "Buena oportunidad segÃºn tu perfil de bÃºsqueda"
-                : "Buena oportunidad disponible en el marketplace";
+                ? "Buena oportunidad segun tu perfil de busqueda."
+                : "Buena oportunidad disponible en el marketplace.";
         }
 
-        return "Oportunidad disponible en el marketplace";
+        return "Oportunidad disponible en el marketplace.";
+    }
+
+    private static string BuildSuggestedAction(Listing listing, int confidenceScore)
+    {
+        if (confidenceScore >= 80)
+        {
+            return "Contacta al seller y solicita una pre-orden para asegurar volumen.";
+        }
+
+        if (listing.ImmediateAvailability)
+        {
+            return "Solicita una muestra o validacion tecnica antes de cerrar compra.";
+        }
+
+        return "Coordina disponibilidad y condiciones logisticas antes de negociar.";
+    }
+
+    private static string BuildBuyerBenefit(Listing listing, int confidenceScore)
+    {
+        if (listing.PricePerUnitUsd.HasValue)
+        {
+            return $"Puede mejorar tu abastecimiento con precio referencial de USD {listing.PricePerUnitUsd.Value:0.##} por {listing.Unit}.";
+        }
+
+        return confidenceScore >= 75
+            ? "Alineado con tu perfil comercial y operativo."
+            : "Puede ser una alternativa util para ampliar fuentes de suministro.";
+    }
+
+    private static string BuildRecommendedUse(Listing listing)
+    {
+        if (!string.IsNullOrWhiteSpace(listing.ProductType))
+        {
+            return $"Usar como insumo para procesos de {listing.ProductType.Trim().ToLowerInvariant()}.";
+        }
+
+        return "Usar como insumo industrial con validacion tecnica previa.";
+    }
+
+    private static IReadOnlyCollection<string> BuildPotentialProducts(Listing listing)
+    {
+        var items = new List<string>();
+
+        if (!string.IsNullOrWhiteSpace(listing.ProductType))
+        {
+            items.Add($"{listing.ProductType.Trim()} valorizado");
+        }
+
+        if (!string.IsNullOrWhiteSpace(listing.WasteType))
+        {
+            items.Add($"Subproducto de {listing.WasteType.Trim().ToLowerInvariant()}");
+        }
+
+        if (items.Count == 0)
+        {
+            items.Add("Subproducto circular");
+        }
+
+        return items.Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+    }
+
+    private static IReadOnlyCollection<string> BuildRequiredConditions(Listing listing, PurchasePreference? preference)
+    {
+        var conditions = new List<string>();
+
+        if (!string.IsNullOrWhiteSpace(listing.Condition))
+        {
+            conditions.Add($"Verificar estado del material: {listing.Condition.Trim()}.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(listing.DeliveryMode))
+        {
+            conditions.Add($"Confirmar modalidad logistica: {listing.DeliveryMode.Trim()}.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(preference?.ReceivingLocation))
+        {
+            conditions.Add($"Validar entrega hacia {preference.ReceivingLocation.Trim()}.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(listing.Restrictions))
+        {
+            conditions.Add($"Revisar restricciones declaradas por seller: {listing.Restrictions.Trim()}.");
+        }
+
+        if (conditions.Count == 0)
+        {
+            conditions.Add("Validar trazabilidad y condiciones de almacenamiento.");
+        }
+
+        return conditions;
+    }
+
+    private static IReadOnlyCollection<string> BuildRisks(Listing listing)
+    {
+        var risks = new List<string>();
+
+        if (!listing.ImmediateAvailability && listing.NextAvailabilityDate.HasValue)
+        {
+            risks.Add($"Disponibilidad futura estimada para {listing.NextAvailabilityDate.Value:yyyy-MM-dd}.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(listing.Restrictions))
+        {
+            risks.Add("Aplican restricciones operativas o regulatorias del seller.");
+        }
+
+        if (string.Equals(listing.WasteType, "organic", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(listing.WasteType, "food", StringComparison.OrdinalIgnoreCase))
+        {
+            risks.Add("Si el uso es alimentario o animal, requiere validacion sanitaria previa.");
+        }
+
+        if (risks.Count == 0)
+        {
+            risks.Add("Validar compatibilidad tecnica antes de cerrar compra.");
+        }
+
+        return risks;
+    }
+
+    private static string BuildNextStep(Listing listing)
+    {
+        return listing.ImmediateAvailability
+            ? "Inicia solicitud comercial y acuerda condiciones de entrega."
+            : "Solicita cronograma de disponibilidad y confirma condiciones.";
+    }
+
+    private static string BuildViabilityLevel(int confidenceScore)
+    {
+        return confidenceScore switch
+        {
+            >= 80 => "high",
+            >= 55 => "medium",
+            _ => "low"
+        };
     }
 
     private static bool Matches(string? left, string? right)
@@ -156,5 +664,60 @@ public sealed class RecommendationService(IAuthDbContext dbContext) : IRecommend
 
         return listingLocation.Contains(receivingLocation, StringComparison.OrdinalIgnoreCase)
             || receivingLocation.Contains(listingLocation, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool PriceFits(decimal? listingPrice, decimal? minPrice, decimal? maxPrice)
+    {
+        if (!listingPrice.HasValue)
+        {
+            return false;
+        }
+
+        if (minPrice.HasValue && listingPrice.Value < minPrice.Value)
+        {
+            return false;
+        }
+
+        if (maxPrice.HasValue && listingPrice.Value > maxPrice.Value)
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private static bool VolumeCompatible(
+        decimal listingQuantity,
+        string listingUnit,
+        decimal requiredVolume,
+        string? preferenceUnit)
+    {
+        if (requiredVolume <= 0 || string.IsNullOrWhiteSpace(preferenceUnit))
+        {
+            return false;
+        }
+
+        if (!Matches(listingUnit, preferenceUnit))
+        {
+            return false;
+        }
+
+        return listingQuantity >= requiredVolume * 0.5m;
+    }
+
+    private static bool HasPriorityBoost(string? priority, bool immediateAvailability)
+    {
+        return immediateAvailability
+            && string.Equals(priority, "high", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool HasPreferenceNotes(string? notes)
+    {
+        return !string.IsNullOrWhiteSpace(notes);
+    }
+
+    private static int NormalizeLimit(int limit)
+    {
+        return Math.Clamp(limit <= 0 ? DefaultLimit : limit, 1, MaxLimit);
     }
 }
