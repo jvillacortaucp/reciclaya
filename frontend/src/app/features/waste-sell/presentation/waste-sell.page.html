@@ -11,15 +11,6 @@
     </button>
     <button
       type="button"
-      class="inline-flex items-center px-4 py-2 text-sm font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm disabled:opacity-50"
-      (click)="saveDraft()"
-      [disabled]="draftLoading() || loading()"
-    >
-      <svg lucideSave size="16" class="mr-2 text-slate-500"></svg>
-      {{ draftLoading() ? 'Guardando...' : copy.saveDraft }}
-    </button>
-    <button
-      type="button"
       class="inline-flex items-center px-6 py-2 text-sm font-bold text-white bg-green-700 rounded-xl hover:bg-green-800 transition-all shadow-md shadow-green-200 disabled:opacity-50"
       (click)="publish()"
       [disabled]="publishLoading() || loading()"
@@ -183,7 +174,7 @@
       <app-waste-upload-zone
         [mediaUploads]="mediaUploads()"
         [maxFiles]="5"
-        [disabled]="publishLoading() || draftLoading()"
+        [disabled]="publishLoading() || loading()"
         (filesAdded)="onFilesAdded($event)"
         (fileRemoved)="onFileRemoved($event)"
       />
@@ -327,7 +318,7 @@
         </div>
       } @else {
         <div class="rounded-3xl border border-dashed border-slate-200 bg-slate-50 p-5 text-sm leading-relaxed text-slate-600">
-          Ejecuta el analisis con IA para obtener ideas de valorizacion antes de publicar. Esto no bloquea guardar borrador ni publicar.
+          Ejecuta el analisis con IA para obtener ideas de valorizacion antes de publicar. Esto no bloquea la publicacion del residuo.
         </div>
       }
     </article>
@@ -338,7 +329,7 @@
     <article class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm transition-all hover:shadow-md">
       <div class="flex items-center justify-between mb-6">
         <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Estado del Registro</p>
-        <span class="px-2.5 py-1 text-[10px] font-black bg-slate-100 text-slate-600 rounded-lg">BORRADOR</span>
+        <span class="px-2.5 py-1 text-[10px] font-black bg-emerald-100 text-emerald-700 rounded-lg">ACTIVO AL PUBLICAR</span>
       </div>
       
       <div class="mb-6">

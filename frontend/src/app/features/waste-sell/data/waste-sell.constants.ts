@@ -11,10 +11,8 @@ export const WASTE_SELL_COPY = {
   title: 'Registrar residuo para venta',
   subtitle:
     'Publique residuos o subproductos disponibles para valorizacion, intercambio o recogida.',
-  saveDraft: 'Guardar',
   preview: 'Vista previa',
   publish: 'Publicar',
-  statusDraft: 'BORRADOR',
   statusReady: 'LISTO PARA PUBLICAR',
   helperAi: 'Proximamente: sugerencias de uso basadas en IA para mejorar valorizacion.'
 } as const;

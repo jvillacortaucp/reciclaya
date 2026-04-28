@@ -17,7 +17,6 @@ import {
   LucideInfo,
   LucideLoaderCircle,
   LucideMapPin,
-  LucideSave,
   LucideSendHorizontal,
   LucideTruck,
   LucideWandSparkles
@@ -49,7 +48,6 @@ import { WasteUploadZoneComponent } from './presentation/components/waste-upload
     SectionHeaderComponent,
     WasteUploadZoneComponent,
     WastePreviewCardComponent,
-    LucideSave,
     LucideSendHorizontal,
     LucideInfo,
     LucideCircleDollarSign,
@@ -85,7 +83,6 @@ export class WasteSellPageComponent implements OnInit, OnDestroy, PendingChanges
   protected readonly conditionOptions = CONDITION_OPTIONS;
 
   protected readonly loading = this.facade.loading;
-  protected readonly draftLoading = this.facade.draftLoading;
   protected readonly publishLoading = this.facade.publishLoading;
   protected readonly previewLoading = this.facade.previewLoading;
   protected readonly mediaSyncLoading = this.facade.mediaSyncLoading;
@@ -189,16 +186,6 @@ export class WasteSellPageComponent implements OnInit, OnDestroy, PendingChanges
 
   hasPendingChanges(): boolean {
     return this.form.dirty;
-  }
-
-  protected saveDraft(): void {
-    const nextState = this.state();
-    if (!nextState) {
-      return;
-    }
-
-    this.facade.saveDraft(nextState);
-    this.form.markAsPristine();
   }
 
   protected publish(): void {

@@ -8,8 +8,9 @@ import {
   ViewChild,
   inject
 } from '@angular/core';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { LucideLeaf } from '@lucide/angular';
+import { Subscription } from 'rxjs';
 import { ValueSectorFacade } from './application/value-sector.facade';
 import { VALUE_SECTOR_TEXT } from './data/value-sector.constants';
 import { TourGuideService } from '../../core/services/tour-guide.service';
@@ -28,7 +29,8 @@ import { SectionHeaderComponent } from '../../shared/ui/section-header/section-h
     ValueSectorAccordionComponent,
     ValueSectorSummaryComponent,
     ValueSectorFloatingActionsComponent,
-    SectionHeaderComponent
+    SectionHeaderComponent,
+    RouterLink
   ],
   templateUrl: './value-sector.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -36,12 +38,17 @@ import { SectionHeaderComponent } from '../../shared/ui/section-header/section-h
 export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly facade = inject(ValueSectorFacade);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly tourGuide = inject(TourGuideService);
+  private readonly subscriptions = new Subscription();
   private observer: IntersectionObserver | null = null;
 
   @ViewChild('infiniteScrollSentinel') private sentinelRef?: ElementRef<HTMLDivElement>;
 
   protected readonly isInitialLoading = this.facade.isInitialLoading;
+  protected readonly error = this.facade.error;
+  protected readonly residueName = this.facade.residueName;
+  protected readonly listingId = this.facade.listingId;
   protected readonly items = this.facade.items;
   protected readonly hasMore = this.facade.hasMore;
   protected readonly isLoadingMore = this.facade.isLoadingMore;
@@ -54,7 +61,17 @@ export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestro
 
   ngOnInit(): void {
     this.tourGuide.init();
-    this.facade.loadInitial();
+    this.subscriptions.add(
+      this.route.queryParamMap.subscribe((params) => {
+        const listingId = params.get('listing');
+        if (listingId) {
+          this.facade.loadForListing(listingId);
+          return;
+        }
+
+        this.facade.resetForMissingListing();
+      })
+    );
   }
 
   ngAfterViewInit(): void {
@@ -75,6 +92,7 @@ export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestro
 
   ngOnDestroy(): void {
     this.observer?.disconnect();
+    this.subscriptions.unsubscribe();
   }
 
   protected onRouteToggled(routeId: string): void {
@@ -97,6 +115,10 @@ export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestro
 
   protected onMarketRequested(): void {
     this.navigateToRecommendations('market');
+  }
+
+  protected retryLoad(): void {
+    this.facade.retry();
   }
 
   private navigateToRecommendations(tab: 'process' | 'explanation' | 'market'): void {

@@ -1,20 +1,22 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { finalize } from 'rxjs';
-import { ValueSectorService } from '../infrastructure/value-sector.service';
+import { mapValorizationResponseToValueSectors } from '../mappers/value-sector.mapper';
 import { ValueSectorSelectionSummary, ValueSectorRoute } from '../models/value-sector.model';
-
-const PAGE_SIZE = 4;
+import { ValueSectorApiService } from '../services/value-sector-api.service';
 
 @Injectable()
 export class ValueSectorFacade {
-  private readonly service = inject(ValueSectorService);
+  private readonly service = inject(ValueSectorApiService);
 
   readonly items = signal<readonly ValueSectorRoute[]>([]);
-  readonly page = signal(0);
-  readonly pageSize = signal(PAGE_SIZE);
-  readonly hasMore = signal(true);
+  readonly page = signal(1);
+  readonly pageSize = signal(0);
+  readonly hasMore = signal(false);
   readonly isInitialLoading = signal(false);
   readonly isLoadingMore = signal(false);
+  readonly error = signal<string | null>(null);
+  readonly residueName = signal<string | null>(null);
+  readonly listingId = signal<string | null>(null);
 
   readonly selectedRouteId = signal<string | null>(null);
   readonly selectedProductId = signal<string | null>(null);
@@ -63,22 +65,47 @@ export class ValueSectorFacade {
   });
 
   loadInitial(): void {
+    this.resetState();
+  }
+
+  loadForListing(listingId: string): void {
+    this.resetState();
+    this.listingId.set(listingId);
     this.items.set([]);
-    this.page.set(0);
-    this.hasMore.set(true);
-    this.selectedRouteId.set(null);
-    this.selectedProductId.set(null);
-    this.expandedRouteId.set(null);
     this.isInitialLoading.set(true);
-    this.loadPage(1, true);
+    this.service
+      .generateValorizationIdeas(listingId)
+      .pipe(finalize(() => this.isInitialLoading.set(false)))
+      .subscribe({
+        next: (response) => {
+          this.residueName.set(response.residueName?.trim() || null);
+          this.items.set(mapValorizationResponseToValueSectors(response));
+          this.page.set(1);
+          this.pageSize.set(response.ideas.length);
+          this.hasMore.set(false);
+        },
+        error: (error: Error) => {
+          this.error.set(error.message || 'No se pudieron generar las rutas de valor para este residuo.');
+          this.items.set([]);
+        }
+      });
+  }
+
+  retry(): void {
+    const currentListingId = this.listingId();
+    if (!currentListingId) {
+      return;
+    }
+
+    this.loadForListing(currentListingId);
+  }
+
+  resetForMissingListing(): void {
+    this.resetState();
   }
 
   loadMore(): void {
-    if (!this.hasMore() || this.isInitialLoading() || this.isLoadingMore()) {
-      return;
-    }
-    this.isLoadingMore.set(true);
-    this.loadPage(this.page() + 1, false);
+    return;
   }
 
   toggleExpandedRoute(routeId: string): void {
@@ -112,22 +139,16 @@ export class ValueSectorFacade {
     this.selectedProductId.set(productId);
   }
 
-  private loadPage(page: number, isInitial: boolean): void {
-    this.service
-      .list({ page, pageSize: this.pageSize() })
-      .pipe(
-        finalize(() => {
-          if (isInitial) {
-            this.isInitialLoading.set(false);
-          } else {
-            this.isLoadingMore.set(false);
-          }
-        })
-      )
-      .subscribe((response) => {
-        this.page.set(response.page);
-        this.hasMore.set(response.hasMore);
-        this.items.update((current) => [...current, ...response.items]);
-      });
+  private resetState(): void {
+    this.page.set(1);
+    this.pageSize.set(0);
+    this.hasMore.set(false);
+    this.isInitialLoading.set(false);
+    this.isLoadingMore.set(false);
+    this.error.set(null);
+    this.residueName.set(null);
+    this.selectedRouteId.set(null);
+    this.selectedProductId.set(null);
+    this.expandedRouteId.set(null);
   }
 }
