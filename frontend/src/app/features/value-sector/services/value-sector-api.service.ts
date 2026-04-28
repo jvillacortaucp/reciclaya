@@ -4,17 +4,22 @@ import { catchError, map, Observable, throwError } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { normalizeHttpError } from '../../../core/http/api-response.helpers';
 import { ApiResponse } from '../../../core/models/app.models';
-import { ValorizationIdeaApiItem, ValorizationIdeasResponse } from '../models/value-sector-api.model';
+import { ValueSectorFromListingResponse } from '../models/value-sector.model';
 
 @Injectable({ providedIn: 'root' })
 export class ValueSectorApiService {
   private readonly http = inject(HttpClient);
 
-  generateValorizationIdeas(listingId: string): Observable<ValorizationIdeasResponse> {
+  generateValorizationIdeas(listingId: string): Observable<ValueSectorFromListingResponse> {
     return this.http
-      .post<ApiResponse<readonly ValorizationIdeaApiItem[]> | readonly ValorizationIdeaApiItem[]>(
+      .post<ApiResponse<ValueSectorFromListingResponse>>(
         `${environment.apiBaseUrl}/listings/${listingId}/valorization-ideas/generate`,
-        {}
+        {},
+        {
+          params: {
+            responseShape: 'value-sector'
+          }
+        }
       )
       .pipe(
         map((response) => this.unwrapResponse(response)),
@@ -26,23 +31,11 @@ export class ValueSectorApiService {
       );
   }
 
-  private unwrapResponse(
-    response: ApiResponse<readonly ValorizationIdeaApiItem[]> | readonly ValorizationIdeaApiItem[]
-  ): ValorizationIdeasResponse {
-    if (this.isApiResponse(response)) {
-      if (!response.success || !response.data) {
-        throw new Error(response.message ?? 'No se pudieron generar las rutas de valor para este residuo.');
-      }
-
-      return Array.isArray(response.data) ? response.data : [];
+  private unwrapResponse(response: ApiResponse<ValueSectorFromListingResponse>): ValueSectorFromListingResponse {
+    if (!response.success || !response.data) {
+      throw new Error(response.message ?? 'No se pudieron generar las rutas de valor para este residuo.');
     }
 
-    return Array.isArray(response) ? response : [];
-  }
-
-  private isApiResponse(
-    response: ApiResponse<readonly ValorizationIdeaApiItem[]> | readonly ValorizationIdeaApiItem[]
-  ): response is ApiResponse<readonly ValorizationIdeaApiItem[]> {
-    return 'success' in response;
+    return response.data;
   }
 }

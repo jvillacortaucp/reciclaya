@@ -1,7 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { finalize } from 'rxjs';
-import { mapValorizationResponseToValueSectors } from '../mappers/value-sector.mapper';
 import { ValueSectorHttpRepository } from '../infrastructure/value-sector-http.repository';
 import { ValueSectorService } from '../infrastructure/value-sector.service';
 import { ValueSectorSelectionSummary, ValueSectorRoute } from '../models/value-sector.model';
@@ -127,8 +126,8 @@ export class ValueSectorFacade {
       .pipe(finalize(() => this.isGenerating.set(false)))
       .subscribe({
         next: (response) => {
-          this.listingResidueLabel.set(this.resolveResidueLabelFromIdeas(response));
-          this.fromListingCache = this.normalizeRoutes(mapValorizationResponseToValueSectors(response));
+          this.listingResidueLabel.set(response.listing?.specificResidue?.trim() || null);
+          this.fromListingCache = this.normalizeRoutes(response.routes ?? []);
           this.items.set([]);
           this.page.set(0);
           this.hasMore.set(this.fromListingCache.length > 0);
@@ -265,8 +264,8 @@ export class ValueSectorFacade {
       .pipe(finalize(() => this.isInitialLoading.set(false)))
       .subscribe({
         next: (response) => {
-          this.listingResidueLabel.set(this.resolveResidueLabelFromIdeas(response));
-          this.fromListingCache = this.normalizeRoutes(mapValorizationResponseToValueSectors(response));
+          this.listingResidueLabel.set(response.listing?.specificResidue?.trim() || null);
+          this.fromListingCache = this.normalizeRoutes(response.routes ?? []);
           this.items.set([]);
           this.page.set(0);
           this.hasMore.set(this.fromListingCache.length > 0);
@@ -368,19 +367,6 @@ export class ValueSectorFacade {
       ...route,
       routeName: route.routeName.replace(/^Sector\s+/i, '').trim()
     }));
-  }
-
-  private resolveResidueLabelFromIdeas(response: readonly { title?: string; suggestedProduct?: string }[]): string | null {
-    const firstTitle = response[0]?.title?.trim();
-    if (firstTitle) {
-      const match = firstTitle.match(/a partir de\s+(.+)$/i) ?? firstTitle.match(/basado en\s+(.+)$/i) ?? firstTitle.match(/con\s+(.+)$/i);
-      if (match?.[1]?.trim()) {
-        return match[1].trim();
-      }
-    }
-
-    const firstProduct = response[0]?.suggestedProduct?.trim();
-    return firstProduct || null;
   }
 
   private persistCurrentState(): void {
