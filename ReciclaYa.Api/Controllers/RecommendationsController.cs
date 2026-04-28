@@ -74,8 +74,7 @@ public sealed class RecommendationsController(IRecommendationService recommendat
             return NotFound(ApiResponse<object>.Fail("Listing not found.", ["LISTING_NOT_FOUND"]));
         }
 
-        // Return unified ValueRouteDetailDto so frontend receives full structure.
-        return Ok(ApiResponse<ReciclaYa.Application.ValueSectors.Dtos.ValueRouteDetailDto>.Ok(analysis));
+        return Ok(ApiResponse<RecommendationDetailDto>.Ok(analysis));
     }
 
     private static bool CanUseRecommendations(string role)

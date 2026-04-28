@@ -53,7 +53,7 @@ public sealed class RecommendationService(
         return BuildFallbackRecommendations(preference, candidates, safeLimit);
     }
 
-    public async Task<ReciclaYa.Application.ValueSectors.Dtos.ValueRouteDetailDto?> GetListingAnalysisAsync(
+    public async Task<RecommendationDetailDto?> GetListingAnalysisAsync(
         Guid userId,
         bool isAdmin,
         Guid listingId,
@@ -86,8 +86,7 @@ public sealed class RecommendationService(
                 var aiAnalysis = await aiGenerator.AnalyzeListingAsync(context, candidate, cancellationToken);
                 if (aiAnalysis is not null)
                 {
-                    // Map RecommendationDetailDto (legacy) to ValueRouteDetailDto shape
-                    return MapRecommendationDetailToValueRoute(aiAnalysis, listing);
+                    return aiAnalysis;
                 }
             }
             catch (Exception)
@@ -97,8 +96,7 @@ public sealed class RecommendationService(
             }
         }
 
-        // Always return a full fallback constructed from DB data
-        return BuildFullFallbackValueRoute(preference, listing);
+        return BuildFallbackDetail(preference, listing);
     }
 
     private static ReciclaYa.Application.ValueSectors.Dtos.ValueRouteDetailDto MapRecommendationDetailToValueRoute(
@@ -130,7 +128,7 @@ public sealed class RecommendationService(
                 "2-3 dias",
                 new[] { "Equipo basico" },
                 new[] { "Estandarizar lotes" },
-                "Realiza pruebas en pequeña escala",
+                "Realiza pruebas en pequeï¿½a escala",
                 "medium",
                 "factory")
         };
@@ -145,8 +143,8 @@ public sealed class RecommendationService(
                 "Analisis IA",
                 detail.AiExplanation ?? string.Empty,
                 detail.BuyerBenefit ?? string.Empty,
-                detail.RecommendedUse ?? "Resultado esperado del proceso de valorización.",
-                detail.SuggestedAction ?? "Validar condiciones técnicas antes de escalar el proceso.",
+                detail.RecommendedUse ?? "Resultado esperado del proceso de valorizaciï¿½n.",
+                detail.SuggestedAction ?? "Validar condiciones tï¿½cnicas antes de escalar el proceso.",
                 (detail.Risks ?? Array.Empty<string>()).FirstOrDefault() ?? "Validar riesgos",
                 string.Empty,
                 new ReciclaYa.Application.ValueSectors.Dtos.ValueRouteEnvironmentalFactorsDto(new[] { "Aprovecha residuos" }, detail.Risks ?? Array.Empty<string>()),
@@ -188,7 +186,7 @@ public sealed class RecommendationService(
             baseResidue,
             detail.ViabilityLevel ?? "medium",
             "48-72 horas para evaluacion comercial",
-            "Costo aproximado según escala y logistica",
+            "Costo aproximado segï¿½n escala y logistica",
             detail.ViabilityLevel ?? "medium",
             new[] { "Validacion tecnica", "Logistica" },
             detail.BuyerBenefit ?? string.Empty,

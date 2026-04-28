@@ -32,7 +32,7 @@ export class RecommendationsHttpRepository {
 
   getListingAnalysis(listingId: string, useAi = true, includeExplanation = true): Observable<RecommendationDetail> {
     return this.http
-      .get<ApiResponse<any>>(`${environment.apiBaseUrl}/recommendations/listings/${listingId}/analysis`, {
+      .get<ApiResponse<RecommendationDetail>>(`${environment.apiBaseUrl}/recommendations/listings/${listingId}/analysis`, {
         params: {
           useAi,
           includeExplanation
@@ -40,40 +40,10 @@ export class RecommendationsHttpRepository {
       })
       .pipe(
         map(unwrapApiResponse),
-        map((dto) => {
-          // dto is ValueRouteDetailDto from backend. Map to RecommendationDetail shape expected by frontend.
-          const recommendationId: string = dto.recommendationId ?? dto.RecommendationId ?? '';
-          const listingIdFromRec = recommendationId.startsWith('rec-') ? recommendationId.slice(4) : listingId;
-
-          const listingTitle = dto.baseResidue ?? dto.BaseResidue ?? dto.recommendedProduct ?? dto.RecommendedProduct ?? '';
-          const aiExplanation = dto.explanation ?? dto.Explanation ?? '';
-          const recommendedUse = dto.expectedOutcome ?? dto.ExpectedOutcome ?? dto.marketAnalysis?.finishedProduct?.useCase ?? '';
-          const buyerBenefit = dto.expectedOutcome ?? dto.ExpectedOutcome ?? '';
-          const suggestedAction = (dto.explanationSteps && dto.explanationSteps[0]?.quickTip) || dto.environmentalSummary?.keyRecommendation || '';
-          const potentialProducts = dto.marketAnalysis?.finishedProduct ? [dto.marketAnalysis.finishedProduct.name] : [];
-          const requiredConditions = (dto.processSteps || []).map((s: any) => s.shortDescription).filter(Boolean);
-          const risks = (dto.explanationSteps && dto.explanationSteps.flatMap((s: any) => s.environmentalFactors?.negative ?? [])) || [];
-          const nextStep = (dto.marketAnalysis?.opportunitySummary?.nextSteps && dto.marketAnalysis.opportunitySummary.nextSteps[0]) || dto.environmentalSummary?.keyRecommendation || '';
-          const confidenceScore = dto.environmentalSummary?.utilizationPercent ?? dto.marketAnalysis?.marketKpis?.[0]?.value ?? 50;
-          const viabilityLevel = dto.complexity ?? dto.Complexity ?? 'medium';
-          const source = dto.source ?? dto.Source ?? 'fallback';
-
-          return {
-            listingId: listingIdFromRec,
-            listingTitle,
-            aiExplanation,
-            recommendedUse,
-            buyerBenefit,
-            suggestedAction,
-            potentialProducts,
-            requiredConditions,
-            risks,
-            nextStep,
-            confidenceScore: this.normalizeScore(Number(confidenceScore)),
-            viabilityLevel,
-            source
-          } as RecommendationDetail;
-        }),
+        map((detail) => ({
+          ...detail,
+          confidenceScore: this.normalizeScore(Number(detail.confidenceScore))
+        })),
         catchError((error: unknown) => this.fallbackOnNetworkErrorDetail(error, listingId))
       );
   }

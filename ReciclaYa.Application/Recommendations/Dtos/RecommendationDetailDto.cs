@@ -1,7 +1,6 @@
 namespace ReciclaYa.Application.Recommendations.Dtos;
 
-// Obsoleto: se unifica el contrato con ValueRouteDetailDto
-// Mantener record por compatibilidad interna si es referenciado en otros módulos.
+// Contrato del endpoint de analisis por listing en recomendaciones.
 public sealed record RecommendationDetailDto(
     Guid ListingId,
     string ListingTitle,
