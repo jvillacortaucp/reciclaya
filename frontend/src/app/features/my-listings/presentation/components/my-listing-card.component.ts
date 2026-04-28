@@ -1,12 +1,12 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { LucideEye, LucidePencil, LucideSparkles } from '@lucide/angular';
+import { LucideEye} from '@lucide/angular';
 import { MyListing } from '../../domain/my-listing.model';
 
 @Component({
   selector: 'app-my-listing-card',
   standalone: true,
-  imports: [RouterLink, LucideEye, LucidePencil, LucideSparkles],
+  imports: [RouterLink, LucideEye],
   template: `
     <article
       role="button"

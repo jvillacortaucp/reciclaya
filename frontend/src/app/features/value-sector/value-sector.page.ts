@@ -2,15 +2,16 @@ import {
   AfterViewInit,
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   ElementRef,
   OnDestroy,
   OnInit,
   ViewChild,
   inject
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { LucideLeaf } from '@lucide/angular';
-import { Subscription } from 'rxjs';
+import { LucideLeaf, LucideLoaderCircle, LucideWandSparkles } from '@lucide/angular';
 import { ValueSectorFacade } from './application/value-sector.facade';
 import { VALUE_SECTOR_TEXT } from './data/value-sector.constants';
 import { TourGuideService } from '../../core/services/tour-guide.service';
@@ -19,12 +20,15 @@ import { ValueSectorFloatingActionsComponent } from './presentation/components/v
 import { ValueSectorSummaryComponent } from './presentation/components/value-sector-summary/value-sector-summary.component';
 
 import { SectionHeaderComponent } from '../../shared/ui/section-header/section-header.component';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-value-sector-page',
   standalone: true,
   imports: [
     LucideLeaf,
+    LucideLoaderCircle,
+    LucideWandSparkles,
     ValueSectorAccordionComponent,
     ValueSectorSummaryComponent,
     ValueSectorFloatingActionsComponent,
@@ -38,6 +42,7 @@ export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestro
   private readonly facade = inject(ValueSectorFacade);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly tourGuide = inject(TourGuideService);
   private readonly subscriptions = new Subscription();
   private observer: IntersectionObserver | null = null;
@@ -45,12 +50,14 @@ export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestro
   @ViewChild('infiniteScrollSentinel') private sentinelRef?: ElementRef<HTMLDivElement>;
 
   protected readonly isInitialLoading = this.facade.isInitialLoading;
-  protected readonly error = this.facade.error;
-  protected readonly residueName = this.facade.residueName;
   protected readonly listingId = this.facade.listingId;
   protected readonly items = this.facade.items;
   protected readonly hasMore = this.facade.hasMore;
   protected readonly isLoadingMore = this.facade.isLoadingMore;
+  protected readonly isGenerating = this.facade.isGenerating;
+  protected readonly loadError = this.facade.loadError;
+  protected readonly fromListingMode = this.facade.fromListingMode;
+  protected readonly listingResidueLabel = this.facade.listingResidueLabel;
   protected readonly selectedRouteId = this.facade.selectedRouteId;
   protected readonly selectedProductId = this.facade.selectedProductId;
   protected readonly expandedRouteId = this.facade.expandedRouteId;
@@ -60,26 +67,21 @@ export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestro
 
   ngOnInit(): void {
     this.tourGuide.init();
-    this.subscriptions.add(
-      this.route.queryParamMap.subscribe((params) => {
+    this.route.queryParamMap
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((params) => {
         const listingId = params.get('listing');
-        if (listingId) {
-          const shouldRestoreScroll = this.facade.hasCachedListing(listingId);
-          this.facade.loadForListing(listingId);
-          if (shouldRestoreScroll) {
-            queueMicrotask(() => {
-              window.scrollTo({
-                top: this.facade.getRememberedScrollPosition(listingId),
-                behavior: 'auto'
-              });
+        const shouldRestoreScroll = this.facade.hasLoadedListing(listingId);
+        this.facade.initialize(listingId);
+        if (shouldRestoreScroll) {
+          queueMicrotask(() => {
+            window.scrollTo({
+              top: this.facade.getRememberedScrollPosition(),
+              behavior: 'auto'
             });
-          }
-          return;
+          });
         }
-
-        this.facade.resetForMissingListing();
-      })
-    );
+      });
   }
 
   ngAfterViewInit(): void {
@@ -125,8 +127,12 @@ export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestro
     this.navigateToRecommendations('market');
   }
 
+  protected onGenerateRequested(): void {
+    this.facade.generateForSelectedListing();
+  }
+
   protected retryLoad(): void {
-    this.facade.retry();
+    this.facade.initialize(this.listingId());
   }
 
   private navigateToRecommendations(tab: 'process' | 'explanation' | 'market'): void {

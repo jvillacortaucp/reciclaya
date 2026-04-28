@@ -1,6 +1,8 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { finalize } from 'rxjs';
-import { mapValorizationResponseToValueSectors } from '../mappers/value-sector.mapper';
+import { ValueSectorHttpRepository } from '../infrastructure/value-sector-http.repository';
+import { ValueSectorService } from '../infrastructure/value-sector.service';
 import { ValueSectorSelectionSummary, ValueSectorRoute } from '../models/value-sector.model';
 import { ValueSectorApiService } from '../services/value-sector-api.service';
 
@@ -16,8 +18,11 @@ interface CachedValueSectorState {
 
 @Injectable({ providedIn: 'root' })
 export class ValueSectorFacade {
-  private readonly service = inject(ValueSectorApiService);
-  private readonly cache = signal<Record<string, CachedValueSectorState>>({});
+  private readonly httpRepository = inject(ValueSectorHttpRepository);
+  private readonly fallbackService = inject(ValueSectorService);
+  private fromListingCache: readonly ValueSectorRoute[] = [];
+  private lastLoadedListingId: string | null = null;
+  private rememberedScrollPosition = 0;
 
   readonly items = signal<readonly ValueSectorRoute[]>([]);
   readonly page = signal(1);
@@ -25,9 +30,11 @@ export class ValueSectorFacade {
   readonly hasMore = signal(false);
   readonly isInitialLoading = signal(false);
   readonly isLoadingMore = signal(false);
-  readonly error = signal<string | null>(null);
-  readonly residueName = signal<string | null>(null);
+  readonly isGenerating = signal(false);
+  readonly loadError = signal<string | null>(null);
   readonly listingId = signal<string | null>(null);
+  readonly fromListingMode = signal(false);
+  readonly listingResidueLabel = signal<string | null>(null);
 
   readonly selectedRouteId = signal<string | null>(null);
   readonly selectedProductId = signal<string | null>(null);
@@ -60,7 +67,8 @@ export class ValueSectorFacade {
       targetIndustries: route.targetIndustries,
       insight: route.insight,
       imageUrl: route.heroImageUrl,
-      potentialUse: product.potentialUse
+      potentialUse: product.potentialUse,
+      source: product.source ?? route.source
     };
   });
 
@@ -75,59 +83,105 @@ export class ValueSectorFacade {
     return total;
   });
 
-  loadInitial(): void {
-    this.resetState();
+  initialize(listingId: string | null): void {
+    const isSameListingWithCache =
+      !!listingId &&
+      listingId === this.lastLoadedListingId &&
+      (this.fromListingCache.length > 0 || this.items().length > 0);
+
+    if (isSameListingWithCache) {
+      this.listingId.set(listingId);
+      this.fromListingMode.set(true);
+      this.loadError.set(null);
+      return;
+    }
+
+    this.listingId.set(listingId);
+    this.listingResidueLabel.set(null);
+    this.loadError.set(null);
+    this.selectedRouteId.set(null);
+    this.selectedProductId.set(null);
+    this.expandedRouteId.set(null);
+    this.page.set(0);
+    this.items.set([]);
+    this.hasMore.set(true);
+
+    if (listingId && this.isGuid(listingId)) {
+      console.log('[ValueSector] listingId', listingId);
+      this.fromListingMode.set(true);
+      this.loadFromListing(listingId);
+      return;
+    }
+
+    this.fromListingMode.set(false);
+    this.loadInitialCatalog();
   }
 
-  loadForListing(listingId: string): void {
-    if (this.listingId() === listingId && this.items().length > 0) {
+  generateForSelectedListing(): void {
+    const listingId = this.listingId();
+    if (!listingId || !this.fromListingMode() || this.isGenerating()) {
       return;
     }
 
-    const cachedState = this.cache()[listingId];
-    if (cachedState) {
-      this.applyCachedState(cachedState);
-      return;
-    }
-
-    this.resetState();
-    this.listingId.set(listingId);
-    this.items.set([]);
-    this.isInitialLoading.set(true);
-    this.service
-      .generateValorizationIdeas(listingId)
-      .pipe(finalize(() => this.isInitialLoading.set(false)))
+    this.loadError.set(null);
+    this.isGenerating.set(true);
+    const excludeRouteIds = this.fromListingCache.map((route) => route.id);
+    const excludeProductIds = this.fromListingCache.flatMap((route) => route.products.map((product) => product.id));
+    this.httpRepository
+      .generateFromListing(
+        listingId,
+        {
+          regenerationSeed: Date.now().toString(),
+          excludeRouteIds,
+          excludeProductIds
+        },
+        4
+      )
+      .pipe(finalize(() => this.isGenerating.set(false)))
       .subscribe({
         next: (response) => {
-          this.residueName.set(response.residueName?.trim() || null);
-          this.items.set(mapValorizationResponseToValueSectors(response));
-          this.page.set(1);
-          this.pageSize.set(response.ideas.length);
-          this.hasMore.set(false);
-          this.persistCurrentState();
-        },
-        error: (error: Error) => {
-          this.error.set(error.message || 'No se pudieron generar las rutas de valor para este residuo.');
+          console.log('[ValueSector] POST generate response', response);
+          this.lastLoadedListingId = listingId;
+          this.listingResidueLabel.set(this.resolveResidueLabel(response.listing));
+          this.fromListingCache = this.normalizeRoutes(response.routes).slice(0, 4);
           this.items.set([]);
+          this.page.set(0);
+          this.hasMore.set(this.fromListingCache.length > 0);
+          this.appendFromListingPage(1);
+          this.loadError.set(null);
+        },
+        error: (error: unknown) => {
+          if (error instanceof HttpErrorResponse && error.status === 0) {
+            this.fromListingMode.set(false);
+            this.loadInitialFallback();
+            return;
+          }
+
+          this.loadError.set(error instanceof Error ? error.message : 'No se pudieron generar rutas para esta publicación.');
         }
       });
   }
 
-  retry(): void {
-    const currentListingId = this.listingId();
-    if (!currentListingId) {
+  loadMore(): void {
+    if (!this.hasMore() || this.isInitialLoading() || this.isLoadingMore()) {
       return;
     }
 
-    this.loadForListing(currentListingId);
-  }
+    if (this.fromListingMode()) {
+      this.isLoadingMore.set(true);
+      this.appendFromListingPage(this.page() + 1);
+      this.isLoadingMore.set(false);
+      return;
+    }
 
-  resetForMissingListing(): void {
-    this.resetState();
-  }
-
-  loadMore(): void {
-    return;
+    this.isLoadingMore.set(true);
+    this.httpRepository
+      .getValueSectors({ page: this.page() + 1, pageSize: this.pageSize(), useAi: true })
+      .pipe(finalize(() => this.isLoadingMore.set(false)))
+      .subscribe({
+        next: (response) => this.applyServerPage(response.items, response.page, response.hasMore),
+        error: (error: unknown) => this.handleCatalogError(error, false)
+      });
   }
 
   toggleExpandedRoute(routeId: string): void {
@@ -165,96 +219,156 @@ export class ValueSectorFacade {
   }
 
   rememberScrollPosition(scrollPosition: number): void {
-    const listingId = this.listingId();
-    if (!listingId) {
+    this.rememberedScrollPosition = scrollPosition;
+  }
+
+  getRememberedScrollPosition(): number {
+    return this.rememberedScrollPosition;
+  }
+
+  hasLoadedListing(listingId: string | null): boolean {
+    return !!listingId && listingId === this.lastLoadedListingId && (this.fromListingCache.length > 0 || this.items().length > 0);
+  }
+
+  private loadInitialCatalog(): void {
+    this.isInitialLoading.set(true);
+    this.httpRepository
+      .getValueSectors({ page: 1, pageSize: this.pageSize(), useAi: true })
+      .pipe(finalize(() => this.isInitialLoading.set(false)))
+      .subscribe({
+        next: (response) => this.applyServerPage(response.items, response.page, response.hasMore, true),
+        error: (error: unknown) => this.handleCatalogError(error, true)
+      });
+  }
+
+  private loadFromListing(listingId: string): void {
+    this.isInitialLoading.set(true);
+    this.httpRepository
+      .getFromListing(listingId, true)
+      .pipe(finalize(() => this.isInitialLoading.set(false)))
+      .subscribe({
+        next: (response) => {
+          console.log('[ValueSector] GET from listing response', response);
+          this.lastLoadedListingId = listingId;
+          this.listingResidueLabel.set(this.resolveResidueLabel(response.listing));
+          this.fromListingCache = this.normalizeRoutes(response.routes);
+          this.items.set([]);
+          this.page.set(0);
+          this.hasMore.set(response.routes.length > 0);
+          this.appendFromListingPage(1);
+          this.loadError.set(null);
+        },
+        error: (error: unknown) => {
+          if (error instanceof HttpErrorResponse && error.status === 0) {
+            this.fromListingMode.set(false);
+            this.loadInitialFallback();
+            return;
+          }
+          this.loadError.set(error instanceof Error ? error.message : 'No se pudieron cargar rutas para esta publicación.');
+          this.items.set([]);
+          this.hasMore.set(false);
+        }
+      });
+  }
+
+  private appendFromListingPage(page: number): void {
+    const pageSize = this.pageSize();
+    const start = (page - 1) * pageSize;
+    const end = start + pageSize;
+    const nextItems = this.fromListingCache.slice(start, end);
+    if (!nextItems.length && page > 1) {
+      this.hasMore.set(false);
       return;
     }
 
-    const currentState = this.cache()[listingId];
-    this.cache.update((cache) => ({
-      ...cache,
-      [listingId]: {
-        ...(currentState ?? {
-          listingId,
-          residueName: this.residueName(),
-          items: this.items(),
-          selectedRouteId: this.selectedRouteId(),
-          selectedProductId: this.selectedProductId(),
-          expandedRouteId: this.expandedRouteId(),
-          scrollPosition: 0
-        }),
-        listingId,
-        residueName: this.residueName(),
-        items: this.items(),
-        selectedRouteId: this.selectedRouteId(),
-        selectedProductId: this.selectedProductId(),
-        expandedRouteId: this.expandedRouteId(),
-        scrollPosition
+    this.page.set(page);
+    this.items.update((current) => (page === 1 ? nextItems : [...current, ...nextItems]));
+    this.hasMore.set(end < this.fromListingCache.length);
+    this.ensureSelection();
+  }
+
+  private applyServerPage(items: readonly ValueSectorRoute[], page: number, hasMore: boolean, reset = false): void {
+    this.page.set(page);
+    this.hasMore.set(hasMore);
+    this.items.update((current) => (reset ? [...items] : [...current, ...items]));
+    this.loadError.set(null);
+    this.ensureSelection();
+  }
+
+  private handleCatalogError(error: unknown, initial: boolean): void {
+    if (error instanceof HttpErrorResponse && error.status === 0) {
+      if (initial) {
+        this.loadInitialFallback();
       }
+      return;
+    }
+
+    this.loadError.set(error instanceof Error ? error.message : 'No se pudieron cargar sectores de valor.');
+    if (initial) {
+      this.items.set([]);
+      this.hasMore.set(false);
+    }
+  }
+
+  private loadInitialFallback(): void {
+    this.isInitialLoading.set(true);
+    this.fallbackService
+      .list({ page: 1, pageSize: this.pageSize() })
+      .pipe(finalize(() => this.isInitialLoading.set(false)))
+      .subscribe((response) => {
+        this.items.set(response.items);
+        this.page.set(response.page);
+        this.hasMore.set(response.hasMore);
+        this.loadError.set(null);
+        this.ensureSelection();
+      });
+  }
+
+  private ensureSelection(): void {
+    const currentRoute = this.items().find((route) => route.id === this.selectedRouteId());
+    if (currentRoute) {
+      return;
+    }
+
+    const first = this.items()[0];
+    if (!first) {
+      this.selectedRouteId.set(null);
+      this.selectedProductId.set(null);
+      this.expandedRouteId.set(null);
+      return;
+    }
+
+    this.selectedRouteId.set(first.id);
+    this.expandedRouteId.set(first.id);
+    this.selectedProductId.set(first.products[0]?.id ?? null);
+  }
+
+  private isGuid(value: string): boolean {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+  }
+
+  private resolveResidueLabel(listing: { specificResidue?: string; productType?: string } | null | undefined): string | null {
+    if (!listing) {
+      return null;
+    }
+
+    const residue = listing.specificResidue?.trim();
+    if (residue) {
+      return residue;
+    }
+
+    const productType = listing.productType?.trim();
+    return productType || null;
+  }
+
+  private normalizeRoutes(routes: readonly ValueSectorRoute[]): readonly ValueSectorRoute[] {
+    return routes.map((route) => ({
+      ...route,
+      routeName: route.routeName.replace(/^Sector\s+/i, '').trim()
     }));
-  }
-
-  getRememberedScrollPosition(listingId: string | null): number {
-    if (!listingId) {
-      return 0;
-    }
-
-    return this.cache()[listingId]?.scrollPosition ?? 0;
-  }
-
-  hasCachedListing(listingId: string | null): boolean {
-    if (!listingId) {
-      return false;
-    }
-
-    return !!this.cache()[listingId];
-  }
-
-  private resetState(): void {
-    this.page.set(1);
-    this.pageSize.set(0);
-    this.hasMore.set(false);
-    this.isInitialLoading.set(false);
-    this.isLoadingMore.set(false);
-    this.error.set(null);
-    this.residueName.set(null);
-    this.listingId.set(null);
-    this.selectedRouteId.set(null);
-    this.selectedProductId.set(null);
-    this.expandedRouteId.set(null);
   }
 
   private persistCurrentState(): void {
-    const listingId = this.listingId();
-    if (!listingId) {
-      return;
-    }
-
-    const currentState = this.cache()[listingId];
-    this.cache.update((cache) => ({
-      ...cache,
-      [listingId]: {
-        listingId,
-        residueName: this.residueName(),
-        items: this.items(),
-        selectedRouteId: this.selectedRouteId(),
-        selectedProductId: this.selectedProductId(),
-        expandedRouteId: this.expandedRouteId(),
-        scrollPosition: currentState?.scrollPosition ?? 0
-      }
-    }));
-  }
-
-  private applyCachedState(cachedState: CachedValueSectorState): void {
-    this.resetState();
-    this.listingId.set(cachedState.listingId);
-    this.residueName.set(cachedState.residueName);
-    this.items.set(cachedState.items);
-    this.selectedRouteId.set(cachedState.selectedRouteId);
-    this.selectedProductId.set(cachedState.selectedProductId);
-    this.expandedRouteId.set(cachedState.expandedRouteId);
-    this.page.set(1);
-    this.pageSize.set(cachedState.items.length);
-    this.hasMore.set(false);
+    this.lastLoadedListingId = this.listingId();
   }
 }

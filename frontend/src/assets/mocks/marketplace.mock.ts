@@ -110,16 +110,16 @@ export const PRE_ORDERS_MOCK: readonly PreOrder[] = [
 export const RECOMMENDATIONS_MOCK: readonly Recommendation[] = [
   {
     id: 'rec-001',
+    listingId: 'wl-001',
     title: 'PET de alta disponibilidad con distancia corta',
-    confidenceScore: 0.91,
-    reason: 'Coincide con tu preferencia de PET y ventana logistica < 5 dias.',
-    listingId: 'wl-001'
+    confidenceScore: 91,
+    reason: 'Coincide con tu preferencia de PET y ventana logistica < 5 dias.'
   },
   {
     id: 'rec-002',
+    listingId: 'wl-003',
     title: 'Retazos de algodon para linea de upcycling',
-    confidenceScore: 0.78,
-    reason: 'Compatible con patrones historicos de compra textil.',
-    listingId: 'wl-003'
+    confidenceScore: 78,
+    reason: 'Compatible con patrones historicos de compra textil.'
   }
 ];
