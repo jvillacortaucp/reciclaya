@@ -41,6 +41,7 @@ public sealed class PermissionService : IPermissionService
         "view:requests",
         "view:marketplace",
         "create:preorder",
+        "view:recommendations",
         "view:messages",
         "manage:profile"
     ];
