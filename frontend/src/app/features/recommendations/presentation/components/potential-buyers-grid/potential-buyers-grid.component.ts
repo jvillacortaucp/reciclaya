@@ -1,17 +1,15 @@
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import { LucideBuilding2, LucideLeaf, LucideStore } from '@lucide/angular';
-import { BuyerSegment } from '../../../models/recommendation.model';
+import { BuyerScope, BuyerSegment } from '../../../models/recommendation.model';
 
 interface BuyerFilterOption {
-  readonly id: string;
+  readonly id: BuyerScope;
   readonly label: string;
 }
 
 const FILTER_OPTIONS: readonly BuyerFilterOption[] = [
-  { id: 'all', label: 'Todos' },
-  { id: 'enterprise', label: 'Empresas' },
-  { id: 'retail', label: 'Retail' },
-  { id: 'consumer', label: 'Consumo' }
+  { id: 'nacional', label: 'Nacional' },
+  { id: 'internacional', label: 'Internacional' }
 ];
 
 @Component({
@@ -23,17 +21,25 @@ const FILTER_OPTIONS: readonly BuyerFilterOption[] = [
 })
 export class PotentialBuyersGridComponent {
   buyers = input<readonly BuyerSegment[]>([]);
-  selectedSegment = input<string>('all');
+  selectedSegment = input<BuyerScope>('nacional');
 
-  segmentSelected = output<string>();
+  segmentSelected = output<BuyerScope>();
 
   protected readonly filterOptions = FILTER_OPTIONS;
+
+  protected readonly visibleBuyers = computed<readonly BuyerSegment[]>(() => {
+    const items = this.buyers();
+    const segment = this.selectedSegment();
+
+    const filtered = items.filter((buyer) => buyer.scope === segment);
+    return filtered.length > 0 ? filtered : items;
+  });
 
   protected trackByBuyer(_: number, item: BuyerSegment): string {
     return item.id;
   }
 
-  protected isActive(optionId: string): boolean {
+  protected isActive(optionId: BuyerScope): boolean {
     return this.selectedSegment() === optionId;
   }
 }

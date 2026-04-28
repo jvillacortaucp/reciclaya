@@ -1,12 +1,12 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { LucideBan, LucideEye, LucidePencil, LucideRotateCcw } from '@lucide/angular';
+import { LucideEye} from '@lucide/angular';
 import { MyListing } from '../../domain/my-listing.model';
 
 @Component({
   selector: 'app-my-listing-card',
   standalone: true,
-  imports: [RouterLink, LucideBan, LucideEye, LucidePencil, LucideRotateCcw],
+  imports: [RouterLink, LucideEye],
   template: `
     <article
       role="button"
@@ -28,16 +28,8 @@ import { MyListing } from '../../domain/my-listing.model';
             <span class="text-xs font-semibold uppercase tracking-[0.1em]">Sin imagen</span>
           </div>
         }
-        <span
-          class="absolute left-3 top-3 rounded-lg px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em]"
-          [class.bg-emerald-100]="listing.status === 'active'"
-          [class.text-emerald-700]="listing.status === 'active'"
-          [class.bg-slate-200]="listing.status === 'draft'"
-          [class.text-slate-700]="listing.status === 'draft'"
-          [class.bg-rose-100]="listing.status === 'inactive'"
-          [class.text-rose-700]="listing.status === 'inactive'"
-        >
-          {{ listing.status === 'active' ? 'Activo' : listing.status === 'draft' ? 'Borrador' : 'Desactivado' }}
+        <span class="absolute left-3 top-3 rounded-lg bg-emerald-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] text-emerald-700">
+          Activo
         </span>
       </div>
 
@@ -70,8 +62,8 @@ import { MyListing } from '../../domain/my-listing.model';
           <p class="text-xs text-slate-400">Publicado: {{ listing.publishedAt }}</p>
         </div>
 
-        <div class="mt-auto border-t border-slate-200 pt-3">
-          <div class="flex items-center justify-between gap-2">
+        <div class="mt-2 border-t border-slate-200 pt-3">
+          <div class="flex flex-wrap items-center justify-between gap-2">
             <a
               [routerLink]="['/marketplace', listing.id]"
               class="inline-flex items-center gap-1 text-base font-semibold text-emerald-700 transition hover:text-emerald-800"
@@ -80,36 +72,6 @@ import { MyListing } from '../../domain/my-listing.model';
               <svg lucideEye size="15"></svg>
               Ver detalle
             </a>
-
-            @if (listing.status !== 'inactive') {
-              <div class="flex items-center gap-2">
-                <button
-                  type="button"
-                  class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
-                  aria-label="Editar publicación"
-                  (click)="$event.stopPropagation(); edit.emit(listing.id)"
-                >
-                  <svg lucidePencil size="16"></svg>
-                </button>
-                <button
-                  type="button"
-                  class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-rose-50 hover:text-rose-700"
-                  aria-label="Desactivar publicación"
-                  (click)="$event.stopPropagation(); deactivate.emit(listing.id)"
-                >
-                  <svg lucideBan size="16"></svg>
-                </button>
-              </div>
-            } @else {
-              <button
-                type="button"
-                class="inline-flex items-center gap-1 rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-sm font-medium text-emerald-700 transition hover:bg-emerald-100"
-                (click)="$event.stopPropagation(); restore.emit(listing.id)"
-              >
-                <svg lucideRotateCcw size="14"></svg>
-                Restaurar
-              </button>
-            }
           </div>
         </div>
       </div>
@@ -122,9 +84,8 @@ export class MyListingCardComponent {
   @Input() tourTarget = false;
   @Input() isSelected = false;
   @Output() readonly selected = new EventEmitter<string>();
+  @Output() readonly recommendations = new EventEmitter<string>();
   @Output() readonly edit = new EventEmitter<string>();
-  @Output() readonly deactivate = new EventEmitter<string>();
-  @Output() readonly restore = new EventEmitter<string>();
 
   protected selectCard(): void {
     this.selected.emit(this.listing.id);

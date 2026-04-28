@@ -1,28 +1,28 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { Location } from '@angular/common';
+import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ActivatedRoute, Router } from '@angular/router';
-import { LucideBookmark, LucideSparkles } from '@lucide/angular';
+import { ActivatedRoute, ParamMap, Router } from '@angular/router';
+import { LucideArrowLeft, LucideBookmark, LucideSparkles } from '@lucide/angular';
 import { combineLatest } from 'rxjs';
 import { RecommendationsFacade } from './application/recommendations.facade';
-import { ManufacturingProcessComponent } from './presentation/components/manufacturing-process/manufacturing-process.component';
 import { MarketAnalysisComponent } from './presentation/components/market-analysis/market-analysis.component';
-import { RecommendationExplanationComponent } from './presentation/components/recommendation-explanation/recommendation-explanation.component';
-import { RecommendationSummaryCardComponent } from './presentation/components/recommendation-summary-card/recommendation-summary-card.component';
+import { ManufacturingProcessComponent } from './presentation/components/manufacturing-process/manufacturing-process.component';
+import { RecommendationComplexityComponent } from './presentation/components/recommendation-complexity/recommendation-complexity.component';
 import { RecommendationTabsComponent } from './presentation/components/recommendation-tabs/recommendation-tabs.component';
-import { RecommendationTab } from './models/recommendation.model';
+import { BuyerScope, RecommendationTab } from './models/recommendation.model';
 
 @Component({
   selector: 'app-recommendations-page',
   standalone: true,
   providers: [RecommendationsFacade],
   imports: [
+    LucideArrowLeft,
     LucideBookmark,
     LucideSparkles,
     RecommendationTabsComponent,
-    ManufacturingProcessComponent,
     MarketAnalysisComponent,
-    RecommendationExplanationComponent,
-    RecommendationSummaryCardComponent
+    ManufacturingProcessComponent,
+    RecommendationComplexityComponent,
   ],
   templateUrl: './recommendations.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -31,8 +31,10 @@ export class RecommendationsPageComponent implements OnInit {
   private readonly facade = inject(RecommendationsFacade);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly location = inject(Location);
   private readonly destroyRef = inject(DestroyRef);
   private loadedProductId: string | null = null;
+  private readonly sourceListingId = signal<string | null>(null);
 
   protected readonly loading = this.facade.loading;
   protected readonly error = this.facade.error;
@@ -40,9 +42,8 @@ export class RecommendationsPageComponent implements OnInit {
   protected readonly commercialRecommendations = this.facade.commercialRecommendations;
   protected readonly usingCommercialMode = this.facade.usingCommercialMode;
   protected readonly activeTab = this.facade.activeTab;
-  protected readonly selectedStepId = this.facade.selectedStepId;
-  protected readonly selectedStep = this.facade.selectedStep;
   protected readonly explanationData = this.facade.explanationSteps;
+  protected readonly selectedStepId = this.facade.selectedStepId;
   protected readonly selectedExplanationStepId = this.facade.selectedExplanationStepId;
   protected readonly selectedExplanationStep = this.facade.selectedExplanationStep;
   protected readonly environmentalSummary = this.facade.environmentalSummary;
@@ -54,9 +55,10 @@ export class RecommendationsPageComponent implements OnInit {
   ngOnInit(): void {
     combineLatest([this.route.paramMap, this.route.queryParamMap])
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(([params, query]) => {
+      .subscribe(([params, query]: [ParamMap, ParamMap]) => {
         const productId = params.get('productId');
         const tab = this.parseTab(query.get('tab'));
+        this.sourceListingId.set(query.get('listing'));
 
         if (this.loadedProductId !== productId) {
           this.loadedProductId = productId;
@@ -81,23 +83,15 @@ export class RecommendationsPageComponent implements OnInit {
     });
   }
 
-  protected selectStep(stepId: string): void {
-    this.facade.selectStep(stepId);
-  }
-
   protected selectExplanationStep(stepId: string): void {
     this.facade.selectExplanationStep(stepId);
   }
 
-  protected goToExplanation(): void {
-    this.setTab('explanation');
+  protected selectStep(stepId: string): void {
+    this.facade.selectStep(stepId);
   }
 
-  protected goToMarket(): void {
-    this.setTab('market');
-  }
-
-  protected selectBuyerSegment(segment: string): void {
+  protected selectBuyerSegment(segment: BuyerScope): void {
     this.facade.setSelectedBuyerSegment(segment);
   }
 
@@ -115,6 +109,21 @@ export class RecommendationsPageComponent implements OnInit {
     }
 
     void this.router.navigate(['/marketplace', listingId]);
+  }
+
+  protected goBackToSectorSelection(): void {
+    const listingId = this.sourceListingId();
+
+    if (window.history.length > 1) {
+      this.location.back();
+      return;
+    }
+
+    void this.router.navigate(['/app/value-sector'], {
+      queryParams: {
+        listing: listingId ?? undefined
+      }
+    });
   }
 
   private parseTab(tab: string | null): RecommendationTab {

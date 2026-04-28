@@ -12,6 +12,17 @@ export const RECOMMENDATION_PROCESS_MOCK: RecommendationProcess = {
   expectedOutcome: 'Lote homogéneo de harina funcional apta para panificación y snacks saludables.',
   explanation:
     'La ruta propuesta aprovecha la fibra soluble y antioxidantes naturales del residuo base para crear un ingrediente funcional de alto valor comercial.',
+  manufacturingProcess:
+    'El proceso transforma la cáscara de mango en un ingrediente estable y funcional mediante selección, higienización, secado, molienda y estandarización.',
+  complexityOverview: {
+    processingRequired: 'Limpieza, triturado, secado controlado, molienda y tamizado.',
+    equipmentNeeded: 'Herramientas manuales, secador de bandejas, molino fino y tamiz vibratorio.',
+    technicalKnowledge: 'Intermedio.',
+    transformationTime: '18 a 24 horas.',
+    estimatedCost: 'Medio.',
+    operationalRisk: 'Bajo a medio, con mayor cuidado en secado y control sanitario.',
+    positiveEnvironmentalImpact: 'Reduce residuos orgánicos, reutiliza biomasa y disminuye contaminación por descarte.'
+  },
   explanationSteps: [
     {
       id: 'exp-1',
@@ -197,32 +208,46 @@ export const RECOMMENDATION_PROCESS_MOCK: RecommendationProcess = {
     potentialBuyers: [
       {
         id: 'buyer-1',
-        name: 'Empresas alimentarias',
-        segment: 'B2B Industrial',
-        monthlyVolume: '10-20 t/mes',
-        probability: 85,
-        channel: 'Directo',
-        type: 'enterprise',
-        iconName: 'building'
-      },
-      {
-        id: 'buyer-2',
-        name: 'Panaderías saludables',
-        segment: 'Artesanal / Gourmet',
+        name: 'Panaderías artesanales',
+        segment: 'Alimentos',
         monthlyVolume: '500kg - 1t/mes',
         probability: 70,
         channel: 'Distribuidores',
-        type: 'retail',
+        scope: 'nacional',
+        region: 'Loreto',
         iconName: 'store'
       },
       {
+        id: 'buyer-2',
+        name: 'Empresas de bioplásticos',
+        segment: 'Manufactura sostenible',
+        monthlyVolume: '10 - 20t/mes',
+        probability: 85,
+        channel: 'Directo',
+        scope: 'internacional',
+        country: 'Colombia',
+        iconName: 'building'
+      },
+      {
         id: 'buyer-3',
-        name: 'Tiendas naturistas',
-        segment: 'Retail Consumidor',
-        monthlyVolume: '100-300kg/mes',
-        probability: 60,
+        name: 'Industrias de ingredientes funcionales',
+        segment: 'Food ingredients',
+        monthlyVolume: '6 - 12t/mes',
+        probability: 78,
+        channel: 'Distribuidores',
+        scope: 'internacional',
+        country: 'Chile',
+        iconName: 'building'
+      },
+      {
+        id: 'buyer-4',
+        name: 'Tiendas naturistas regionales',
+        segment: 'Retail saludable',
+        monthlyVolume: '100 - 300kg/mes',
+        probability: 62,
         channel: 'E-commerce',
-        type: 'consumer',
+        scope: 'nacional',
+        region: 'Cusco',
         iconName: 'leaf'
       }
     ],

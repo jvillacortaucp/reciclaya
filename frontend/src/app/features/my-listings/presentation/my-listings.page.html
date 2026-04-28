@@ -98,8 +98,6 @@
         >
           {{ tab.label }}
           @if (tab.value === 'active') { ({{ counts().active }}) }
-          @if (tab.value === 'draft') { ({{ counts().draft }}) }
-          @if (tab.value === 'inactive') { ({{ counts().inactive }}) }
         </button>
       }
     </div>
@@ -122,9 +120,6 @@
           [tourTarget]="isFirst"
           [isSelected]="selectedListingId() === item.id"
           (selected)="selectListing($event)"
-          (edit)="editListing($event)"
-          (deactivate)="deactivateListing($event)"
-          (restore)="restoreListing($event)"
         />
       }
     </div>

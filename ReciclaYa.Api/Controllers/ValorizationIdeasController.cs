@@ -2,6 +2,8 @@ using System.IdentityModel.Tokens.Jwt;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ReciclaYa.Api.Responses;
+using ReciclaYa.Application.ValueSectors.Dtos;
+using ReciclaYa.Application.ValueSectors.Services;
 using ReciclaYa.Application.ValorizationIdeas.Dtos;
 using ReciclaYa.Application.ValorizationIdeas.Services;
 
@@ -10,7 +12,9 @@ namespace ReciclaYa.Api.Controllers;
 [ApiController]
 [Authorize]
 [Route("api/listings/{listingId:guid}/valorization-ideas")]
-public sealed class ValorizationIdeasController(IValorizationIdeaService valorizationIdeaService) : ControllerBase
+public sealed class ValorizationIdeasController(
+    IValorizationIdeaService valorizationIdeaService,
+    IValueSectorService valueSectorService) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> Get(Guid listingId, CancellationToken cancellationToken)
@@ -34,7 +38,10 @@ public sealed class ValorizationIdeasController(IValorizationIdeaService valoriz
     }
 
     [HttpPost("generate")]
-    public async Task<IActionResult> Generate(Guid listingId, CancellationToken cancellationToken)
+    public async Task<IActionResult> Generate(
+        Guid listingId,
+        [FromQuery] string? responseShape,
+        CancellationToken cancellationToken)
     {
         if (!TryGetUserContext(out _, out var role))
         {
@@ -46,6 +53,14 @@ public sealed class ValorizationIdeasController(IValorizationIdeaService valoriz
             return StatusCode(
                 StatusCodes.Status403Forbidden,
                 ApiResponse<object>.Fail("Forbidden.", ["FORBIDDEN"]));
+        }
+
+        if (string.Equals(responseShape, "value-sector", StringComparison.OrdinalIgnoreCase))
+        {
+            var generated = await valueSectorService.GenerateFromListingAsync(listingId, null, null, cancellationToken);
+            return generated is null
+                ? NotFound(ApiResponse<object>.Fail("Listing not found.", ["LISTING_NOT_FOUND"]))
+                : Ok(ApiResponse<ValueSectorFromListingResponseDto>.Ok(generated, "Value sector routes generated."));
         }
 
         var ideas = await valorizationIdeaService.GenerateAsync(listingId, cancellationToken);

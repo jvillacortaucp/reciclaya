@@ -6,7 +6,7 @@ export interface ChatQuickSuggestion {
 }
 
 export const ASSISTANT_CHAT_COPY = {
-  title: 'Asistente ReciclaIA',
+  title: 'Asistente EcoInnova',
   subtitle:
     'Descubre oportunidades de valorización en una conversación guiada y accionable.',
   greeting:

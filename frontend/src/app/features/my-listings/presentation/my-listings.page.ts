@@ -85,7 +85,7 @@ export class MyListingsPageComponent implements OnInit, OnDestroy {
     sector: [MY_LISTINGS_DEFAULT_FILTERS.sector],
     productType: [MY_LISTINGS_DEFAULT_FILTERS.productType],
     specificResidue: [MY_LISTINGS_DEFAULT_FILTERS.specificResidue],
-    status: [MY_LISTINGS_DEFAULT_FILTERS.status],
+    status: [{ value: MY_LISTINGS_DEFAULT_FILTERS.status, disabled: true }],
     exchangeType: [MY_LISTINGS_DEFAULT_FILTERS.exchangeType],
     publishedDate: [MY_LISTINGS_DEFAULT_FILTERS.publishedDate]
   });
@@ -123,7 +123,7 @@ export class MyListingsPageComponent implements OnInit, OnDestroy {
   }
 
   protected setTab(tab: ListingTab): void {
-    this.facade.setTab(tab);
+    this.facade.setTab('active');
     this.selectedListingId.set(null);
   }
 

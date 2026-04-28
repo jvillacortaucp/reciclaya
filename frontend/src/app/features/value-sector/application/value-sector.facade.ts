@@ -4,19 +4,31 @@ import { finalize } from 'rxjs';
 import { ValueSectorHttpRepository } from '../infrastructure/value-sector-http.repository';
 import { ValueSectorService } from '../infrastructure/value-sector.service';
 import { ValueSectorSelectionSummary, ValueSectorRoute } from '../models/value-sector.model';
+import { ValueSectorApiService } from '../services/value-sector-api.service';
 
-const PAGE_SIZE = 4;
+interface CachedValueSectorState {
+  readonly listingId: string;
+  readonly residueName: string | null;
+  readonly items: readonly ValueSectorRoute[];
+  readonly selectedRouteId: string | null;
+  readonly selectedProductId: string | null;
+  readonly expandedRouteId: string | null;
+  readonly scrollPosition: number;
+}
 
-@Injectable()
+@Injectable({ providedIn: 'root' })
 export class ValueSectorFacade {
+  private static readonly DEFAULT_PAGE_SIZE = 4;
   private readonly httpRepository = inject(ValueSectorHttpRepository);
   private readonly fallbackService = inject(ValueSectorService);
+  private readonly apiService = inject(ValueSectorApiService);
   private fromListingCache: readonly ValueSectorRoute[] = [];
+  private readonly cachedStates = signal<Record<string, CachedValueSectorState>>({});
 
   readonly items = signal<readonly ValueSectorRoute[]>([]);
-  readonly page = signal(0);
-  readonly pageSize = signal(PAGE_SIZE);
-  readonly hasMore = signal(true);
+  readonly page = signal(1);
+  readonly pageSize = signal(ValueSectorFacade.DEFAULT_PAGE_SIZE);
+  readonly hasMore = signal(false);
   readonly isInitialLoading = signal(false);
   readonly isLoadingMore = signal(false);
   readonly isGenerating = signal(false);
@@ -73,6 +85,12 @@ export class ValueSectorFacade {
   });
 
   initialize(listingId: string | null): void {
+    const cachedState = listingId ? this.cachedStates()[listingId] : null;
+    if (cachedState) {
+      this.restoreCachedState(cachedState);
+      return;
+    }
+
     this.listingId.set(listingId);
     this.listingResidueLabel.set(null);
     this.loadError.set(null);
@@ -80,6 +98,7 @@ export class ValueSectorFacade {
     this.selectedProductId.set(null);
     this.expandedRouteId.set(null);
     this.page.set(0);
+    this.pageSize.set(ValueSectorFacade.DEFAULT_PAGE_SIZE);
     this.items.set([]);
     this.hasMore.set(true);
 
@@ -102,29 +121,19 @@ export class ValueSectorFacade {
 
     this.loadError.set(null);
     this.isGenerating.set(true);
-    const excludeRouteIds = this.fromListingCache.map((route) => route.id);
-    const excludeProductIds = this.fromListingCache.flatMap((route) => route.products.map((product) => product.id));
-    this.httpRepository
-      .generateFromListing(
-        listingId,
-        {
-          regenerationSeed: Date.now().toString(),
-          excludeRouteIds,
-          excludeProductIds
-        },
-        4
-      )
+    this.apiService
+      .generateValorizationIdeas(listingId)
       .pipe(finalize(() => this.isGenerating.set(false)))
       .subscribe({
         next: (response) => {
-          console.log('[ValueSector] POST generate response', response);
-          this.listingResidueLabel.set(this.resolveResidueLabel(response.listing));
-          this.fromListingCache = this.normalizeRoutes(response.routes).slice(0, 4);
+          this.listingResidueLabel.set(response.listing?.specificResidue?.trim() || null);
+          this.fromListingCache = this.normalizeRoutes(response.routes ?? []);
           this.items.set([]);
           this.page.set(0);
           this.hasMore.set(this.fromListingCache.length > 0);
           this.appendFromListingPage(1);
           this.loadError.set(null);
+          this.persistCurrentState();
         },
         error: (error: unknown) => {
           if (error instanceof HttpErrorResponse && error.status === 0) {
@@ -164,6 +173,7 @@ export class ValueSectorFacade {
     const currentExpanded = this.expandedRouteId();
     if (currentExpanded === routeId) {
       this.expandedRouteId.set(null);
+      this.persistCurrentState();
       return;
     }
 
@@ -173,6 +183,7 @@ export class ValueSectorFacade {
     }
 
     this.expandedRouteId.set(routeId);
+    this.persistCurrentState();
   }
 
   selectProduct(routeId: string, productId: string): void {
@@ -189,6 +200,50 @@ export class ValueSectorFacade {
     this.selectedRouteId.set(routeId);
     this.expandedRouteId.set(routeId);
     this.selectedProductId.set(productId);
+    this.persistCurrentState();
+  }
+
+  rememberScrollPosition(scrollPosition: number): void {
+    const listingId = this.listingId();
+    if (!listingId) {
+      return;
+    }
+
+    const current = this.cachedStates()[listingId];
+    this.cachedStates.update((state) => ({
+      ...state,
+      [listingId]: {
+        ...(current ?? {
+          listingId,
+          residueName: this.listingResidueLabel(),
+          items: this.fromListingCache.length ? this.fromListingCache : this.items(),
+          selectedRouteId: this.selectedRouteId(),
+          selectedProductId: this.selectedProductId(),
+          expandedRouteId: this.expandedRouteId(),
+          scrollPosition: 0
+        }),
+        listingId,
+        residueName: this.listingResidueLabel(),
+        items: this.fromListingCache.length ? this.fromListingCache : this.items(),
+        selectedRouteId: this.selectedRouteId(),
+        selectedProductId: this.selectedProductId(),
+        expandedRouteId: this.expandedRouteId(),
+        scrollPosition,
+      }
+    }));
+  }
+
+  getRememberedScrollPosition(): number {
+    const listingId = this.listingId();
+    if (!listingId) {
+      return 0;
+    }
+
+    return this.cachedStates()[listingId]?.scrollPosition ?? 0;
+  }
+
+  hasLoadedListing(listingId: string | null): boolean {
+    return !!listingId && !!this.cachedStates()[listingId];
   }
 
   private loadInitialCatalog(): void {
@@ -204,19 +259,19 @@ export class ValueSectorFacade {
 
   private loadFromListing(listingId: string): void {
     this.isInitialLoading.set(true);
-    this.httpRepository
-      .getFromListing(listingId, true)
+    this.apiService
+      .generateValorizationIdeas(listingId)
       .pipe(finalize(() => this.isInitialLoading.set(false)))
       .subscribe({
         next: (response) => {
-          console.log('[ValueSector] GET from listing response', response);
-          this.listingResidueLabel.set(this.resolveResidueLabel(response.listing));
-          this.fromListingCache = this.normalizeRoutes(response.routes);
+          this.listingResidueLabel.set(response.listing?.specificResidue?.trim() || null);
+          this.fromListingCache = this.normalizeRoutes(response.routes ?? []);
           this.items.set([]);
           this.page.set(0);
-          this.hasMore.set(response.routes.length > 0);
+          this.hasMore.set(this.fromListingCache.length > 0);
           this.appendFromListingPage(1);
           this.loadError.set(null);
+          this.persistCurrentState();
         },
         error: (error: unknown) => {
           if (error instanceof HttpErrorResponse && error.status === 0) {
@@ -307,24 +362,46 @@ export class ValueSectorFacade {
     return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
   }
 
-  private resolveResidueLabel(listing: { specificResidue?: string; productType?: string } | null | undefined): string | null {
-    if (!listing) {
-      return null;
-    }
-
-    const residue = listing.specificResidue?.trim();
-    if (residue) {
-      return residue;
-    }
-
-    const productType = listing.productType?.trim();
-    return productType || null;
-  }
-
   private normalizeRoutes(routes: readonly ValueSectorRoute[]): readonly ValueSectorRoute[] {
     return routes.map((route) => ({
       ...route,
       routeName: route.routeName.replace(/^Sector\s+/i, '').trim()
     }));
+  }
+
+  private persistCurrentState(): void {
+    const listingId = this.listingId();
+    if (!listingId) {
+      return;
+    }
+
+    const previous = this.cachedStates()[listingId];
+    this.cachedStates.update((state) => ({
+      ...state,
+      [listingId]: {
+        listingId,
+        residueName: this.listingResidueLabel(),
+        items: this.fromListingCache.length ? this.fromListingCache : this.items(),
+        selectedRouteId: this.selectedRouteId(),
+        selectedProductId: this.selectedProductId(),
+        expandedRouteId: this.expandedRouteId(),
+        scrollPosition: previous?.scrollPosition ?? 0
+      }
+    }));
+  }
+
+  private restoreCachedState(cachedState: CachedValueSectorState): void {
+    this.listingId.set(cachedState.listingId);
+    this.fromListingMode.set(true);
+    this.listingResidueLabel.set(cachedState.residueName);
+    this.loadError.set(null);
+    this.selectedRouteId.set(cachedState.selectedRouteId);
+    this.selectedProductId.set(cachedState.selectedProductId);
+    this.expandedRouteId.set(cachedState.expandedRouteId);
+    this.page.set(0);
+    this.fromListingCache = cachedState.items;
+    this.items.set([]);
+    this.hasMore.set(cachedState.items.length > 0);
+    this.appendFromListingPage(1);
   }
 }

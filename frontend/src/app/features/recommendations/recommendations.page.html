@@ -1,6 +1,22 @@
 <section class="mx-auto w-full max-w-[1600px] overflow-x-hidden px-4 pb-10 pt-6 sm:px-6 lg:px-8">
   <header data-tour="recommendations-header" class="mb-5 flex w-full flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
     <div class="min-w-0">
+      @if (!usingCommercialMode()) {
+      <div class="mb-3 flex items-center gap-3">
+        <button
+          type="button"
+          aria-label="Volver a seleccionar producto"
+          title="Volver a seleccionar producto"
+          class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition-all duration-200 hover:-translate-x-0.5 hover:border-emerald-200 hover:text-emerald-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-emerald-200"
+          (click)="goBackToSectorSelection()">
+          <svg lucideArrowLeft class="h-5 w-5"></svg>
+        </button>
+
+        <span class="hidden text-xs font-medium uppercase tracking-[0.18em] text-slate-400 sm:inline">
+          Volver a seleccionar
+        </span>
+      </div>
+      }
       <h1 class="text-2xl font-semibold leading-tight text-slate-900 sm:text-3xl">
         {{ usingCommercialMode() ? 'Recomendaciones comerciales' : 'Motor de recomendaciones' }}
       </h1>
@@ -115,14 +131,12 @@
       }
     </section>
   } @else if (recommendation(); as data) {
-    @if (activeTab() === 'explanation') {
+    @if (activeTab() === 'process') {
       <div class="mt-6">
-        <app-recommendation-explanation
+        <app-manufacturing-process
           [recommendation]="data"
-          [selectedStep]="selectedExplanationStep()"
-          [selectedStepId]="selectedExplanationStepId()"
-          [environmentalSummary]="environmentalSummary()"
-          (stepSelected)="selectExplanationStep($event)" />
+          [selectedStepId]="selectedStepId()"
+          (stepSelected)="selectStep($event)" />
       </div>
     } @else if (activeTab() === 'market') {
       <div class="mt-6">
@@ -137,20 +151,8 @@
           (chartTypeChanged)="selectChartType($event)" />
       </div>
     } @else {
-      <div class="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
-        <div class="min-w-0">
-          <app-manufacturing-process
-            [recommendation]="data"
-            [selectedStepId]="selectedStepId()"
-            (stepSelected)="selectStep($event)" />
-        </div>
-
-        <div class="min-w-0">
-          <app-recommendation-summary-card
-            [recommendation]="data"
-            (explanationRequested)="goToExplanation()"
-            (marketRequested)="goToMarket()" />
-        </div>
+      <div class="mt-6">
+        <app-recommendation-complexity [recommendation]="data" />
       </div>
     }
   }

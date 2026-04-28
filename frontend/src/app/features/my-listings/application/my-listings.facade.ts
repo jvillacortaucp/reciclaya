@@ -24,15 +24,15 @@ export class MyListingsFacade {
   readonly toast = signal<ListingActionFeedback | null>(null);
 
   readonly filteredByTab = computed(() =>
-    this.applyFilters(this.listings(), this.filters()).filter((item) => item.status === this.activeTab())
+    this.applyFilters(this.listings(), this.filters()).filter((item) => item.status === 'active')
   );
 
   readonly counts = computed<ListingCountByStatus>(() => {
     const all = this.applyFilters(this.listings(), this.filters());
     return {
       active: all.filter((item) => item.status === 'active').length,
-      draft: all.filter((item) => item.status === 'draft').length,
-      inactive: all.filter((item) => item.status === 'inactive').length
+      draft: 0,
+      inactive: 0
     };
   });
 
@@ -68,7 +68,7 @@ export class MyListingsFacade {
   }
 
   setTab(tab: ListingTab): void {
-    this.activeTab.set(tab);
+    this.activeTab.set('active');
   }
 
   deactivate(id: string): void {
@@ -95,6 +95,14 @@ export class MyListingsFacade {
     this.toast.set({ type: 'info', message: MY_LISTINGS_COPY.exportedSuccess });
   }
 
+  showGeneratingRoutesToast(): void {
+    this.toast.set({ type: 'info', message: 'Generando rutas de valor...' });
+  }
+
+  showMissingListingToast(): void {
+    this.toast.set({ type: 'info', message: 'No se pudo identificar la publicación seleccionada.' });
+  }
+
   clearToast(): void {
     this.toast.set(null);
   }
@@ -116,7 +124,8 @@ export class MyListingsFacade {
         (filters.productType === 'all' || item.productType === filters.productType) &&
         (!filters.specificResidue ||
           item.specificResidue.toLowerCase().includes(filters.specificResidue.toLowerCase())) &&
-        (filters.status === 'all' || item.status === filters.status) &&
+        item.status === 'active' &&
+        filters.status === 'active' &&
         (filters.exchangeType === 'all' || item.exchangeType === filters.exchangeType)
       );
     });
@@ -133,7 +142,7 @@ export class MyListingsFacade {
       quantity: item.quantity,
       unitLabel: item.unit,
       estimatedPriceLabel: item.pricePerUnitUsd === null ? 'A coordinar' : `USD ${item.pricePerUnitUsd.toFixed(2)}`,
-      status: item.status === 'recent' ? 'draft' : 'active',
+      status: 'active',
       publishedAt: item.createdAt,
       exchangeType: item.exchangeType,
       exchangeLabel: this.mapExchangeLabel(item.exchangeType),

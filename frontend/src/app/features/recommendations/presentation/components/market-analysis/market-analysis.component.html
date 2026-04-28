@@ -15,7 +15,7 @@
           <app-finished-product-card [product]="market.finishedProduct" />
           <app-market-kpi-cards [kpis]="market.marketKpis" />
           <app-potential-buyers-grid
-            [buyers]="buyers()"
+            [buyers]="market.potentialBuyers"
             [selectedSegment]="selectedBuyerSegment()"
             (segmentSelected)="buyerSegmentChanged.emit($event)" />
           <div data-tour="market-costs">
