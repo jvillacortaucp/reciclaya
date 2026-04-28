@@ -8,8 +8,7 @@ export const LISTING_DETAIL_ROUTES: Route[] = [
       meta: {
         title: 'Detalle de listado',
         breadcrumb: 'Detalle',
-        icon: 'store',
-        permissions: ['view:marketplace']
+        icon: 'store'
       }
     }
   }

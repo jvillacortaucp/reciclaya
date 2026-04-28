@@ -8,8 +8,7 @@ export const MARKETPLACE_ROUTES: Route[] = [
       meta: {
         title: 'Marketplace',
         breadcrumb: 'Marketplace',
-        icon: 'store',
-        permissions: ['view:marketplace']
+        icon: 'store'
       }
     }
   }

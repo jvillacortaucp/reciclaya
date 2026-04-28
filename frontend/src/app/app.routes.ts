@@ -10,27 +10,40 @@ export const appRoutes: AppRoute[] = [
     loadChildren: () => import('./features/auth/routes/auth.routes').then((m) => m.AUTH_ROUTES)
   },
   {
-    path: 'marketplace',
+    path: 'app/marketplace',
+    pathMatch: 'full',
+    redirectTo: '/marketplace'
+  },
+  {
+    path: 'app/marketplace/:listingId',
+    redirectTo: '/marketplace/:listingId'
+  },
+  {
+    path: 'app/assistant-chat',
+    pathMatch: 'full',
+    redirectTo: '/assistant-chat'
+  },
+  {
+    path: 'app/chat',
+    pathMatch: 'full',
+    redirectTo: '/assistant-chat'
+  },
+  {
+    path: '',
     component: AppShellLayoutComponent,
     children: [
       {
-        path: '',
+        path: 'marketplace',
         loadChildren: () =>
           import('./features/marketplace/marketplace.routes').then((m) => m.MARKETPLACE_ROUTES)
       },
       {
-        path: ':listingId',
+        path: 'marketplace/:listingId',
         loadChildren: () =>
           import('./features/listing-detail/listing-detail.routes').then((m) => m.LISTING_DETAIL_ROUTES)
-      }
-    ]
-  },
-  {
-    path: 'assistant-chat',
-    component: AppShellLayoutComponent,
-    children: [
+      },
       {
-        path: '',
+        path: 'assistant-chat',
         loadChildren: () =>
           import('./features/assistant-chat/assistant-chat.routes').then((m) => m.ASSISTANT_CHAT_ROUTES)
       }
@@ -78,27 +91,8 @@ export const appRoutes: AppRoute[] = [
           )
       },
       {
-        path: 'marketplace',
-        pathMatch: 'full',
-        redirectTo: '/marketplace'
-      },
-      {
-        path: 'marketplace/:listingId',
-        redirectTo: '/marketplace/:listingId'
-      },
-      {
         path: 'pre-orders',
         loadChildren: () => import('./features/pre-orders/pre-orders.routes').then((m) => m.PRE_ORDERS_ROUTES)
-      },
-      {
-        path: 'assistant-chat',
-        pathMatch: 'full',
-        redirectTo: '/assistant-chat'
-      },
-      {
-        path: 'chat',
-        pathMatch: 'full',
-        redirectTo: '/assistant-chat'
       },
       {
         path: 'orders',
@@ -139,5 +133,5 @@ export const appRoutes: AppRoute[] = [
     ]
   },
   { path: '', pathMatch: 'full', redirectTo: 'marketplace' },
-  { path: '**', redirectTo: 'auth/login' }
+  { path: '**', redirectTo: 'marketplace' }
 ];

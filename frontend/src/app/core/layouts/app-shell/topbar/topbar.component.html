@@ -28,28 +28,30 @@
         </div>
       </form>
     </div>
-    <div class="flex items-center lg:order-2 space-x-2">
-      <button
-        type="button"
-        class="p-2 text-slate-400 rounded-lg hover:text-slate-900 hover:bg-slate-50 transition-colors"
-      >
-        <span class="sr-only">View notifications</span>
-        <svg lucideBell class="w-6 h-6"></svg>
-      </button>
-      <button
-        type="button"
-        class="flex items-center space-x-3 ml-2 group"
-        id="user-menu-button"
-      >
-        <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-700 font-bold text-xs border border-slate-200 overflow-hidden group-hover:bg-slate-200 transition-colors">
-          @if (avatarUrl()) {
-            <img [src]="avatarUrl()!" [alt]="displayName()" class="h-full w-full object-cover" />
-          } @else {
-            {{ initials() }}
-          }
-        </div>
-        <span class="hidden md:block text-sm font-medium text-slate-700">{{ displayName() }}</span>
-      </button>
-    </div>
+    @if (isAuthenticated()) {
+      <div class="flex items-center lg:order-2 space-x-2">
+        <button
+          type="button"
+          class="p-2 text-slate-400 rounded-lg hover:text-slate-900 hover:bg-slate-50 transition-colors"
+        >
+          <span class="sr-only">View notifications</span>
+          <svg lucideBell class="w-6 h-6"></svg>
+        </button>
+        <button
+          type="button"
+          class="flex items-center space-x-3 ml-2 group"
+          id="user-menu-button"
+        >
+          <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-700 font-bold text-xs border border-slate-200 overflow-hidden group-hover:bg-slate-200 transition-colors">
+            @if (avatarUrl()) {
+              <img [src]="avatarUrl()!" [alt]="displayName()" class="h-full w-full object-cover" />
+            } @else {
+              {{ initials() }}
+            }
+          </div>
+          <span class="hidden md:block text-sm font-medium text-slate-700">{{ displayName() }}</span>
+        </button>
+      </div>
+    }
   </div>
 </nav>
