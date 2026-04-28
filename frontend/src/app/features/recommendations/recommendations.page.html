@@ -133,12 +133,10 @@
   } @else if (recommendation(); as data) {
     @if (activeTab() === 'process') {
       <div class="mt-6">
-        <app-recommendation-explanation
+        <app-manufacturing-process
           [recommendation]="data"
-          [selectedStep]="selectedExplanationStep()"
-          [selectedStepId]="selectedExplanationStepId()"
-          [environmentalSummary]="environmentalSummary()"
-          (stepSelected)="selectExplanationStep($event)" />
+          [selectedStepId]="selectedStepId()"
+          (stepSelected)="selectStep($event)" />
       </div>
     } @else if (activeTab() === 'market') {
       <div class="mt-6">

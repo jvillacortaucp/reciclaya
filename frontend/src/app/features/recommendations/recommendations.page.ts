@@ -1,13 +1,13 @@
 import { Location } from '@angular/common';
 import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, ParamMap, Router } from '@angular/router';
 import { LucideArrowLeft, LucideBookmark, LucideSparkles } from '@lucide/angular';
 import { combineLatest } from 'rxjs';
 import { RecommendationsFacade } from './application/recommendations.facade';
 import { MarketAnalysisComponent } from './presentation/components/market-analysis/market-analysis.component';
+import { ManufacturingProcessComponent } from './presentation/components/manufacturing-process/manufacturing-process.component';
 import { RecommendationComplexityComponent } from './presentation/components/recommendation-complexity/recommendation-complexity.component';
-import { RecommendationExplanationComponent } from './presentation/components/recommendation-explanation/recommendation-explanation.component';
 import { RecommendationTabsComponent } from './presentation/components/recommendation-tabs/recommendation-tabs.component';
 import { BuyerScope, RecommendationTab } from './models/recommendation.model';
 
@@ -21,8 +21,8 @@ import { BuyerScope, RecommendationTab } from './models/recommendation.model';
     LucideSparkles,
     RecommendationTabsComponent,
     MarketAnalysisComponent,
+    ManufacturingProcessComponent,
     RecommendationComplexityComponent,
-    RecommendationExplanationComponent
   ],
   templateUrl: './recommendations.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -43,6 +43,7 @@ export class RecommendationsPageComponent implements OnInit {
   protected readonly usingCommercialMode = this.facade.usingCommercialMode;
   protected readonly activeTab = this.facade.activeTab;
   protected readonly explanationData = this.facade.explanationSteps;
+  protected readonly selectedStepId = this.facade.selectedStepId;
   protected readonly selectedExplanationStepId = this.facade.selectedExplanationStepId;
   protected readonly selectedExplanationStep = this.facade.selectedExplanationStep;
   protected readonly environmentalSummary = this.facade.environmentalSummary;
@@ -54,7 +55,7 @@ export class RecommendationsPageComponent implements OnInit {
   ngOnInit(): void {
     combineLatest([this.route.paramMap, this.route.queryParamMap])
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(([params, query]) => {
+      .subscribe(([params, query]: [ParamMap, ParamMap]) => {
         const productId = params.get('productId');
         const tab = this.parseTab(query.get('tab'));
         this.sourceListingId.set(query.get('listing'));
@@ -84,6 +85,10 @@ export class RecommendationsPageComponent implements OnInit {
 
   protected selectExplanationStep(stepId: string): void {
     this.facade.selectExplanationStep(stepId);
+  }
+
+  protected selectStep(stepId: string): void {
+    this.facade.selectStep(stepId);
   }
 
   protected selectBuyerSegment(segment: BuyerScope): void {

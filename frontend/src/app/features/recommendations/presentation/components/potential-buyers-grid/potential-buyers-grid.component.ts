@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import { LucideBuilding2, LucideLeaf, LucideStore } from '@lucide/angular';
 import { BuyerScope, BuyerSegment } from '../../../models/recommendation.model';
 
@@ -26,6 +26,14 @@ export class PotentialBuyersGridComponent {
   segmentSelected = output<BuyerScope>();
 
   protected readonly filterOptions = FILTER_OPTIONS;
+
+  protected readonly visibleBuyers = computed<readonly BuyerSegment[]>(() => {
+    const items = this.buyers();
+    const segment = this.selectedSegment();
+
+    const filtered = items.filter((buyer) => buyer.scope === segment);
+    return filtered.length > 0 ? filtered : items;
+  });
 
   protected trackByBuyer(_: number, item: BuyerSegment): string {
     return item.id;

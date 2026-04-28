@@ -238,15 +238,15 @@ export class RecommendationsHttpRepository {
           useCase: detail.marketAnalysis?.finishedProduct?.useCase ?? detail.expectedOutcome,
           suggestedFormat: detail.marketAnalysis?.finishedProduct?.suggestedFormat ?? '',
           suggestedPricePerKg: Number(detail.marketAnalysis?.finishedProduct?.suggestedPricePerKg ?? 0),
-          opportunityTag: detail.marketAnalysis?.finishedProduct?.opportunityTag ?? '',
+          opportunityTag: this.translateMarketText(detail.marketAnalysis?.finishedProduct?.opportunityTag ?? ''),
           productImageUrl: detail.marketAnalysis?.finishedProduct?.productImageUrl ?? ''
         },
         potentialBuyers: buyers,
         marketKpis: (detail.marketAnalysis?.marketKpis ?? []).map((kpi) => ({
           id: kpi.id,
-          label: kpi.label,
-          value: kpi.value,
-          helper: kpi.helper,
+          label: this.translateMarketText(kpi.label),
+          value: this.translateMarketText(kpi.value),
+          helper: this.translateMarketText(kpi.helper),
           trendPercent: Number(kpi.trendPercent ?? 0),
           tone: this.normalizeKpiTone(kpi.tone)
         })),
@@ -265,13 +265,13 @@ export class RecommendationsHttpRepository {
           positioningRecommendation: detail.marketAnalysis?.competitionInsight?.positioningRecommendation ?? ''
         },
         opportunitySummary: {
-          generatedAt: detail.marketAnalysis?.opportunitySummary?.generatedAt ?? '',
-          initialInvestment: detail.marketAnalysis?.opportunitySummary?.initialInvestment ?? '',
-          paybackPeriod: detail.marketAnalysis?.opportunitySummary?.paybackPeriod ?? '',
-          monthlyProfitability: detail.marketAnalysis?.opportunitySummary?.monthlyProfitability ?? '',
+          generatedAt: this.translateMarketText(detail.marketAnalysis?.opportunitySummary?.generatedAt ?? ''),
+          initialInvestment: this.normalizeCurrencyText(detail.marketAnalysis?.opportunitySummary?.initialInvestment ?? ''),
+          paybackPeriod: this.translateMarketText(detail.marketAnalysis?.opportunitySummary?.paybackPeriod ?? ''),
+          monthlyProfitability: this.normalizeCurrencyText(detail.marketAnalysis?.opportunitySummary?.monthlyProfitability ?? ''),
           sustainabilityScore: detail.marketAnalysis?.opportunitySummary?.sustainabilityScore ?? '',
-          nextSteps: detail.marketAnalysis?.opportunitySummary?.nextSteps ?? [],
-          ecoTip: detail.marketAnalysis?.opportunitySummary?.ecoTip ?? ''
+          nextSteps: (detail.marketAnalysis?.opportunitySummary?.nextSteps ?? []).map((step) => this.translateMarketText(step)),
+          ecoTip: this.translateMarketText(detail.marketAnalysis?.opportunitySummary?.ecoTip ?? '')
         },
         chartLabels: detail.marketAnalysis?.chartLabels ?? [],
         chartSeries: (detail.marketAnalysis?.chartSeries ?? []).map((value) => Number(value ?? 0))
@@ -344,6 +344,28 @@ export class RecommendationsHttpRepository {
     }
 
     return 'slate';
+  }
+
+  private translateMarketText(text: string): string {
+    if (!text) {
+      return text;
+    }
+
+    return text
+      .replace(/Opportunity:\s*High/gi, 'Oportunidad: Alta')
+      .replace(/Opportunity:\s*Medium/gi, 'Oportunidad: Media')
+      .replace(/Opportunity:\s*Low/gi, 'Oportunidad: Baja')
+      .replace(/Potential Demand/gi, 'Demanda potencial')
+      .replace(/Impact/gi, 'Impacto')
+      .replace(/Competition/gi, 'Competencia')
+      .replace(/Growth/gi, 'Crecimiento')
+      .replace(/Niche opportunity/gi, 'Oportunidad de nicho')
+      .replace(/High/gi, 'Alto')
+      .replace(/Low/gi, 'Bajo');
+  }
+
+  private normalizeCurrencyText(text: string): string {
+    return this.translateMarketText((text ?? '').replace(/\$/g, 'S/ '));
   }
 
   private normalizeRecommendation(item: Recommendation): Recommendation {
