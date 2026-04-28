@@ -1,6 +1,6 @@
 import { ValueSectorRoute } from '../models/value-sector.model';
 import { MarketPotential, ComplexityLevel } from '../models/value-sector.model';
-import { ValorizationIdeasResponse } from '../models/value-sector-api.model';
+import { ValorizationIdeaApiItem, ValorizationIdeasResponse } from '../models/value-sector-api.model';
 
 const ROUTE_ICON_BY_NAME: Readonly<Record<string, string>> = {
   alimentaria: 'Utensils',
@@ -83,28 +83,41 @@ const ROUTE_FALLBACK_DETAILS: Readonly<Record<string, { insight: string; imageUr
 export function mapValorizationResponseToValueSectors(
   response: ValorizationIdeasResponse
 ): readonly ValueSectorRoute[] {
-  return response.ideas.map((idea) => {
-    const normalizedRouteName = normalizeRouteKey(idea.routeName);
+  return response.map((idea) => {
+    const normalizedRouteName = normalizeRouteKey(resolveRouteName(idea));
     const routeDetails =
       ROUTE_FALLBACK_DETAILS[normalizedRouteName] ?? ROUTE_FALLBACK_DETAILS['default'];
+    const marketPotential = normalizePotential(idea.viabilityLevel ?? 'medium');
+    const routeName = resolveRouteName(idea);
+    const productDescription = buildProductDescription(idea);
 
     return {
       id: idea.id,
-      routeName: idea.routeName,
-      shortDescription: idea.description,
-      iconName: getIconByRouteName(idea.routeName),
-      marketPotential: normalizePotential(idea.marketPotential),
-      targetIndustries: idea.targetIndustries ?? [],
-      products: idea.products.map((product) => ({
-        id: product.id,
-        name: product.name,
-        description: product.description,
-        complexity: normalizeComplexity(product.complexity),
-        marketPotential: normalizePotential(product.marketPotential),
-        potentialUse: product.potentialUse ?? product.description
-      })),
-      insight: routeDetails.insight,
-      heroImageUrl: routeDetails.imageUrl
+      routeName,
+      shortDescription: idea.summary?.trim() || productDescription,
+      iconName: getIconByRouteName(routeName),
+      marketPotential,
+      targetIndustries: normalizeTargetIndustries(idea.potentialBuyers),
+      products: [
+        {
+          id: `${idea.id}-product`,
+          name: idea.suggestedProduct?.trim() || routeName,
+          description: productDescription,
+          complexity: normalizeComplexity(idea.viabilityLevel ?? 'medium'),
+          marketPotential,
+          potentialUse: idea.processOverview?.trim() || productDescription,
+          processOverview: idea.processOverview?.trim() || undefined,
+          requiredConditions: idea.requiredConditions ?? [],
+          potentialBuyers: idea.potentialBuyers ?? [],
+          warnings: idea.warnings ?? [],
+          source: idea.source ?? undefined,
+          sellerRecommendation: idea.sellerRecommendation?.trim() || undefined,
+          buyerRecommendation: idea.buyerRecommendation?.trim() || undefined
+        }
+      ],
+      insight: idea.sellerRecommendation?.trim() || idea.buyerRecommendation?.trim() || routeDetails.insight,
+      heroImageUrl: routeDetails.imageUrl,
+      source: idea.source ?? undefined
     };
   });
 }
@@ -133,6 +146,51 @@ export function normalizePotential(value: string): MarketPotential {
 
 export function getIconByRouteName(routeName: string): string {
   return ROUTE_ICON_BY_NAME[normalizeRouteKey(routeName)] ?? 'Compass';
+}
+
+function resolveRouteName(idea: ValorizationIdeaApiItem): string {
+  const strategy = (idea.recommendedStrategy ?? '').toString().trim().toLowerCase();
+
+  switch (strategy) {
+    case 'sell_as_is':
+      return 'Marketplace';
+    case 'partner_with_processor':
+      return 'Biomateriales';
+    case 'buy_to_transform':
+      return 'Agricultura';
+    default:
+      return extractRouteNameFromTitle(idea.title) || idea.suggestedProduct?.trim() || 'Ruta de valorización';
+  }
+}
+
+function extractRouteNameFromTitle(title: string): string | null {
+  const normalizedTitle = title.trim();
+  if (!normalizedTitle) {
+    return null;
+  }
+
+  if (normalizedTitle.toLowerCase().includes('compost') || normalizedTitle.toLowerCase().includes('abono')) {
+    return 'Agricultura';
+  }
+
+  if (normalizedTitle.toLowerCase().includes('bioinsumo') || normalizedTitle.toLowerCase().includes('sustrato')) {
+    return 'Biomateriales';
+  }
+
+  if (normalizedTitle.toLowerCase().includes('alimento animal')) {
+    return 'Alimento animal';
+  }
+
+  return null;
+}
+
+function buildProductDescription(idea: ValorizationIdeaApiItem): string {
+  const parts = [idea.summary?.trim(), idea.estimatedImpact?.trim()].filter(Boolean);
+  return parts.join(' ') || 'Oportunidad de valorización generada a partir del residuo seleccionado.';
+}
+
+function normalizeTargetIndustries(potentialBuyers: readonly string[] | null | undefined): readonly string[] {
+  return (potentialBuyers ?? []).map((buyer) => buyer.trim()).filter(Boolean);
 }
 
 function normalizeRouteKey(routeName: string): string {
