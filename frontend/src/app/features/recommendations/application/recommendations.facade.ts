@@ -6,6 +6,7 @@ import { RecommendationsHttpRepository } from '../recommendations-http.repositor
 import { RecommendationsService } from '../infrastructure/recommendations.service';
 import {
   BuyerSegment,
+  BuyerScope,
   ChartType,
   CostView,
   ExplanationStep,
@@ -27,7 +28,7 @@ export class RecommendationsFacade {
   readonly activeTab = signal<RecommendationTab>('process');
   readonly selectedStepId = signal<string | null>(null);
   readonly selectedExplanationStepId = signal<string | null>(null);
-  readonly selectedBuyerSegment = signal<string>('all');
+  readonly selectedBuyerSegment = signal<BuyerScope>('nacional');
   readonly selectedCostView = signal<CostView>('percent');
   readonly selectedChartType = signal<ChartType>('donut');
 
@@ -57,9 +58,7 @@ export class RecommendationsFacade {
   readonly filteredBuyers = computed<readonly BuyerSegment[]>(() => {
     const market = this.marketData();
     if (!market) return [];
-    const selectedSegment = this.selectedBuyerSegment();
-    if (selectedSegment === 'all') return market.potentialBuyers;
-    return market.potentialBuyers.filter((buyer) => buyer.type === selectedSegment);
+    return market.potentialBuyers.filter((buyer) => buyer.scope === this.selectedBuyerSegment());
   });
 
   load(productId?: string | null, tab: RecommendationTab = 'process'): void {
@@ -111,7 +110,7 @@ export class RecommendationsFacade {
     this.selectedExplanationStepId.set(stepId);
   }
 
-  setSelectedBuyerSegment(segment: string): void {
+  setSelectedBuyerSegment(segment: BuyerScope): void {
     this.selectedBuyerSegment.set(segment);
   }
 

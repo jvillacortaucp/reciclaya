@@ -11,7 +11,7 @@ export const VALUE_SECTOR_TEXT = {
   targetIndustriesTitle: 'Industrias objetivo',
   insightTitle: 'Recomendación rápida',
   continueButton: 'Ver proceso',
-  processButton: 'Ver explicación',
+  processButton: 'Ver nivel de complejidad',
   marketAnalysisLink: 'Ver análisis de mercado',
   loadingMessage: 'Generando rutas de valor para este residuo...',
   retryButton: 'Reintentar',

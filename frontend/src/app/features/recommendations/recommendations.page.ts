@@ -4,12 +4,11 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { LucideBookmark, LucideSparkles } from '@lucide/angular';
 import { combineLatest } from 'rxjs';
 import { RecommendationsFacade } from './application/recommendations.facade';
-import { ManufacturingProcessComponent } from './presentation/components/manufacturing-process/manufacturing-process.component';
 import { MarketAnalysisComponent } from './presentation/components/market-analysis/market-analysis.component';
+import { RecommendationComplexityComponent } from './presentation/components/recommendation-complexity/recommendation-complexity.component';
 import { RecommendationExplanationComponent } from './presentation/components/recommendation-explanation/recommendation-explanation.component';
-import { RecommendationSummaryCardComponent } from './presentation/components/recommendation-summary-card/recommendation-summary-card.component';
 import { RecommendationTabsComponent } from './presentation/components/recommendation-tabs/recommendation-tabs.component';
-import { RecommendationTab } from './models/recommendation.model';
+import { BuyerScope, RecommendationTab } from './models/recommendation.model';
 
 @Component({
   selector: 'app-recommendations-page',
@@ -19,10 +18,9 @@ import { RecommendationTab } from './models/recommendation.model';
     LucideBookmark,
     LucideSparkles,
     RecommendationTabsComponent,
-    ManufacturingProcessComponent,
     MarketAnalysisComponent,
-    RecommendationExplanationComponent,
-    RecommendationSummaryCardComponent
+    RecommendationComplexityComponent,
+    RecommendationExplanationComponent
   ],
   templateUrl: './recommendations.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -40,8 +38,6 @@ export class RecommendationsPageComponent implements OnInit {
   protected readonly commercialRecommendations = this.facade.commercialRecommendations;
   protected readonly usingCommercialMode = this.facade.usingCommercialMode;
   protected readonly activeTab = this.facade.activeTab;
-  protected readonly selectedStepId = this.facade.selectedStepId;
-  protected readonly selectedStep = this.facade.selectedStep;
   protected readonly explanationData = this.facade.explanationSteps;
   protected readonly selectedExplanationStepId = this.facade.selectedExplanationStepId;
   protected readonly selectedExplanationStep = this.facade.selectedExplanationStep;
@@ -81,23 +77,11 @@ export class RecommendationsPageComponent implements OnInit {
     });
   }
 
-  protected selectStep(stepId: string): void {
-    this.facade.selectStep(stepId);
-  }
-
   protected selectExplanationStep(stepId: string): void {
     this.facade.selectExplanationStep(stepId);
   }
 
-  protected goToExplanation(): void {
-    this.setTab('explanation');
-  }
-
-  protected goToMarket(): void {
-    this.setTab('market');
-  }
-
-  protected selectBuyerSegment(segment: string): void {
+  protected selectBuyerSegment(segment: BuyerScope): void {
     this.facade.setSelectedBuyerSegment(segment);
   }
 

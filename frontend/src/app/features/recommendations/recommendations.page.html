@@ -88,7 +88,7 @@
       }
     </section>
   } @else if (recommendation(); as data) {
-    @if (activeTab() === 'explanation') {
+    @if (activeTab() === 'process') {
       <div class="mt-6">
         <app-recommendation-explanation
           [recommendation]="data"
@@ -110,20 +110,8 @@
           (chartTypeChanged)="selectChartType($event)" />
       </div>
     } @else {
-      <div class="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
-        <div class="min-w-0">
-          <app-manufacturing-process
-            [recommendation]="data"
-            [selectedStepId]="selectedStepId()"
-            (stepSelected)="selectStep($event)" />
-        </div>
-
-        <div class="min-w-0">
-          <app-recommendation-summary-card
-            [recommendation]="data"
-            (explanationRequested)="goToExplanation()"
-            (marketRequested)="goToMarket()" />
-        </div>
+      <div class="mt-6">
+        <app-recommendation-complexity [recommendation]="data" />
       </div>
     }
   }

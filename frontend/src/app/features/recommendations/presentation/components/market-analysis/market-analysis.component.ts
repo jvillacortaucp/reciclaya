@@ -1,5 +1,11 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
-import { RecommendationProcess, CostView, ChartType, BuyerSegment } from '../../../models/recommendation.model';
+import {
+  RecommendationProcess,
+  CostView,
+  ChartType,
+  BuyerSegment,
+  BuyerScope
+} from '../../../models/recommendation.model';
 import { CompetitionInsightCardComponent } from '../competition-insight-card/competition-insight-card.component';
 import { CostProfitAnalysisComponent } from '../cost-profit-analysis/cost-profit-analysis.component';
 import { FinishedProductCardComponent } from '../finished-product-card/finished-product-card.component';
@@ -24,11 +30,11 @@ import { PotentialBuyersGridComponent } from '../potential-buyers-grid/potential
 export class MarketAnalysisComponent {
   recommendation = input<RecommendationProcess | null>(null);
   buyers = input<readonly BuyerSegment[]>([]);
-  selectedBuyerSegment = input<string>('all');
+  selectedBuyerSegment = input<BuyerScope>('nacional');
   selectedCostView = input<CostView>('percent');
   selectedChartType = input<ChartType>('donut');
 
-  buyerSegmentChanged = output<string>();
+  buyerSegmentChanged = output<BuyerScope>();
   costViewChanged = output<CostView>();
   chartTypeChanged = output<ChartType>();
 }

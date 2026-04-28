@@ -1,0 +1,268 @@
+import { NgClass } from '@angular/common';
+import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import {
+  LucideActivity,
+  LucideBadgeDollarSign,
+  LucideBrain,
+  LucideClock3,
+  LucideFactory,
+  LucideLeaf,
+  LucideShieldAlert,
+  LucideSparkles,
+  LucideWrench
+} from '@lucide/angular';
+import { ComplexityOverview, RecommendationProcess, StepRiskLevel } from '../../../models/recommendation.model';
+
+interface ComplexityItemViewModel {
+  readonly label: string;
+  readonly value: string;
+  readonly icon: ComplexityItemIcon;
+  readonly tone: 'emerald' | 'amber' | 'slate' | 'rose';
+  readonly accentClass: string;
+  readonly panelClass: string;
+}
+
+type ComplexityItemIcon = 'activity' | 'wrench' | 'brain' | 'clock' | 'dollar' | 'shield' | 'leaf';
+
+@Component({
+  selector: 'app-recommendation-complexity',
+  standalone: true,
+  imports: [
+    NgClass,
+    LucideActivity,
+    LucideWrench,
+    LucideBrain,
+    LucideClock3,
+    LucideBadgeDollarSign,
+    LucideShieldAlert,
+    LucideLeaf,
+    LucideFactory,
+    LucideSparkles
+  ],
+  templateUrl: './recommendation-complexity.component.html',
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class RecommendationComplexityComponent {
+  recommendation = input.required<RecommendationProcess>();
+
+  protected readonly complexityOverview = computed<ComplexityOverview>(() => {
+    const recommendation = this.recommendation();
+    const fallbackOverview = this.buildFallbackOverview(recommendation);
+    return {
+      processingRequired: recommendation.complexityOverview?.processingRequired ?? fallbackOverview.processingRequired,
+      equipmentNeeded: recommendation.complexityOverview?.equipmentNeeded ?? fallbackOverview.equipmentNeeded,
+      technicalKnowledge: recommendation.complexityOverview?.technicalKnowledge ?? fallbackOverview.technicalKnowledge,
+      transformationTime: recommendation.complexityOverview?.transformationTime ?? fallbackOverview.transformationTime,
+      estimatedCost: recommendation.complexityOverview?.estimatedCost ?? fallbackOverview.estimatedCost,
+      operationalRisk: recommendation.complexityOverview?.operationalRisk ?? fallbackOverview.operationalRisk,
+      positiveEnvironmentalImpact:
+        recommendation.complexityOverview?.positiveEnvironmentalImpact ?? fallbackOverview.positiveEnvironmentalImpact
+    };
+  });
+
+  protected readonly items = computed<readonly ComplexityItemViewModel[]>(() => {
+    const overview = this.complexityOverview();
+    return [
+      this.createItem('Procesamiento requerido', this.getValue(overview.processingRequired), 'activity', 'emerald'),
+      this.createItem('Equipos necesarios', this.getValue(overview.equipmentNeeded), 'wrench', 'slate'),
+      this.createItem('Conocimiento técnico', this.getValue(overview.technicalKnowledge), 'brain', 'amber'),
+      this.createItem('Tiempo de transformación', this.getValue(overview.transformationTime), 'clock', 'slate'),
+      this.createItem('Costo estimado', this.getValue(overview.estimatedCost), 'dollar', 'amber'),
+      this.createItem('Riesgo operativo', this.getValue(overview.operationalRisk), 'shield', 'rose'),
+      this.createItem('Impacto ambiental positivo', this.getValue(overview.positiveEnvironmentalImpact), 'leaf', 'emerald')
+    ];
+  });
+
+  protected readonly complexityLabel = computed<string>(() => {
+    const complexity = this.recommendation().complexity;
+    if (complexity === 'high') {
+      return 'Alta';
+    }
+    if (complexity === 'medium') {
+      return 'Media';
+    }
+    return 'Baja';
+  });
+
+  protected readonly complexityPercent = computed<number>(() => {
+    const complexity = this.recommendation().complexity;
+    if (complexity === 'high') {
+      return 86;
+    }
+    if (complexity === 'medium') {
+      return 58;
+    }
+    return 32;
+  });
+
+  protected readonly complexityTone = computed<'emerald' | 'amber' | 'rose'>(() => {
+    const complexity = this.recommendation().complexity;
+    if (complexity === 'high') {
+      return 'rose';
+    }
+    if (complexity === 'medium') {
+      return 'amber';
+    }
+    return 'emerald';
+  });
+
+  protected readonly complexityBadgeClass = computed<string>(() => {
+    const tone = this.complexityTone();
+    if (tone === 'rose') {
+      return 'border border-rose-200 bg-rose-50 text-rose-700';
+    }
+    if (tone === 'amber') {
+      return 'border border-amber-200 bg-amber-50 text-amber-700';
+    }
+    return 'border border-emerald-200 bg-emerald-50 text-emerald-700';
+  });
+
+  protected readonly complexityMeterClass = computed<string>(() => {
+    const tone = this.complexityTone();
+    if (tone === 'rose') {
+      return 'bg-gradient-to-r from-rose-500 via-rose-400 to-rose-300';
+    }
+    if (tone === 'amber') {
+      return 'bg-gradient-to-r from-amber-500 via-amber-400 to-orange-300';
+    }
+    return 'bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-400';
+  });
+
+  private buildFallbackOverview(recommendation: RecommendationProcess): ComplexityOverview {
+    const processingRequired = recommendation.processSteps
+      .slice(0, 5)
+      .map((step) => step.title)
+      .join(', ');
+
+    const equipmentNeeded = recommendation.principalEquipment.slice(0, 4).join(', ');
+
+    const positiveEnvironmentalImpact = Array.from(
+      new Set(recommendation.explanationSteps.flatMap((step) => step.natureBenefits))
+    ).join(', ');
+
+    return {
+      processingRequired,
+      equipmentNeeded,
+      technicalKnowledge: this.mapTechnicalKnowledge(recommendation.complexity),
+      transformationTime: recommendation.totalEstimatedTime,
+      estimatedCost: this.mapEstimatedCost(recommendation.approximateCost),
+      operationalRisk: this.mapOperationalRisk(recommendation.processSteps.map((step) => step.riskLevel)),
+      positiveEnvironmentalImpact
+    };
+  }
+
+  private mapTechnicalKnowledge(complexity: RecommendationProcess['complexity']): string {
+    if (complexity === 'high') {
+      return 'Especializado';
+    }
+
+    if (complexity === 'medium') {
+      return 'Intermedio';
+    }
+
+    return 'Básico';
+  }
+
+  private mapEstimatedCost(costLabel: string): string {
+    const normalized = costLabel.toLowerCase();
+    if (normalized.includes('6') || normalized.includes('7') || normalized.includes('8') || normalized.includes('9')) {
+      return 'Alto';
+    }
+
+    if (normalized.includes('4') || normalized.includes('5') || normalized.includes('3')) {
+      return 'Medio';
+    }
+
+    return 'Bajo';
+  }
+
+  private mapOperationalRisk(riskLevels: readonly StepRiskLevel[]): string {
+    if (riskLevels.includes('high')) {
+      return 'Alto';
+    }
+
+    if (riskLevels.includes('medium')) {
+      return 'Medio';
+    }
+
+    return 'Bajo';
+  }
+
+  private getValue(value: string | null | undefined): string {
+    return value?.trim() || 'No especificado';
+  }
+
+  protected getCardLayoutClass(index: number): string {
+    if (index === 0) {
+      return 'md:col-span-2 2xl:col-span-7';
+    }
+
+    if (index === 6) {
+      return 'md:col-span-2 2xl:col-span-5';
+    }
+
+    return '2xl:col-span-4';
+  }
+
+  protected getToneBarClass(tone: ComplexityItemViewModel['tone']): string {
+    switch (tone) {
+      case 'emerald':
+        return 'from-emerald-500 via-emerald-300 to-transparent';
+      case 'amber':
+        return 'from-amber-500 via-amber-300 to-transparent';
+      case 'rose':
+        return 'from-rose-500 via-rose-300 to-transparent';
+      default:
+        return 'from-slate-500 via-slate-300 to-transparent';
+    }
+  }
+
+  protected getDisplayIndex(index: number): string {
+    return index < 9 ? `0${index + 1}` : String(index + 1);
+  }
+
+  private createItem(
+    label: string,
+    value: string,
+    icon: ComplexityItemIcon,
+    tone: ComplexityItemViewModel['tone']
+  ): ComplexityItemViewModel {
+    const styles = this.getToneStyles(tone);
+    return {
+      label,
+      value,
+      icon,
+      tone,
+      accentClass: styles.accentClass,
+      panelClass: styles.panelClass
+    };
+  }
+
+  private getToneStyles(tone: ComplexityItemViewModel['tone']): {
+    accentClass: string;
+    panelClass: string;
+  } {
+    switch (tone) {
+      case 'rose':
+        return {
+          accentClass: 'bg-rose-50 text-rose-700 border border-rose-100',
+          panelClass: 'from-white via-rose-50/40 to-white'
+        };
+      case 'amber':
+        return {
+          accentClass: 'bg-amber-50 text-amber-700 border border-amber-100',
+          panelClass: 'from-white via-amber-50/40 to-white'
+        };
+      case 'emerald':
+        return {
+          accentClass: 'bg-emerald-50 text-emerald-700 border border-emerald-100',
+          panelClass: 'from-white via-emerald-50/40 to-white'
+        };
+      default:
+        return {
+          accentClass: 'bg-slate-100 text-slate-700 border border-slate-200',
+          panelClass: 'from-white via-slate-50/50 to-white'
+        };
+    }
+  }
+}
