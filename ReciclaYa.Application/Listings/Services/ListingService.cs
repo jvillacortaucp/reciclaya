@@ -52,13 +52,21 @@ public sealed class ListingService(IAuthDbContext dbContext) : IListingService
     public async Task PublishAsync(
         Guid sellerId,
         WasteSellRequestDto request,
+        Guid? listingId = null,
         CancellationToken cancellationToken = default)
     {
         var now = DateTime.UtcNow;
-        var listing = await GetCurrentDraftAsync(sellerId, cancellationToken);
+        var listing = listingId.HasValue
+            ? await GetOwnedListingAsync(sellerId, listingId.Value, cancellationToken)
+            : await GetCurrentDraftAsync(sellerId, cancellationToken);
 
         if (listing is null)
         {
+            if (listingId.HasValue)
+            {
+                throw new InvalidOperationException("No se encontró la publicación a editar.");
+            }
+
             listing = new Listing
             {
                 Id = Guid.NewGuid(),
@@ -95,6 +103,7 @@ public sealed class ListingService(IAuthDbContext dbContext) : IListingService
     public async Task<MarketplaceListingsPageDto> GetMarketplaceListingsAsync(
         int page,
         int pageSize,
+        string? queryText,
         string? wasteType,
         string? sector,
         string? productType,
@@ -103,15 +112,15 @@ public sealed class ListingService(IAuthDbContext dbContext) : IListingService
         var normalizedPage = page < 1 ? DefaultPage : page;
         var normalizedPageSize = pageSize < 1 ? DefaultPageSize : Math.Min(pageSize, MaxPageSize);
 
-        var query = dbContext.Listings
+        var listingsQuery = dbContext.Listings
             .AsNoTracking()
             .Include(listing => listing.Media)
             .Where(listing => listing.Status == ListingStatus.Published && listing.DeletedAt == null);
 
-        query = ApplyFilters(query, wasteType, sector, productType);
+        listingsQuery = ApplyFilters(listingsQuery, queryText, wasteType, sector, productType);
 
-        var total = await query.CountAsync(cancellationToken);
-        var items = await query
+        var total = await listingsQuery.CountAsync(cancellationToken);
+        var items = await listingsQuery
             .OrderByDescending(listing => listing.PublishedAt ?? listing.CreatedAt)
             .Skip((normalizedPage - 1) * normalizedPageSize)
             .Take(normalizedPageSize)
@@ -177,6 +186,47 @@ public sealed class ListingService(IAuthDbContext dbContext) : IListingService
         return listings
             .Select(listing => ListingMapper.ToMarketplaceListingDto(ToListingModel(listing)))
             .ToArray();
+    }
+
+    public async Task<WasteSellResponseDto?> GetMyListingForEditAsync(
+        Guid sellerId,
+        Guid listingId,
+        CancellationToken cancellationToken = default)
+    {
+        var listing = await GetOwnedListingAsync(sellerId, listingId, cancellationToken);
+        if (listing is null || listing.DeletedAt is not null)
+        {
+            return null;
+        }
+
+        return ListingMapper.ToWasteSellResponse(ToListingModel(listing));
+    }
+
+    public async Task<bool> CancelMyListingAsync(
+        Guid sellerId,
+        Guid listingId,
+        CancellationToken cancellationToken = default)
+    {
+        var listing = await dbContext.Listings
+            .FirstOrDefaultAsync(
+                item => item.Id == listingId
+                    && item.SellerId == sellerId
+                    && item.DeletedAt == null,
+                cancellationToken);
+
+        if (listing is null)
+        {
+            return false;
+        }
+
+        listing.Status = ListingStatus.Archived;
+        listing.MatchScore = null;
+        listing.PublishedAt = null;
+        listing.UpdatedAt = DateTime.UtcNow;
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return true;
     }
 
     private async Task<Listing?> GetCurrentDraftAsync(Guid sellerId, CancellationToken cancellationToken)
@@ -247,10 +297,21 @@ public sealed class ListingService(IAuthDbContext dbContext) : IListingService
 
     private static IQueryable<Listing> ApplyFilters(
         IQueryable<Listing> query,
+        string? queryText,
         string? wasteType,
         string? sector,
         string? productType)
     {
+        if (!string.IsNullOrWhiteSpace(queryText))
+        {
+            var normalizedQuery = queryText.Trim().ToLower();
+            query = query.Where(listing =>
+                listing.SpecificResidue.ToLower().Contains(normalizedQuery)
+                || listing.Location.ToLower().Contains(normalizedQuery)
+                || listing.Sector.ToLower().Contains(normalizedQuery)
+                || listing.ProductType.ToLower().Contains(normalizedQuery));
+        }
+
         if (!IsAllOrEmpty(wasteType))
         {
             query = query.Where(listing => listing.WasteType == wasteType);
@@ -341,6 +402,11 @@ public sealed class ListingService(IAuthDbContext dbContext) : IListingService
 
     private static string ToApplicationStatus(Listing listing)
     {
+        if (listing.Status is ListingStatus.Archived or ListingStatus.Paused or ListingStatus.Sold or ListingStatus.Expired)
+        {
+            return "inactive";
+        }
+
         if (listing.Status == ListingStatus.Published
             && (listing.PublishedAt ?? listing.CreatedAt) >= DateTime.UtcNow.AddDays(-3))
         {
@@ -348,6 +414,22 @@ public sealed class ListingService(IAuthDbContext dbContext) : IListingService
         }
 
         return listing.Status == ListingStatus.Published ? "available" : "draft";
+    }
+
+    private async Task<Listing?> GetOwnedListingAsync(
+        Guid sellerId,
+        Guid listingId,
+        CancellationToken cancellationToken)
+    {
+        return await dbContext.Listings
+            .AsSplitQuery()
+            .Include(listing => listing.Media)
+            .Include(listing => listing.TechnicalSpecs)
+            .FirstOrDefaultAsync(
+                listing => listing.Id == listingId
+                    && listing.SellerId == sellerId
+                    && listing.DeletedAt == null,
+                cancellationToken);
     }
 
     private static string ToSellerVerificationLabel(User? seller)

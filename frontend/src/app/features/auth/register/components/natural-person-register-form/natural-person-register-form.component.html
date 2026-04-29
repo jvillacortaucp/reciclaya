@@ -1,30 +1,30 @@
 <form class="grid gap-4" [formGroup]="form" (ngSubmit)="submit()" animate.enter="page-enter">
   <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
     <div>
-      <label class="grid gap-1.5 text-sm text-slate-700"><span class="font-semibold">First name</span><input class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100" formControlName="firstName" /></label>
+      <label class="grid gap-1.5 text-sm text-slate-700"><span class="font-semibold">First name</span><input class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100" formControlName="firstName" maxlength="80" (input)="sanitizeName('firstName')" /></label>
       @if (fieldError('firstName')) { <p class="mt-1 text-xs font-medium text-rose-500">{{ fieldError('firstName') }}</p> }
     </div>
     <div>
-      <label class="grid gap-1.5 text-sm text-slate-700"><span class="font-semibold">Last name</span><input class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100" formControlName="lastName" /></label>
+      <label class="grid gap-1.5 text-sm text-slate-700"><span class="font-semibold">Last name</span><input class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100" formControlName="lastName" maxlength="80" (input)="sanitizeName('lastName')" /></label>
       @if (fieldError('lastName')) { <p class="mt-1 text-xs font-medium text-rose-500">{{ fieldError('lastName') }}</p> }
     </div>
   </div>
 
   <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
     <div>
-      <label class="grid gap-1.5 text-sm text-slate-700"><span class="font-semibold">DNI or document number</span><input class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100" formControlName="documentNumber" /></label>
+      <label class="grid gap-1.5 text-sm text-slate-700"><span class="font-semibold">DNI or document number</span><input class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100" formControlName="documentNumber" inputmode="numeric" maxlength="12" (input)="sanitizeDigitsField('documentNumber')" /></label>
       @if (fieldError('documentNumber')) { <p class="mt-1 text-xs font-medium text-rose-500">{{ fieldError('documentNumber') }}</p> }
     </div>
     <div>
-      <label class="grid gap-1.5 text-sm text-slate-700"><span class="font-semibold">Mobile phone</span><input class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100" formControlName="mobilePhone" /></label>
+      <label class="grid gap-1.5 text-sm text-slate-700"><span class="font-semibold">Mobile phone</span><input class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100" formControlName="mobilePhone" inputmode="tel" maxlength="16" (input)="sanitizeDigitsField('mobilePhone')" /></label>
       @if (fieldError('mobilePhone')) { <p class="mt-1 text-xs font-medium text-rose-500">{{ fieldError('mobilePhone') }}</p> }
     </div>
   </div>
 
-  <label class="grid gap-1.5 text-sm text-slate-700"><span class="font-semibold">Address</span><input class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100" formControlName="address" /></label>
+  <label class="grid gap-1.5 text-sm text-slate-700"><span class="font-semibold">Address</span><input class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100" formControlName="address" maxlength="180" (input)="sanitizeAddress()" /></label>
   @if (fieldError('address')) { <p class="mt-1 text-xs font-medium text-rose-500">{{ fieldError('address') }}</p> }
 
-  <label class="grid gap-1.5 text-sm text-slate-700"><span class="font-semibold">Postal code</span><input class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100" formControlName="postalCode" /></label>
+  <label class="grid gap-1.5 text-sm text-slate-700"><span class="font-semibold">Postal code</span><input class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100" formControlName="postalCode" inputmode="numeric" maxlength="10" (input)="sanitizeDigitsField('postalCode')" /></label>
   @if (fieldError('postalCode')) { <p class="mt-1 text-xs font-medium text-rose-500">{{ fieldError('postalCode') }}</p> }
 
   <label class="grid gap-1.5 text-sm text-slate-700">

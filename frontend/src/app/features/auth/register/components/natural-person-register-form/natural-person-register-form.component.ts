@@ -2,6 +2,16 @@ import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output, signal
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { LucideEye, LucideEyeOff } from '@lucide/angular';
 import { UserRole } from '../../../../../core/models/app.models';
+import {
+  documentNumberValidator,
+  passwordStrengthValidator,
+  phoneValidator,
+  postalCodeValidator,
+  safeAddressValidator,
+  safePersonNameValidator,
+  sanitizeDigits,
+  sanitizeInputValue
+} from '../../../../../shared/helpers/validators';
 import { INTENT_OPTIONS, REGISTER_PAGE_COPY, REGISTER_VALIDATION_MESSAGES } from '../../../data/register.constants';
 import { AccountType, NaturalPersonRegistrationPayload, RegistrationIntent } from '../../../domain/register.models';
 import { hasPasswordMismatch } from '../../helpers/register-form.helpers';
@@ -27,15 +37,15 @@ export class NaturalPersonRegisterFormComponent {
   protected readonly showConfirmPassword = signal(false);
 
   protected readonly form = this.fb.nonNullable.group({
-    firstName: ['', [Validators.required]],
-    lastName: ['', [Validators.required]],
-    documentNumber: ['', [Validators.required, Validators.pattern(/^\d{8,12}$/)]],
-    mobilePhone: ['', [Validators.required]],
-    address: ['', [Validators.required]],
-    postalCode: ['', [Validators.required]],
+    firstName: ['', [Validators.required, Validators.maxLength(80), safePersonNameValidator]],
+    lastName: ['', [Validators.required, Validators.maxLength(80), safePersonNameValidator]],
+    documentNumber: ['', [Validators.required, documentNumberValidator]],
+    mobilePhone: ['', [Validators.required, phoneValidator]],
+    address: ['', [Validators.required, Validators.maxLength(180), safeAddressValidator]],
+    postalCode: ['', [Validators.required, postalCodeValidator]],
     intent: [RegistrationIntent.Both, [Validators.required]],
     email: ['', [Validators.required, Validators.email]],
-    password: ['', [Validators.required, Validators.minLength(8)]],
+    password: ['', [Validators.required, Validators.minLength(8), passwordStrengthValidator]],
     confirmPassword: ['', [Validators.required]]
   });
 
@@ -95,6 +105,62 @@ export class NaturalPersonRegisterFormComponent {
       return this.messages.invalidDocument;
     }
 
-    return this.messages.required;
+    if (field === 'documentNumber' && control.hasError('invalidDocument')) {
+      return this.messages.invalidDocument;
+    }
+
+    if (field === 'mobilePhone' && control.hasError('invalidPhone')) {
+      return this.messages.invalidPhone;
+    }
+
+    if (field === 'postalCode' && control.hasError('invalidPostalCode')) {
+      return this.messages.invalidPostalCode;
+    }
+
+    if (field === 'address' && control.hasError('invalidAddress')) {
+      return this.messages.invalidAddress;
+    }
+
+    if ((field === 'firstName' || field === 'lastName') && (control.hasError('invalidName') || control.hasError('notMeaningful'))) {
+      return this.messages.invalidName;
+    }
+
+    if (control.hasError('suspiciousContent')) {
+      return this.messages.suspiciousContent;
+    }
+
+    if (field === 'password' && control.hasError('passwordStrength')) {
+      return this.messages.invalidPassword;
+    }
+
+    if (control.hasError('maxlength')) {
+      return `Maximo ${control.getError('maxlength').requiredLength} caracteres.`;
+    }
+
+    return this.messages.notMeaningful;
+  }
+
+  protected sanitizeName(field: 'firstName' | 'lastName'): void {
+    const control = this.form.controls[field];
+    const nextValue = sanitizeInputValue(control.value, 'personName');
+    if (control.value !== nextValue) {
+      control.setValue(nextValue);
+    }
+  }
+
+  protected sanitizeAddress(): void {
+    const control = this.form.controls.address;
+    const nextValue = sanitizeInputValue(control.value, 'address');
+    if (control.value !== nextValue) {
+      control.setValue(nextValue);
+    }
+  }
+
+  protected sanitizeDigitsField(field: 'documentNumber' | 'mobilePhone' | 'postalCode'): void {
+    const control = this.form.controls[field];
+    const nextValue = sanitizeDigits(control.value, { allowLeadingPlus: field === 'mobilePhone' });
+    if (control.value !== nextValue) {
+      control.setValue(nextValue);
+    }
   }
 }

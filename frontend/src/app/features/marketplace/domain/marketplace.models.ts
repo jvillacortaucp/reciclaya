@@ -1,6 +1,6 @@
 import { DeliveryMode, ExchangeType, ProductCategory, ResidueType, SectorType } from '../../../core/enums/marketplace.enums';
 
-export type ListingStatus = 'available' | 'recent';
+export type ListingStatus = 'available' | 'recent' | 'draft' | 'inactive';
 export type SortOption = 'newest' | 'best_match' | 'lowest_price' | 'highest_volume';
 export type ViewMode = 'grid' | 'list';
 

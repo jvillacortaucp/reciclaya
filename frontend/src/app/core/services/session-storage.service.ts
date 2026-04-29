@@ -15,10 +15,12 @@ export class SessionStorageService {
     this.session.set(session);
   }
 
-  clear(): void {
+  clear(redirectToLogin = true): void {
     localStorage.removeItem(SESSION_KEY);
     this.session.set(null);
-    void this.router.navigateByUrl(APP_ROUTES.login);
+    if (redirectToLogin) {
+      void this.router.navigateByUrl(APP_ROUTES.login);
+    }
   }
 
   private read(): AuthSession | null {

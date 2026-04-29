@@ -7,12 +7,12 @@ using ReciclaYa.Application.Listings.Services;
 namespace ReciclaYa.Api.Controllers;
 
 [ApiController]
-[Route("api/marketplace")]
-public sealed class MarketplaceController(IListingService listingService) : ControllerBase
+[AllowAnonymous]
+[Route("api/public/marketplace/products")]
+public sealed class PublicMarketplaceController(IListingService listingService) : ControllerBase
 {
-    [HttpGet("listings")]
-    [AllowAnonymous]
-    public async Task<IActionResult> GetListings(
+    [HttpGet]
+    public async Task<IActionResult> GetProducts(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 12,
         [FromQuery] string? query = null,
@@ -33,14 +33,10 @@ public sealed class MarketplaceController(IListingService listingService) : Cont
         return Ok(ApiResponse<MarketplaceListingsPageDto>.Ok(response));
     }
 
-    [HttpGet("listings/{id:guid}")]
-    [AllowAnonymous]
-    public async Task<IActionResult> GetListingDetail(
-        Guid id,
-        CancellationToken cancellationToken)
+    [HttpGet("{productId:guid}")]
+    public async Task<IActionResult> GetProductDetail(Guid productId, CancellationToken cancellationToken)
     {
-        var response = await listingService.GetListingDetailAsync(id, cancellationToken);
-
+        var response = await listingService.GetListingDetailAsync(productId, cancellationToken);
         if (response is null)
         {
             return NotFound(ApiResponse<object>.Fail("Listing not found.", ["LISTING_NOT_FOUND"]));

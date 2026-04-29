@@ -9,6 +9,7 @@ import {
   signal,
   ViewChild
 } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
@@ -51,6 +52,7 @@ export class MarketplacePageComponent implements OnInit, AfterViewInit, OnDestro
   private readonly facade = inject(MarketplaceFacade);
   private readonly protectedActions = inject(ProtectedActionService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly fb = inject(FormBuilder);
   private readonly subscriptions = new Subscription();
   private observer: IntersectionObserver | null = null;
@@ -85,7 +87,9 @@ export class MarketplacePageComponent implements OnInit, AfterViewInit, OnDestro
   });
 
   ngOnInit(): void {
-    this.facade.loadMarketplace();
+    const initialQuery = this.route.snapshot.queryParamMap.get('q') ?? '';
+    this.filtersForm.patchValue({ query: initialQuery }, { emitEvent: false });
+    this.facade.loadMarketplace(initialQuery);
 
     this.subscriptions.add(
       this.filtersForm.valueChanges.subscribe((value) => {
@@ -94,6 +98,23 @@ export class MarketplacePageComponent implements OnInit, AfterViewInit, OnDestro
           wasteType: value.wasteType ?? 'all',
           sector: value.sector ?? 'all',
           exchangeType: value.exchangeType ?? 'all'
+        });
+      })
+    );
+
+    this.subscriptions.add(
+      this.route.queryParamMap.subscribe((params) => {
+        const nextQuery = params.get('q') ?? '';
+        if (this.filtersForm.controls.query.value === nextQuery) {
+          return;
+        }
+
+        this.filtersForm.patchValue({ query: nextQuery }, { emitEvent: false });
+        this.facade.setSearchAndFilters(nextQuery, {
+          ...this.facade.filters(),
+          wasteType: this.filtersForm.controls.wasteType.value ?? 'all',
+          sector: this.filtersForm.controls.sector.value ?? 'all',
+          exchangeType: this.filtersForm.controls.exchangeType.value ?? 'all'
         });
       })
     );

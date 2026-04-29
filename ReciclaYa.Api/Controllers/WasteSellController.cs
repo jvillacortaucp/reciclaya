@@ -34,6 +34,7 @@ public sealed class WasteSellController(IListingService listingService) : Contro
 
     [HttpPost("publish")]
     public async Task<IActionResult> Publish(
+        [FromQuery] Guid? listingId,
         [FromBody] WasteSellRequestDto request,
         CancellationToken cancellationToken)
     {
@@ -47,7 +48,7 @@ public sealed class WasteSellController(IListingService listingService) : Contro
             return InvalidToken();
         }
 
-        await listingService.PublishAsync(userId, request, cancellationToken);
+        await listingService.PublishAsync(userId, request, listingId, cancellationToken);
 
         return Ok(ApiResponse<object>.Ok(new { published = true }, "Listing published."));
     }
