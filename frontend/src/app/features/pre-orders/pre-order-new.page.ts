@@ -22,8 +22,7 @@ import { PreOrdersFacade } from './application/pre-orders.facade';
 import { PRE_ORDER_COPY } from './data/pre-order.constants';
 import { ProductPreOrderSummaryComponent } from './presentation/components/product-pre-order-summary/product-pre-order-summary.component';
 import { SellerInfoCardComponent } from './presentation/components/seller-info-card/seller-info-card.component';
-import { SimulatedPaymentStatusComponent } from './presentation/components/simulated-payment-status/simulated-payment-status.component';
-import { PreOrderConfirmationCardComponent } from './presentation/components/pre-order-confirmation-card/pre-order-confirmation-card.component';
+// SimulatedPaymentStatusComponent and PreOrderConfirmationCardComponent removed from template
 import { PaymentMethodType, SimulatedPaymentCard } from './models/pre-order.model';
 import { ToastService } from '../../core/services/toast.service';
 import {
@@ -40,8 +39,6 @@ import {
     PreOrderEconomicSummaryComponent,
     ProductPreOrderSummaryComponent,
     SellerInfoCardComponent,
-    SimulatedPaymentStatusComponent,
-    PreOrderConfirmationCardComponent,
     CardPaymentModalComponent,
     LucideSettings2,
     LucideCalendarDays,
@@ -79,6 +76,7 @@ export class PreOrderNewPageComponent implements OnInit, OnDestroy {
   protected readonly pricingSummary = this.facade.economicSummary;
   protected readonly paymentStatus = this.facade.paymentStatus;
   protected readonly createdPreOrder = this.facade.createdPreOrder;
+  protected readonly downloadingQuotation = this.facade.downloadingQuotation;
   protected readonly toastMessage = this.facade.toastMessage;
   protected readonly listing = computed(() => this.screenState()?.listing ?? null);
   protected readonly seller = computed(() => this.screenState()?.listing.seller ?? null);
@@ -252,7 +250,13 @@ export class PreOrderNewPageComponent implements OnInit, OnDestroy {
   }
 
   protected downloadQuote(): void {
-    this.toast.success('Cotización descargada correctamente.');
+    const preOrderId = this.createdPreOrder()?.id;
+    if (!preOrderId) {
+      this.toast.info('Primero genera la pre-orden para descargar su cotizacion.');
+      return;
+    }
+
+    this.facade.downloadQuotationPdf(preOrderId);
   }
 
   protected get selectedPaymentMethod(): PaymentMethodType {

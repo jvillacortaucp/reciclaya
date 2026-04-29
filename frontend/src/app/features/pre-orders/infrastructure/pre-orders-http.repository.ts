@@ -116,6 +116,18 @@ export class PreOrdersHttpRepository {
       );
   }
 
+  downloadQuotationPdf(preOrderId: string): Observable<Blob> {
+    return this.http
+      .get(`${environment.apiBaseUrl}/pre-orders/${preOrderId}/quotation/pdf`, {
+        responseType: 'blob'
+      })
+      .pipe(
+        catchError((error: unknown) =>
+          this.handleHttpError(error, 'No se pudo generar la cotizacion en PDF.')
+        )
+      );
+  }
+
   private toLegacyPreOrder(order: BackendPreOrderDto): LegacyPreOrder {
     return {
       id: order.id,

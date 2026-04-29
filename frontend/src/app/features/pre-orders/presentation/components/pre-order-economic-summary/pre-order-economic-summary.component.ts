@@ -40,7 +40,7 @@ import { PreOrderPricingSummary, SimulatedPaymentStatus } from '../../../models/
 
         <button
           type="button"
-          [disabled]="paymentStatus === 'processing'"
+          [disabled]="paymentStatus === 'processing' || !paymentReady"
           class="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-base font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60"
           (click)="simulatePayment.emit()"
         >
@@ -49,11 +49,12 @@ import { PreOrderPricingSummary, SimulatedPaymentStatus } from '../../../models/
         </button>
         <button
           type="button"
-          class="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-3 text-base font-semibold text-slate-700 transition hover:bg-slate-50"
+          [disabled]="downloadingQuotation"
+          class="mt-3 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-3 text-base font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
           (click)="downloadQuote.emit()"
         >
           <svg lucideDownload size="16"></svg>
-          Descargar cotización (PDF)
+          {{ downloadingQuotation ? 'Generando PDF...' : 'Descargar cotización (PDF)' }}
         </button>
 
         <p class="mt-4 text-center text-sm text-slate-500">
@@ -68,6 +69,8 @@ export class PreOrderEconomicSummaryComponent {
   @Input() summary: PreOrderPricingSummary | null = null;
   @Input() unitLabel = 'Ton';
   @Input() paymentStatus: SimulatedPaymentStatus = 'idle';
+  @Input() paymentReady = true;
+  @Input() downloadingQuotation = false;
   @Output() readonly simulatePayment = new EventEmitter<void>();
   @Output() readonly downloadQuote = new EventEmitter<void>();
 

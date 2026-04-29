@@ -99,18 +99,13 @@
           [summary]="pricingSummary()"
           [unitLabel]="listing()?.unit ?? 'Ton'"
           [paymentStatus]="paymentStatus()"
+          [downloadingQuotation]="downloadingQuotation()"
+          [paymentReady]="selectedPaymentMethod !== 'card' || cardMockData !== null"
           (simulatePayment)="simulateAndSubmitWrapped()"
           (downloadQuote)="downloadQuote()"
         />
 
-        <app-simulated-payment-status
-          [status]="paymentStatus()"
-          [processingMessage]="copy.processingMessage"
-          [successMessage]="copy.successMessage"
-          [failedMessage]="copy.failureMessage"
-        />
-
-        <app-pre-order-confirmation-card [preOrder]="createdPreOrder()" />
+        <!-- Mensajes en página removidos: se muestra solo toast -->
 
         <article class="rounded-3xl bg-emerald-900 p-5 md:p-6 text-emerald-50 shadow-sm">
           <h4 class="text-xl font-semibold md:text-2xl">{{ copy.impactTitle }}</h4>

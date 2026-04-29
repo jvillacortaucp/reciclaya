@@ -27,6 +27,7 @@ export class PreOrdersFacade {
   readonly economicSummary = signal<PreOrderPricingSummary | null>(null);
   readonly paymentStatus = signal<SimulatedPaymentStatus>('idle');
   readonly createdPreOrder = signal<PreOrder | null>(null);
+  readonly downloadingQuotation = signal(false);
 
   load(): void {
     this.loading.set(true);
@@ -152,6 +153,34 @@ export class PreOrdersFacade {
     this.createdPreOrder.set(null);
   }
 
+  downloadQuotationPdf(preOrderId: string): void {
+    if (this.downloadingQuotation()) {
+      return;
+    }
+
+    this.downloadingQuotation.set(true);
+    this.repository
+      .downloadQuotationPdf(preOrderId)
+      .pipe(
+        catchError((error: unknown) => {
+          this.toastMessage.set(this.resolveQuotationErrorMessage(error));
+          return EMPTY;
+        }),
+        finalize(() => this.downloadingQuotation.set(false))
+      )
+      .subscribe((blob) => {
+        const objectUrl = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = objectUrl;
+        anchor.download = `cotizacion-preorden-${preOrderId}.pdf`;
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        URL.revokeObjectURL(objectUrl);
+        this.toastMessage.set('Cotizacion descargada correctamente.');
+      });
+  }
+
   private resolveScreenErrorMessage(error: unknown): string {
     if (error instanceof HttpErrorResponse) {
       if (error.status === 403) {
@@ -164,5 +193,23 @@ export class PreOrdersFacade {
     }
 
     return getErrorMessage(error, 'No se pudo cargar la información del producto.');
+  }
+
+  private resolveQuotationErrorMessage(error: unknown): string {
+    if (error instanceof HttpErrorResponse) {
+      if (error.status === 401) {
+        return 'Inicia sesion para descargar la cotizacion.';
+      }
+
+      if (error.status === 403) {
+        return 'No tienes permisos para descargar esta cotizacion.';
+      }
+
+      if (error.status === 404) {
+        return 'No se encontro la pre-orden.';
+      }
+    }
+
+    return getErrorMessage(error, 'No se pudo generar la cotizacion. Intentalo nuevamente.');
   }
 }
