@@ -13,6 +13,10 @@
 
   @if (screenLoading()) {
     <div class="rounded-3xl border border-slate-200 bg-white p-10 text-center text-slate-500">Cargando pre-orden...</div>
+  } @else if (screenError()) {
+    <div class="rounded-3xl border border-rose-200 bg-rose-50 p-10 text-center text-rose-700">
+      {{ screenError() }}
+    </div>
   } @else if (!listing()) {
     <div class="rounded-3xl border border-slate-200 bg-white p-10 text-center text-slate-500">
       No encontramos el residuo solicitado para generar la pre-orden.
@@ -95,7 +99,7 @@
           [summary]="pricingSummary()"
           [unitLabel]="listing()?.unit ?? 'Ton'"
           [paymentStatus]="paymentStatus()"
-          (simulatePayment)="simulateAndSubmit()"
+          (simulatePayment)="simulateAndSubmitWrapped()"
           (downloadQuote)="downloadQuote()"
         />
 

@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, HostListener, Input, Output } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { LucideShieldCheck, LucideX } from '@lucide/angular';
-import { MockPaymentCard } from '../../data/payment-card.mock';
+import { SimulatedPaymentCard } from '../../models/pre-order.model';
 
 export interface CardPaymentConfirmation {
   readonly holderName: string;
@@ -122,7 +122,7 @@ export class CardPaymentModalComponent {
   private readonly fb = new FormBuilder();
 
   @Input() open = false;
-  @Input() mockCard: MockPaymentCard | null = null;
+  @Input() mockCard: SimulatedPaymentCard | null = null;
 
   @Output() readonly confirmed = new EventEmitter<CardPaymentConfirmation>();
   @Output() readonly closed = new EventEmitter<void>();

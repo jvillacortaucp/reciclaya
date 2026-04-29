@@ -155,12 +155,10 @@ export class MyListingsPageComponent implements OnInit, OnDestroy {
   protected goToValueSector(): void {
     const listingId = this.selectedListing()?.id;
     if (!listingId) {
-      this.toast.set({
-        type: 'info',
-        message: 'Selecciona una publicación para generar recomendaciones.'
-      });
+      this.facade.showMissingListingToast();
       return;
     }
+    this.facade.showGeneratingRoutesToast();
     this.router.navigate(['/app/value-sector'], { queryParams: { listing: listingId } });
   }
 }

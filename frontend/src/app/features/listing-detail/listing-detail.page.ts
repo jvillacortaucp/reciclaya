@@ -107,6 +107,14 @@ export class ListingDetailPageComponent implements OnInit, OnDestroy {
       return;
     }
 
+    // Prevent navigating to pre-order creation for the listing owner
+    const currentUserId = this.authFacade.user()?.id;
+    const sellerId = (detail as any)?.seller?.id ?? null;
+    if (currentUserId && sellerId && currentUserId === sellerId) {
+      this.facade.toastMessage.set('No puedes generar una pre-orden sobre tu propia publicación.');
+      return;
+    }
+
     this.protectedActions.requireAuthForAction({
       actionName: 'Generar pre-orden',
       returnUrl: `${APP_ROUTES.preOrders}/new/${detail.id}`,

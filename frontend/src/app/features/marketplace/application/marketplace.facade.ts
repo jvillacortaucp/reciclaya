@@ -75,7 +75,8 @@ export class MarketplaceFacade {
     return chips;
   });
 
-  loadMarketplace(): void {
+  loadMarketplace(initialQuery = ''): void {
+    this.search.update((current) => ({ ...current, query: initialQuery.trim() }));
     this.repository
       .getDataset()
       .pipe(catchError(() => EMPTY))

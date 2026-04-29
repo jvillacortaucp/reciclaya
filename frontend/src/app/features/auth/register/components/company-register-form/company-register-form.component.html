@@ -28,13 +28,13 @@
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div>
         <label for="ruc" class="mb-2 block text-sm font-semibold text-slate-700">RUC</label>
-        <input id="ruc" class="block w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100" formControlName="ruc" placeholder="11 dígitos" />
+        <input id="ruc" class="block w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100" formControlName="ruc" placeholder="11 dígitos" [attr.inputmode]="'numeric'" [attr.pattern]="rucPattern" maxlength="11" (input)="sanitizeDigitsField('ruc')" />
         @if (fieldError('company', 'ruc')) { <p class="mt-1.5 text-xs font-medium text-rose-500">{{ fieldError('company', 'ruc') }}</p> }
       </div>
       <div>
         <label for="mobile" class="mb-2 block text-sm font-semibold text-slate-700">Celular</label>
         <div class="relative">
-          <input id="mobile" class="block w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 pr-10 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100" formControlName="mobilePhone" placeholder="+51 999 999 999" />
+          <input id="mobile" class="block w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 pr-10 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100" formControlName="mobilePhone" placeholder="+51 999 999 999" inputmode="tel" maxlength="16" (input)="sanitizeDigitsField('mobilePhone')" />
           <svg lucidePhone size="16" class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"></svg>
         </div>
         @if (fieldError('company', 'mobilePhone')) { <p class="mt-1.5 text-xs font-medium text-rose-500">{{ fieldError('company', 'mobilePhone') }}</p> }
@@ -43,14 +43,14 @@
 
     <div>
       <label for="businessName" class="mb-2 block text-sm font-semibold text-slate-700">Razón Social</label>
-      <input id="businessName" class="block w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100" formControlName="businessName" placeholder="Nombre legal de la empresa" />
+      <input id="businessName" class="block w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100" formControlName="businessName" placeholder="Nombre legal de la empresa" maxlength="120" (input)="sanitizeCompanyField('businessName', 'businessName')" />
       @if (fieldError('company', 'businessName')) { <p class="mt-1.5 text-xs font-medium text-rose-500">{{ fieldError('company', 'businessName') }}</p> }
     </div>
 
     <div>
       <label for="address" class="mb-2 block text-sm font-semibold text-slate-700">Dirección Fiscal</label>
       <div class="relative">
-        <input id="address" class="block w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 pr-10 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100" formControlName="address" placeholder="Av. Principal 123, Distrito" />
+        <input id="address" class="block w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 pr-10 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100" formControlName="address" placeholder="Av. Principal 123, Distrito" maxlength="180" (input)="sanitizeCompanyField('address', 'address')" />
         <svg lucideMapPin size="16" class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"></svg>
       </div>
       @if (fieldError('company', 'address')) { <p class="mt-1.5 text-xs font-medium text-rose-500">{{ fieldError('company', 'address') }}</p> }
@@ -58,7 +58,7 @@
 
     <div>
       <label for="postalCode" class="mb-2 block text-sm font-semibold text-slate-700">Código Postal</label>
-      <input id="postalCode" class="block w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100" formControlName="postalCode" placeholder="Ej. 15001" />
+      <input id="postalCode" class="block w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100" formControlName="postalCode" placeholder="Ej. 15001" [attr.inputmode]="'numeric'" [attr.pattern]="postalCodePattern" maxlength="10" (input)="sanitizeDigitsField('postalCode')" />
       @if (fieldError('company', 'postalCode')) { <p class="mt-1.5 text-xs font-medium text-rose-500">{{ fieldError('company', 'postalCode') }}</p> }
     </div>
 
@@ -72,7 +72,7 @@
     <div>
       <label for="legalRep" class="mb-2 block text-sm font-semibold text-slate-700">Nombre del Representante</label>
       <div class="relative">
-        <input id="legalRep" class="block w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 pr-10 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100" formControlName="legalRepresentative" placeholder="Nombre completo" />
+        <input id="legalRep" class="block w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 pr-10 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100" formControlName="legalRepresentative" placeholder="Nombre completo" maxlength="120" (input)="sanitizeCompanyField('legalRepresentative', 'personName')" />
         <svg lucideUser size="16" class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"></svg>
       </div>
       @if (fieldError('company', 'legalRepresentative')) { <p class="mt-1.5 text-xs font-medium text-rose-500">{{ fieldError('company', 'legalRepresentative') }}</p> }
@@ -80,7 +80,7 @@
 
     <div>
       <label for="position" class="mb-2 block text-sm font-semibold text-slate-700">Cargo</label>
-      <input id="position" class="block w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100" formControlName="position" placeholder="Puesto u ocupación" />
+      <input id="position" class="block w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100" formControlName="position" placeholder="Puesto u ocupación" maxlength="80" (input)="sanitizeCompanyField('position', 'jobTitle')" />
       @if (fieldError('company', 'position')) { <p class="mt-1.5 text-xs font-medium text-rose-500">{{ fieldError('company', 'position') }}</p> }
     </div>
 
@@ -157,7 +157,7 @@
 
     <div class="mt-10 flex flex-col-reverse items-stretch gap-3 sm:flex-row sm:items-center">
       <button type="button" class="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-6 py-3.5 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50" (click)="goBack()">Volver</button>
-      <button type="submit" class="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-transparent bg-emerald-500 px-6 py-3.5 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-emerald-600 hover:shadow-lg hover:shadow-emerald-200 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0" [disabled]="loading">
+      <button type="submit" class="inline-flex min-h-10 flex-1 items-center justify-center gap-2 rounded-xl border border-transparent bg-emerald-500 px-5 py-2.5 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-emerald-600 hover:shadow-lg hover:shadow-emerald-200 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 sm:flex-none sm:min-w-[180px]" [disabled]="loading">
         {{ loading ? 'Creando...' : 'Finalizar Registro' }}
         <svg lucideCheckCircle size="18"></svg>
       </button>

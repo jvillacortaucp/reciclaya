@@ -12,6 +12,7 @@ public interface IListingService
     Task PublishAsync(
         Guid sellerId,
         WasteSellRequestDto request,
+        Guid? listingId = null,
         CancellationToken cancellationToken = default);
 
     ListingPreviewDto Preview(WasteSellRequestDto request);
@@ -19,6 +20,7 @@ public interface IListingService
     Task<MarketplaceListingsPageDto> GetMarketplaceListingsAsync(
         int page,
         int pageSize,
+        string? query,
         string? wasteType,
         string? sector,
         string? productType,
@@ -30,5 +32,15 @@ public interface IListingService
 
     Task<IReadOnlyCollection<MarketplaceListingDto>> GetMyListingsAsync(
         Guid sellerId,
+        CancellationToken cancellationToken = default);
+
+    Task<WasteSellResponseDto?> GetMyListingForEditAsync(
+        Guid sellerId,
+        Guid listingId,
+        CancellationToken cancellationToken = default);
+
+    Task<bool> CancelMyListingAsync(
+        Guid sellerId,
+        Guid listingId,
         CancellationToken cancellationToken = default);
 }

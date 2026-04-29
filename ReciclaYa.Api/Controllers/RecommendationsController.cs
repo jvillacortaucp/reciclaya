@@ -74,7 +74,7 @@ public sealed class RecommendationsController(IRecommendationService recommendat
             return NotFound(ApiResponse<object>.Fail("Listing not found.", ["LISTING_NOT_FOUND"]));
         }
 
-        return Ok(ApiResponse<RecommendationDetailDto>.Ok(analysis));
+        return Ok(ApiResponse<ReciclaYa.Application.ValueSectors.Dtos.ValueRouteDetailDto>.Ok(analysis));
     }
 
     private static bool CanUseRecommendations(string role)

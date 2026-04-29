@@ -1,8 +1,6 @@
-import { HttpErrorResponse } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { finalize } from 'rxjs';
 import { ValueSectorHttpRepository } from '../infrastructure/value-sector-http.repository';
-import { ValueSectorService } from '../infrastructure/value-sector.service';
 import { ValueSectorSelectionSummary, ValueSectorRoute } from '../models/value-sector.model';
 import { ValueSectorApiService } from '../services/value-sector-api.service';
 
@@ -20,7 +18,6 @@ interface CachedValueSectorState {
 export class ValueSectorFacade {
   private static readonly DEFAULT_PAGE_SIZE = 4;
   private readonly httpRepository = inject(ValueSectorHttpRepository);
-  private readonly fallbackService = inject(ValueSectorService);
   private readonly apiService = inject(ValueSectorApiService);
   private fromListingCache: readonly ValueSectorRoute[] = [];
   private readonly cachedStates = signal<Record<string, CachedValueSectorState>>({});
@@ -136,12 +133,6 @@ export class ValueSectorFacade {
           this.persistCurrentState();
         },
         error: (error: unknown) => {
-          if (error instanceof HttpErrorResponse && error.status === 0) {
-            this.fromListingMode.set(false);
-            this.loadInitialFallback();
-            return;
-          }
-
           this.loadError.set(error instanceof Error ? error.message : 'No se pudieron generar rutas para esta publicación.');
         }
       });
@@ -165,7 +156,7 @@ export class ValueSectorFacade {
       .pipe(finalize(() => this.isLoadingMore.set(false)))
       .subscribe({
         next: (response) => this.applyServerPage(response.items, response.page, response.hasMore),
-        error: (error: unknown) => this.handleCatalogError(error, false)
+        error: (error: unknown) => this.handleCatalogError(error)
       });
   }
 
@@ -274,11 +265,6 @@ export class ValueSectorFacade {
           this.persistCurrentState();
         },
         error: (error: unknown) => {
-          if (error instanceof HttpErrorResponse && error.status === 0) {
-            this.fromListingMode.set(false);
-            this.loadInitialFallback();
-            return;
-          }
           this.loadError.set(error instanceof Error ? error.message : 'No se pudieron cargar rutas para esta publicación.');
           this.items.set([]);
           this.hasMore.set(false);
@@ -310,33 +296,12 @@ export class ValueSectorFacade {
     this.ensureSelection();
   }
 
-  private handleCatalogError(error: unknown, initial: boolean): void {
-    if (error instanceof HttpErrorResponse && error.status === 0) {
-      if (initial) {
-        this.loadInitialFallback();
-      }
-      return;
-    }
-
+  private handleCatalogError(error: unknown, initial = false): void {
     this.loadError.set(error instanceof Error ? error.message : 'No se pudieron cargar sectores de valor.');
     if (initial) {
       this.items.set([]);
       this.hasMore.set(false);
     }
-  }
-
-  private loadInitialFallback(): void {
-    this.isInitialLoading.set(true);
-    this.fallbackService
-      .list({ page: 1, pageSize: this.pageSize() })
-      .pipe(finalize(() => this.isInitialLoading.set(false)))
-      .subscribe((response) => {
-        this.items.set(response.items);
-        this.page.set(response.page);
-        this.hasMore.set(response.hasMore);
-        this.loadError.set(null);
-        this.ensureSelection();
-      });
   }
 
   private ensureSelection(): void {

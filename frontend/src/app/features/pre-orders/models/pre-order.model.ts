@@ -46,6 +46,16 @@ export interface PaymentMethod {
   readonly enabled: boolean;
 }
 
+export interface SimulatedPaymentCard {
+  readonly id: string;
+  readonly holderName: string;
+  readonly cardNumber: string;
+  readonly expiryDate: string;
+  readonly cvv: string;
+  readonly brand: 'visa' | 'mastercard' | 'amex' | 'generic';
+  readonly lastFour: string;
+}
+
 export interface PreOrderPricingSummary {
   readonly unitPrice: number;
   readonly requestedQuantity: number;

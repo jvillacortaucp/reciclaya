@@ -53,7 +53,7 @@ public sealed class RecommendationService(
         return BuildFallbackRecommendations(preference, candidates, safeLimit);
     }
 
-    public async Task<RecommendationDetailDto?> GetListingAnalysisAsync(
+    public async Task<ReciclaYa.Application.ValueSectors.Dtos.ValueRouteDetailDto?> GetListingAnalysisAsync(
         Guid userId,
         bool isAdmin,
         Guid listingId,
@@ -86,7 +86,7 @@ public sealed class RecommendationService(
                 var aiAnalysis = await aiGenerator.AnalyzeListingAsync(context, candidate, cancellationToken);
                 if (aiAnalysis is not null)
                 {
-                    return aiAnalysis;
+                    return MapRecommendationDetailToValueRoute(aiAnalysis, listing);
                 }
             }
             catch (Exception)
@@ -96,7 +96,7 @@ public sealed class RecommendationService(
             }
         }
 
-        return BuildFallbackDetail(preference, listing);
+        return BuildFullFallbackValueRoute(preference, listing);
     }
 
     private static ReciclaYa.Application.ValueSectors.Dtos.ValueRouteDetailDto MapRecommendationDetailToValueRoute(

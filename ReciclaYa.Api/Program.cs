@@ -3,6 +3,7 @@ using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using ReciclaYa.Api.Middleware;
 using ReciclaYa.Api.Responses;
 using ReciclaYa.Application;
 using ReciclaYa.Application.Auth.Models;
@@ -113,6 +114,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseMiddleware<ApiExceptionMiddleware>();
 app.UseHttpsRedirection();
 app.UseCors(AngularCorsPolicy);
 app.UseAuthentication();

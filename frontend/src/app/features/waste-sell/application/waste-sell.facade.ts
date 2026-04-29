@@ -57,11 +57,16 @@ export class WasteSellFacade {
     });
   }
 
-  loadInitialState(): void {
+  loadInitialState(listingId?: string | null): void {
+    if (this.state() && this.currentListingId === (listingId ?? null)) {
+      return;
+    }
+
+    this.currentListingId = listingId ?? null;
     this.resetValorizationIdeas();
     this.loading.set(true);
     this.repository
-      .getInitialState()
+      .getInitialState(listingId)
       .pipe(finalize(() => this.loading.set(false)))
       .subscribe((state) => {
         this.state.set(state);
@@ -98,7 +103,7 @@ export class WasteSellFacade {
   publish(state: WasteSellPageState): void {
     this.publishLoading.set(true);
     this.repository
-      .publish(state)
+      .publish(state, this.currentListingId)
       .pipe(
         catchError((error: unknown) => {
           this.toastMessage.set(getErrorMessage(error, 'No se pudo publicar el listado.'));

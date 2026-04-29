@@ -30,7 +30,7 @@
   </div>
 
   <div class="mt-6 space-y-4">
-    @for (buyer of buyers(); track trackByBuyer($index, buyer)) {
+    @for (buyer of visibleBuyers(); track trackByBuyer($index, buyer)) {
       <article
         class="rounded-2xl border border-slate-200/90 bg-slate-50/55 p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:bg-white hover:shadow-md sm:p-5">
         <div class="flex flex-col gap-4">

@@ -62,7 +62,7 @@ export const SIDEBAR_NAV_ITEMS: readonly SidebarNavItem[] = [
     route: APP_ROUTES.preOrders,
     exact: false,
     permissions: [PERMISSIONS.CREATE_PRE_ORDER],
-    roles: ['buyer']
+    roles: ['buyer', 'seller']
   },
   {
     label: 'Mis compras',
