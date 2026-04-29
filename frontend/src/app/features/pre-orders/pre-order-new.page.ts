@@ -250,12 +250,17 @@ export class PreOrderNewPageComponent implements OnInit, OnDestroy {
   }
 
   protected downloadQuote(): void {
+    // removed: PDF download button replaced by 'Descargar constancia'
+  }
+
+  protected downloadReceipt(): void {
     const preOrderId = this.createdPreOrder()?.id;
     if (!preOrderId) {
-      this.toast.info('Primero genera la pre-orden para descargar su cotizacion.');
+      this.toast.info('Primero realiza el pago para descargar la constancia.');
       return;
     }
 
+    // Reuse quotation PDF endpoint as a placeholder for receipt download.
     this.facade.downloadQuotationPdf(preOrderId);
   }
 

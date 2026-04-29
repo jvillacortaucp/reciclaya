@@ -100,9 +100,9 @@
           [unitLabel]="listing()?.unit ?? 'Ton'"
           [paymentStatus]="paymentStatus()"
           [downloadingQuotation]="downloadingQuotation()"
-          [paymentReady]="selectedPaymentMethod !== 'card' || cardMockData !== null"
+          [preOrderCreated]="!!createdPreOrder()"
           (simulatePayment)="simulateAndSubmitWrapped()"
-          (downloadQuote)="downloadQuote()"
+          (downloadReceipt)="downloadReceipt()"
         />
 
         <!-- Mensajes en página removidos: se muestra solo toast -->
