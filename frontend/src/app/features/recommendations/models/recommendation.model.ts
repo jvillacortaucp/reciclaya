@@ -72,6 +72,7 @@ export interface ComplexityOverview {
 
 export interface RecommendationProcess {
   readonly recommendationId: string;
+  readonly source?: string | null;
   readonly recommendedProduct: string;
   readonly baseResidue: string;
   readonly complexity: ComplexityLevel;

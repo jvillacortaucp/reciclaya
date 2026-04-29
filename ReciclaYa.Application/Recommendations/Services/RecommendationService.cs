@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using ReciclaYa.Application.Abstractions.Persistence;
 using ReciclaYa.Application.Recommendations.Dtos;
+using ReciclaYa.Application.ValueSectors.Dtos;
 using ReciclaYa.Domain.Entities;
 using ReciclaYa.Domain.Enums;
 
@@ -8,7 +10,8 @@ namespace ReciclaYa.Application.Recommendations.Services;
 
 public sealed class RecommendationService(
     IAuthDbContext dbContext,
-    IRecommendationAiGenerator aiGenerator) : IRecommendationService
+    IRecommendationAiGenerator aiGenerator,
+    ILogger<RecommendationService> logger) : IRecommendationService
 {
     private const string ActiveStatus = "active";
     private const int MaxLimit = 10;
@@ -66,8 +69,7 @@ public sealed class RecommendationService(
             .AsNoTracking()
             .Where(item => item.Id == listingId
                 && item.Status == ListingStatus.Published
-                && item.DeletedAt == null
-                && item.SellerId != userId)
+                && item.DeletedAt == null)
             .FirstOrDefaultAsync(cancellationToken);
 
         if (listing is null)
@@ -76,6 +78,7 @@ public sealed class RecommendationService(
         }
 
         var candidate = ToCandidate(listing);
+        var fallback = BuildFullFallbackValueRoute(preference, listing);
 
         // Try AI analysis if requested
         if (useAi)
@@ -83,20 +86,25 @@ public sealed class RecommendationService(
             try
             {
                 var context = BuildAiContext(userId, 1, includeExplanation, preference, [candidate]);
-                var aiAnalysis = await aiGenerator.AnalyzeListingAsync(context, candidate, cancellationToken);
+                var aiAnalysis = await aiGenerator.AnalyzeListingProcessAsync(context, candidate, cancellationToken);
                 if (aiAnalysis is not null)
                 {
-                    return MapRecommendationDetailToValueRoute(aiAnalysis, listing);
+                    var merged = MergeWithFallback(aiAnalysis, fallback);
+                    LogCoverage(listingId, merged);
+                    return merged;
                 }
             }
             catch (Exception)
             {
-                // AI generator errors are intentionally swallowed here so we always return a usable fallback.
-                // The IA implementation is responsible for its own logging; avoid exposing sensitive details.
+                logger.LogWarning(
+                    "Recommendation listing analysis failed. ListingId={ListingId}, Reason={Reason}",
+                    listingId,
+                    "ai-exception");
             }
         }
 
-        return BuildFullFallbackValueRoute(preference, listing);
+        LogCoverage(listingId, fallback);
+        return fallback;
     }
 
     private static ReciclaYa.Application.ValueSectors.Dtos.ValueRouteDetailDto MapRecommendationDetailToValueRoute(
@@ -278,7 +286,80 @@ public sealed class RecommendationService(
             envSummary,
             marketAnalysis,
             processSteps,
-            "fallback");
+            "fallback",
+            "Proceso de valorizacion basado en validacion, acondicionamiento, transformacion piloto y escalamiento.",
+            new ValueRouteComplexityOverviewDto(
+                "Requiere validacion tecnica del residuo.",
+                "Equipo basico y control de calidad.",
+                "Conocimiento operativo medio.",
+                "48-72 horas para evaluacion inicial.",
+                "Variable segun escala y logistica.",
+                "Riesgo medio por variacion de calidad.",
+                "Reduce merma y mejora circularidad."));
+    }
+
+    private static ValueRouteDetailDto MergeWithFallback(ValueRouteDetailDto ai, ValueRouteDetailDto fallback)
+    {
+        var mergedMarket = ai.MarketAnalysis with
+        {
+            PotentialBuyers = ai.MarketAnalysis.PotentialBuyers.Count > 0
+                ? ai.MarketAnalysis.PotentialBuyers
+                : fallback.MarketAnalysis.PotentialBuyers,
+            MarketKpis = ai.MarketAnalysis.MarketKpis.Count > 0
+                ? ai.MarketAnalysis.MarketKpis
+                : fallback.MarketAnalysis.MarketKpis,
+            CostStructure = ai.MarketAnalysis.CostStructure.Count > 0
+                ? ai.MarketAnalysis.CostStructure
+                : fallback.MarketAnalysis.CostStructure,
+            ChartLabels = ai.MarketAnalysis.ChartLabels.Count > 0
+                ? ai.MarketAnalysis.ChartLabels
+                : fallback.MarketAnalysis.ChartLabels,
+            ChartSeries = ai.MarketAnalysis.ChartSeries.Count > 0
+                ? ai.MarketAnalysis.ChartSeries
+                : fallback.MarketAnalysis.ChartSeries
+        };
+
+        return ai with
+        {
+            RecommendationId = string.IsNullOrWhiteSpace(ai.RecommendationId) ? fallback.RecommendationId : ai.RecommendationId,
+            RecommendedProduct = string.IsNullOrWhiteSpace(ai.RecommendedProduct) ? fallback.RecommendedProduct : ai.RecommendedProduct,
+            BaseResidue = string.IsNullOrWhiteSpace(ai.BaseResidue) ? fallback.BaseResidue : ai.BaseResidue,
+            TotalEstimatedTime = string.IsNullOrWhiteSpace(ai.TotalEstimatedTime) ? fallback.TotalEstimatedTime : ai.TotalEstimatedTime,
+            ApproximateCost = string.IsNullOrWhiteSpace(ai.ApproximateCost) ? fallback.ApproximateCost : ai.ApproximateCost,
+            PrincipalEquipment = ai.PrincipalEquipment.Count > 0 ? ai.PrincipalEquipment : fallback.PrincipalEquipment,
+            ExpectedOutcome = string.IsNullOrWhiteSpace(ai.ExpectedOutcome) ? fallback.ExpectedOutcome : ai.ExpectedOutcome,
+            Explanation = string.IsNullOrWhiteSpace(ai.Explanation) ? fallback.Explanation : ai.Explanation,
+            ProcessSteps = ai.ProcessSteps.Count > 0 ? ai.ProcessSteps : fallback.ProcessSteps,
+            ExplanationSteps = ai.ExplanationSteps.Count > 0 ? ai.ExplanationSteps : fallback.ExplanationSteps,
+            MarketAnalysis = mergedMarket,
+            Source = string.IsNullOrWhiteSpace(ai.Source) ? "fallback" : ai.Source,
+            ManufacturingProcess = string.IsNullOrWhiteSpace(ai.ManufacturingProcess) ? fallback.ManufacturingProcess : ai.ManufacturingProcess,
+            ComplexityOverview = ai.ComplexityOverview ?? fallback.ComplexityOverview
+        };
+    }
+
+    private void LogCoverage(Guid listingId, ValueRouteDetailDto detail)
+    {
+        var processOk = detail.ProcessSteps.Count > 0;
+        var explanationOk = detail.ExplanationSteps.Count > 0 && detail.ComplexityOverview is not null;
+        var marketOk = detail.MarketAnalysis.PotentialBuyers.Count > 0
+            && detail.MarketAnalysis.MarketKpis.Count > 0
+            && detail.MarketAnalysis.CostStructure.Count > 0;
+
+        var completed = 0;
+        if (processOk) completed++;
+        if (explanationOk) completed++;
+        if (marketOk) completed++;
+        var coverage = Math.Round((completed / 3m) * 100m, MidpointRounding.AwayFromZero);
+
+        logger.LogInformation(
+            "Recommendation analysis coverage. ListingId={ListingId}, Source={Source}, process_ok={ProcessOk}, explanation_ok={ExplanationOk}, market_ok={MarketOk}, coverage_percent={Coverage}",
+            listingId,
+            detail.Source ?? "fallback",
+            processOk,
+            explanationOk,
+            marketOk,
+            coverage);
     }
 
     private async Task<PurchasePreference?> GetCurrentPreferenceAsync(

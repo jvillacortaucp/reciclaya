@@ -15,7 +15,18 @@ public sealed record ValueRouteDetailDto(
     ValueRouteEnvironmentalSummaryDto EnvironmentalSummary,
     ValueRouteMarketAnalysisDto MarketAnalysis,
     IReadOnlyCollection<ValueRouteProcessStepDto> ProcessSteps,
-    string? Source = null);
+    string? Source = null,
+    string? ManufacturingProcess = null,
+    ValueRouteComplexityOverviewDto? ComplexityOverview = null);
+
+public sealed record ValueRouteComplexityOverviewDto(
+    string? ProcessingRequired,
+    string? EquipmentNeeded,
+    string? TechnicalKnowledge,
+    string? TransformationTime,
+    string? EstimatedCost,
+    string? OperationalRisk,
+    string? PositiveEnvironmentalImpact);
 
 public sealed record ValueRouteProcessStepDto(
     string Id,

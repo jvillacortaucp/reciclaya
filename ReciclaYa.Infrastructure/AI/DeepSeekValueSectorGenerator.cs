@@ -56,6 +56,11 @@ public sealed class DeepSeekValueSectorGenerator(
 
             return routes.Count == limit ? routes : Array.Empty<ValueSectorRouteDto>();
         }
+        catch (TaskCanceledException exception) when (!cancellationToken.IsCancellationRequested)
+        {
+            logger.LogWarning(exception, "DeepSeek ValueSectors timeout.");
+            return Array.Empty<ValueSectorRouteDto>();
+        }
         catch (OperationCanceledException)
         {
             throw;

@@ -17,6 +17,16 @@ interface ValueRouteDetailApi {
   readonly principalEquipment: readonly string[];
   readonly expectedOutcome: string;
   readonly explanation: string;
+  readonly manufacturingProcess?: string | null;
+  readonly complexityOverview?: {
+    readonly processingRequired?: string | null;
+    readonly equipmentNeeded?: string | null;
+    readonly technicalKnowledge?: string | null;
+    readonly transformationTime?: string | null;
+    readonly estimatedCost?: string | null;
+    readonly operationalRisk?: string | null;
+    readonly positiveEnvironmentalImpact?: string | null;
+  } | null;
   readonly source?: string | null;
   readonly explanationSteps: readonly {
     readonly id: string;
@@ -176,6 +186,7 @@ export class RecommendationsHttpRepository {
 
     return {
       recommendationId: detail.recommendationId,
+      source: detail.source ?? null,
       recommendedProduct: detail.recommendedProduct,
       baseResidue: detail.baseResidue,
       complexity: this.normalizeLevel(detail.complexity),
@@ -185,6 +196,8 @@ export class RecommendationsHttpRepository {
       principalEquipment: detail.principalEquipment ?? [],
       expectedOutcome: detail.expectedOutcome,
       explanation: detail.explanation,
+      manufacturingProcess: detail.manufacturingProcess ?? null,
+      complexityOverview: detail.complexityOverview ?? null,
       explanationSteps: (detail.explanationSteps ?? []).map((step) => ({
         id: step.id,
         order: step.order,

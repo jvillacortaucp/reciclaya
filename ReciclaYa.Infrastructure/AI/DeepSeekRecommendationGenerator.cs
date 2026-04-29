@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ReciclaYa.Application.Recommendations.Dtos;
 using ReciclaYa.Application.Recommendations.Services;
+using ReciclaYa.Application.ValueSectors.Dtos;
 using ReciclaYa.Infrastructure.Options;
 
 namespace ReciclaYa.Infrastructure.AI;
@@ -90,6 +91,67 @@ public sealed class DeepSeekRecommendationGenerator(
             item.ConfidenceScore,
             NormalizeViabilityLevel(item.ViabilityLevel),
             "deepseek");
+    }
+
+    public async Task<ValueRouteDetailDto?> AnalyzeListingProcessAsync(
+        RecommendationAiContext context,
+        RecommendationCandidateDto candidate,
+        CancellationToken cancellationToken = default)
+    {
+        if (!HasApiKeyConfigured(out var apiKey))
+        {
+            logger.LogWarning("DeepSeek listing analysis skipped: API key not configured.");
+            return null;
+        }
+
+        try
+        {
+            var prompt = BuildProcessPrompt(context, candidate);
+            var content = await RequestCompletionAsync(apiKey, prompt, cancellationToken);
+            if (string.IsNullOrWhiteSpace(content))
+            {
+                logger.LogWarning("DeepSeek listing analysis empty response. ListingId={ListingId}", candidate.ListingId);
+                return null;
+            }
+
+            var parsed = ParseProcess(content, candidate);
+            if (parsed is null)
+            {
+                logger.LogWarning("DeepSeek listing analysis json-invalid. ListingId={ListingId}", candidate.ListingId);
+                return null;
+            }
+
+            var processOk = parsed.ProcessSteps.Count > 0;
+            var explanationOk = parsed.ExplanationSteps.Count > 0;
+            var marketOk = parsed.MarketAnalysis.PotentialBuyers.Count > 0
+                && parsed.MarketAnalysis.MarketKpis.Count > 0
+                && parsed.MarketAnalysis.CostStructure.Count > 0;
+            if (!processOk || !explanationOk || !marketOk)
+            {
+                logger.LogWarning(
+                    "DeepSeek listing analysis schema-partial. ListingId={ListingId}, process_ok={ProcessOk}, explanation_ok={ExplanationOk}, market_ok={MarketOk}",
+                    candidate.ListingId,
+                    processOk,
+                    explanationOk,
+                    marketOk);
+            }
+
+            return parsed with { Source = "deepseek" };
+        }
+        catch (TaskCanceledException exception) when (!cancellationToken.IsCancellationRequested)
+        {
+            logger.LogWarning(exception, "DeepSeek listing process analysis timeout. ListingId={ListingId}", candidate.ListingId);
+            return null;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            logger.LogError(exception, "DeepSeek listing process analysis failed. ListingId={ListingId}", candidate.ListingId);
+            return null;
+        }
     }
 
     private async Task<string> RequestCompletionAsync(
@@ -308,6 +370,155 @@ Reglas:
 - Si un listing tiene poca viabilidad, no lo recomiendes salvo que no haya mejores opciones.";
     }
 
+    private static string BuildProcessPrompt(RecommendationAiContext context, RecommendationCandidateDto candidate)
+    {
+        var preferenceJson = JsonSerializer.Serialize(context.Preference, JsonOptions);
+        var candidateJson = JsonSerializer.Serialize(candidate, JsonOptions);
+
+        return $@"Genera un analisis completo tab-driven para recomendaciones industriales basado en ESTE listing.
+
+Buyer preference:
+{preferenceJson}
+
+Listing:
+{candidateJson}
+
+Devuelve SOLO JSON valido con esta forma exacta:
+{{
+  ""recommendationId"": ""rec-<listingId>"",
+  ""recommendedProduct"": ""string"",
+  ""baseResidue"": ""string"",
+  ""complexity"": ""low|medium|high"",
+  ""totalEstimatedTime"": ""string"",
+  ""approximateCost"": ""string"",
+  ""marketPotential"": ""low|medium|high"",
+  ""principalEquipment"": [""string""],
+  ""expectedOutcome"": ""string"",
+  ""explanation"": ""string"",
+  ""manufacturingProcess"": ""string"",
+  ""complexityOverview"": {{
+    ""processingRequired"": ""string"",
+    ""equipmentNeeded"": ""string"",
+    ""technicalKnowledge"": ""string"",
+    ""transformationTime"": ""string"",
+    ""estimatedCost"": ""string"",
+    ""operationalRisk"": ""string"",
+    ""positiveEnvironmentalImpact"": ""string""
+  }},
+  ""processSteps"": [
+    {{
+      ""id"": ""string"",
+      ""order"": 1,
+      ""title"": ""string"",
+      ""shortDescription"": ""string"",
+      ""estimatedTime"": ""string"",
+      ""requiredEquipment"": [""string""],
+      ""keyActions"": [""string""],
+      ""quickTip"": ""string"",
+      ""riskLevel"": ""low|medium|high"",
+      ""iconName"": ""package-search|droplets|wind|factory|scan-line|package|archive""
+    }}
+  ],
+  ""explanationSteps"": [
+    {{
+      ""id"": ""string"",
+      ""order"": 1,
+      ""title"": ""string"",
+      ""shortLabel"": ""string"",
+      ""transformationType"": ""string"",
+      ""whatHappens"": ""string"",
+      ""whyItMatters"": ""string"",
+      ""transformationOutcome"": ""string"",
+      ""quickTip"": ""string"",
+      ""avoidRisk"": ""string"",
+      ""processImageUrl"": ""string"",
+      ""environmentalFactors"": {{
+        ""positive"": [""string""],
+        ""negative"": [""string""]
+      }},
+      ""natureBenefits"": [""string""],
+      ""iconName"": ""package-search|droplets|wind|factory|scan-line|package|archive""
+    }}
+  ],
+  ""environmentalSummary"": {{
+    ""impactScore"": 0.0,
+    ""utilizationLevelLabel"": ""string"",
+    ""utilizationPercent"": 0,
+    ""environmentalRiskLabel"": ""string"",
+    ""environmentalRiskPercent"": 0,
+    ""keyRecommendation"": ""string""
+  }},
+  ""marketAnalysis"": {{
+    ""finishedProduct"": {{
+      ""name"": ""string"",
+      ""useCase"": ""string"",
+      ""suggestedFormat"": ""string"",
+      ""suggestedPricePerKg"": 0.0,
+      ""opportunityTag"": ""string"",
+      ""productImageUrl"": ""string""
+    }},
+    ""potentialBuyers"": [
+      {{
+        ""id"": ""string"",
+        ""name"": ""string"",
+        ""segment"": ""string"",
+        ""monthlyVolume"": ""string"",
+        ""probability"": 0,
+        ""channel"": ""string"",
+        ""type"": ""enterprise|retail|consumer"",
+        ""iconName"": ""building|store|leaf""
+      }}
+    ],
+    ""marketKpis"": [
+      {{
+        ""id"": ""string"",
+        ""label"": ""string"",
+        ""value"": ""string"",
+        ""helper"": ""string"",
+        ""trendPercent"": 0,
+        ""tone"": ""emerald|slate|amber""
+      }}
+    ],
+    ""costStructure"": [
+      {{
+        ""id"": ""string"",
+        ""label"": ""string"",
+        ""amountUsd"": 0.0,
+        ""percent"": 0
+      }}
+    ],
+    ""estimatedGrossMarginPercent"": 0.0,
+    ""suggestedPricePerKg"": 0.0,
+    ""totalCostPerKg"": 0.0,
+    ""competitionInsight"": {{
+      ""competitionLevelLabel"": ""string"",
+      ""directSubstitutes"": [""string""],
+      ""positioningRecommendation"": ""string""
+    }},
+    ""opportunitySummary"": {{
+      ""generatedAt"": ""string"",
+      ""initialInvestment"": ""string"",
+      ""paybackPeriod"": ""string"",
+      ""monthlyProfitability"": ""string"",
+      ""sustainabilityScore"": ""string"",
+      ""nextSteps"": [""string""],
+      ""ecoTip"": ""string""
+    }},
+    ""chartLabels"": [""string""],
+    ""chartSeries"": [0.0]
+  }}
+}}
+
+Reglas:
+- No markdown.
+- Completa todos los bloques (proceso, complejidad, mercado).
+- riskLevel/complexity/marketPotential solo low|medium|high.
+- utilizationPercent/environmentalRiskPercent/probability/trendPercent/percent en rango 0..100.
+- Incluye al menos 3 processSteps y 2 explanationSteps.
+- Incluye al menos 1 buyer, 1 KPI y 2 items de costo.
+- Si uso alimentario/animal, agregar advertencia sanitaria en riesgos o condiciones.";
+    }
+
     private static string? TryExtractJson(string content)
     {
         var start = content.IndexOf('{');
@@ -394,4 +605,548 @@ Reglas:
         IReadOnlyCollection<string>? Risks,
         string? NextStep,
         string? ViabilityLevel);
+
+    private static ValueRouteDetailDto? ParseProcess(string content, RecommendationCandidateDto candidate)
+    {
+        var json = TryExtractJson(content);
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return null;
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(json);
+            var root = document.RootElement;
+
+            var recommendationId = ReadString(root, "recommendationId", $"rec-{candidate.ListingId:N}");
+            var recommendedProduct = ReadString(root, "recommendedProduct", candidate.ProductType ?? candidate.Title);
+            var baseResidue = ReadString(root, "baseResidue", candidate.SpecificResidue ?? candidate.ProductType ?? candidate.Title);
+            var complexity = NormalizeViabilityLevel(ReadString(root, "complexity", "medium"));
+            var totalEstimatedTime = ReadString(root, "totalEstimatedTime", "N/D");
+            var approximateCost = ReadString(root, "approximateCost", "N/D");
+            var marketPotential = NormalizeViabilityLevel(ReadString(root, "marketPotential", "medium"));
+            var principalEquipment = ReadStringArray(root, "principalEquipment", ["Equipo basico"]);
+            var expectedOutcome = ReadString(root, "expectedOutcome", "Resultado esperado por validar.");
+            var explanation = ReadString(root, "explanation", "Analisis generado por IA.");
+            var manufacturingProcess = ReadString(root, "manufacturingProcess", "Proceso por validar en piloto.");
+
+            var complexityOverview = ParseComplexityOverview(root);
+            var processSteps = ParseProcessSteps(root);
+            var explanationSteps = ParseExplanationSteps(root);
+            var environmentalSummary = ParseEnvironmentalSummary(root);
+            var marketAnalysis = ParseMarketAnalysis(root, recommendedProduct, expectedOutcome);
+
+            return new ValueRouteDetailDto(
+                recommendationId,
+                recommendedProduct,
+                baseResidue,
+                complexity,
+                totalEstimatedTime,
+                approximateCost,
+                marketPotential,
+                principalEquipment,
+                expectedOutcome,
+                explanation,
+                explanationSteps,
+                environmentalSummary,
+                marketAnalysis,
+                processSteps,
+                "deepseek",
+                manufacturingProcess,
+                complexityOverview);
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
+    private static ValueRouteComplexityOverviewDto ParseComplexityOverview(JsonElement root)
+    {
+        if (!TryGetProperty(root, "complexityOverview", out var complexity))
+        {
+            return new ValueRouteComplexityOverviewDto(null, null, null, null, null, null, null);
+        }
+
+        return new ValueRouteComplexityOverviewDto(
+            ReadString(complexity, "processingRequired", null),
+            ReadString(complexity, "equipmentNeeded", null),
+            ReadString(complexity, "technicalKnowledge", null),
+            ReadString(complexity, "transformationTime", null),
+            ReadString(complexity, "estimatedCost", null),
+            ReadString(complexity, "operationalRisk", null),
+            ReadString(complexity, "positiveEnvironmentalImpact", null));
+    }
+
+    private static IReadOnlyCollection<ValueRouteProcessStepDto> ParseProcessSteps(JsonElement root)
+    {
+        if (!TryGetProperty(root, "processSteps", out var array) || array.ValueKind != JsonValueKind.Array)
+        {
+            return Array.Empty<ValueRouteProcessStepDto>();
+        }
+
+        var result = new List<ValueRouteProcessStepDto>();
+        var order = 1;
+        foreach (var item in array.EnumerateArray())
+        {
+            result.Add(new ValueRouteProcessStepDto(
+                ReadString(item, "id", $"proc-{order}"),
+                NormalizeInt(ReadNullableInt(item, "order"), order, 1, 50),
+                ReadString(item, "title", $"Paso {order}"),
+                ReadString(item, "shortDescription", "Descripcion no disponible."),
+                ReadString(item, "estimatedTime", "N/D"),
+                ReadStringArray(item, "requiredEquipment", ["Equipo basico"]),
+                ReadStringArray(item, "keyActions", ["Accion clave"]),
+                ReadString(item, "quickTip", "Validar en piloto."),
+                NormalizeViabilityLevel(ReadString(item, "riskLevel", "medium")),
+                NormalizeProcessIcon(ReadString(item, "iconName", "factory"))));
+            order++;
+        }
+
+        return result;
+    }
+
+    private static IReadOnlyCollection<ValueRouteExplanationStepDto> ParseExplanationSteps(JsonElement root)
+    {
+        if (!TryGetProperty(root, "explanationSteps", out var array) || array.ValueKind != JsonValueKind.Array)
+        {
+            return Array.Empty<ValueRouteExplanationStepDto>();
+        }
+
+        var result = new List<ValueRouteExplanationStepDto>();
+        var order = 1;
+        foreach (var item in array.EnumerateArray())
+        {
+            var factors = TryGetProperty(item, "environmentalFactors", out var envFactors)
+                ? envFactors
+                : default;
+
+            var positive = factors.ValueKind == JsonValueKind.Object
+                ? ReadStringArray(factors, "positive", ["Aprovechamiento circular"])
+                : new[] { "Aprovechamiento circular" };
+            var negative = factors.ValueKind == JsonValueKind.Object
+                ? ReadStringArray(factors, "negative", ["Validar riesgo operativo"])
+                : new[] { "Validar riesgo operativo" };
+
+            result.Add(new ValueRouteExplanationStepDto(
+                ReadString(item, "id", $"exp-{order}"),
+                NormalizeInt(ReadNullableInt(item, "order"), order, 1, 50),
+                ReadString(item, "title", $"Etapa {order}"),
+                ReadString(item, "shortLabel", $"Paso {order}"),
+                ReadString(item, "transformationType", "Analisis IA"),
+                ReadString(item, "whatHappens", "Detalle no disponible."),
+                ReadString(item, "whyItMatters", "Impacto por validar."),
+                ReadString(item, "transformationOutcome", "Resultado esperado."),
+                ReadString(item, "quickTip", "Validar en lote pequeno."),
+                ReadString(item, "avoidRisk", "Evitar variaciones no controladas."),
+                ReadString(item, "processImageUrl", string.Empty),
+                new ValueRouteEnvironmentalFactorsDto(positive, negative),
+                ReadStringArray(item, "natureBenefits", ["Economia circular"]),
+                NormalizeProcessIcon(ReadString(item, "iconName", "scan-line"))));
+            order++;
+        }
+
+        return result;
+    }
+
+    private static ValueRouteEnvironmentalSummaryDto ParseEnvironmentalSummary(JsonElement root)
+    {
+        if (!TryGetProperty(root, "environmentalSummary", out var item))
+        {
+            return new ValueRouteEnvironmentalSummaryDto(5m, "Medio", 50, "Controlado", 30, "Validar siguiente paso.");
+        }
+
+        return new ValueRouteEnvironmentalSummaryDto(
+            NormalizeDecimal(ReadNullableDecimal(item, "impactScore"), 5m, 0m, 10m),
+            ReadString(item, "utilizationLevelLabel", "Medio"),
+            NormalizeInt(ReadNullableInt(item, "utilizationPercent"), 50, 0, 100),
+            ReadString(item, "environmentalRiskLabel", "Controlado"),
+            NormalizeInt(ReadNullableInt(item, "environmentalRiskPercent"), 30, 0, 100),
+            ReadString(item, "keyRecommendation", "Validar siguiente paso comercial."));
+    }
+
+    private static ValueRouteMarketAnalysisDto ParseMarketAnalysis(JsonElement root, string recommendedProduct, string expectedOutcome)
+    {
+        if (!TryGetProperty(root, "marketAnalysis", out var item))
+        {
+            return BuildMinimalMarketAnalysis(recommendedProduct, expectedOutcome);
+        }
+
+        var finishedProduct = TryGetPropertyAny(item, out var fp, "finishedProduct", "productoFinal") ? fp : default;
+        var buyers = TryGetPropertyAny(item, out var pb, "potentialBuyers", "compradoresPotenciales") ? pb : default;
+        var kpis = TryGetPropertyAny(item, out var mk, "marketKpis", "kpisMercado") ? mk : default;
+        var costs = TryGetPropertyAny(item, out var cs, "costStructure", "estructuraCostos") ? cs : default;
+        var competition = TryGetPropertyAny(item, out var ci, "competitionInsight", "insightCompetencia") ? ci : default;
+        var opportunity = TryGetPropertyAny(item, out var os, "opportunitySummary", "resumenOportunidad") ? os : default;
+
+        var parsedBuyers = ParseBuyers(buyers);
+        var parsedKpis = ParseKpis(kpis);
+        var parsedCosts = ParseCosts(costs);
+
+        return new ValueRouteMarketAnalysisDto(
+            new ValueRouteFinishedProductDto(
+                ReadStringAny(finishedProduct, recommendedProduct, "name", "nombre"),
+                ReadStringAny(finishedProduct, expectedOutcome, "useCase", "casoUso"),
+                ReadStringAny(finishedProduct, "Lote", "suggestedFormat", "formatoSugerido", "recommendedFormat"),
+                NormalizeDecimal(ReadNullableDecimalAny(finishedProduct, "suggestedPricePerKg", "precioSugeridoPorKg"), 0m, 0m, 100000m),
+                ReadStringAny(finishedProduct, "Opportunity: Medium", "opportunityTag", "etiquetaOportunidad"),
+                ReadStringAny(finishedProduct, string.Empty, "productImageUrl", "imagenProductoUrl")),
+            parsedBuyers,
+            parsedKpis,
+            parsedCosts,
+            NormalizeDecimal(ReadNullableDecimalAny(item, "estimatedGrossMarginPercent", "margenBrutoEstimadoPorcentaje"), 0m, 0m, 100m),
+            NormalizeDecimal(ReadNullableDecimalAny(item, "suggestedPricePerKg", "precioSugeridoPorKg"), 0m, 0m, 100000m),
+            NormalizeDecimal(ReadNullableDecimalAny(item, "totalCostPerKg", "costoTotalPorKg"), 0m, 0m, 100000m),
+            new ValueRouteCompetitionInsightDto(
+                ReadStringAny(competition, "N/D", "competitionLevelLabel", "nivelCompetencia"),
+                ReadStringArrayAny(competition, ["Sustitutos por validar"], "directSubstitutes", "sustitutosDirectos"),
+                ReadStringAny(competition, "Validar posicionamiento comercial.", "positioningRecommendation", "recomendacionPosicionamiento")),
+            new ValueRouteOpportunitySummaryDto(
+                ReadStringAny(opportunity, DateTime.UtcNow.ToString("yyyy-MM-dd"), "generatedAt", "generadoEn"),
+                ReadStringAny(opportunity, "N/D", "initialInvestment", "inversionInicial"),
+                ReadStringAny(opportunity, "N/D", "paybackPeriod", "periodoRecuperacion"),
+                ReadStringAny(opportunity, "N/D", "monthlyProfitability", "rentabilidadMensual"),
+                ReadStringAny(opportunity, "50/100", "sustainabilityScore", "puntajeSostenibilidad"),
+                ReadStringArrayAny(opportunity, ["Contactar buyer objetivo"], "nextSteps", "siguientesPasos"),
+                ReadStringAny(opportunity, "Mejorar trazabilidad ambiental.", "ecoTip", "ecoConsejo")),
+            ReadStringArrayAny(item, ["Confianza IA"], "chartLabels", "etiquetasGrafico"),
+            ReadDecimalArrayAny(item, [50m], "chartSeries", "serieGrafico"));
+    }
+
+    private static ValueRouteMarketAnalysisDto BuildMinimalMarketAnalysis(string recommendedProduct, string expectedOutcome)
+    {
+        return new ValueRouteMarketAnalysisDto(
+            new ValueRouteFinishedProductDto(recommendedProduct, expectedOutcome, "Lote", 0m, "Opportunity: Medium", string.Empty),
+            new[] { new ValueRouteBuyerSegmentDto("buyer-1", "Segmento industrial", "B2B", "N/D", 50, "Directo", "enterprise", "building") },
+            new[] { new ValueRouteMarketKpiDto("kpi-1", "Confianza IA", "50%", "Fallback", 50, "slate") },
+            new[] { new ValueRouteCostStructureItemDto("cost-1", "Materia prima", 0m, 50) },
+            0m,
+            0m,
+            0m,
+            new ValueRouteCompetitionInsightDto("N/D", ["Sustitutos por validar"], "Validar propuesta de valor."),
+            new ValueRouteOpportunitySummaryDto(DateTime.UtcNow.ToString("yyyy-MM-dd"), "N/D", "N/D", "N/D", "50/100", ["Contactar buyer objetivo"], "Medir impacto."),
+            ["Confianza IA"],
+            [50m]);
+    }
+
+    private static IReadOnlyCollection<ValueRouteBuyerSegmentDto> ParseBuyers(JsonElement buyers)
+    {
+        if (buyers.ValueKind != JsonValueKind.Array)
+        {
+            return new[] { new ValueRouteBuyerSegmentDto("buyer-1", "Segmento industrial", "B2B", "N/D", 50, "Directo", "enterprise", "building") };
+        }
+
+        var result = new List<ValueRouteBuyerSegmentDto>();
+        var index = 1;
+        foreach (var item in buyers.EnumerateArray())
+        {
+            var type = NormalizeBuyerType(ReadString(item, "type", "enterprise"));
+            result.Add(new ValueRouteBuyerSegmentDto(
+                ReadStringAny(item, $"buyer-{index}", "id"),
+                ReadStringAny(item, $"Buyer {index}", "name", "nombre"),
+                ReadStringAny(item, "B2B", "segment", "segmento"),
+                ReadStringAny(item, "N/D", "monthlyVolume", "volumenMensual"),
+                NormalizeInt(ReadNullableIntAny(item, "probability", "probabilidad"), 50, 0, 100),
+                ReadStringAny(item, "Directo", "channel", "canal"),
+                type,
+                NormalizeBuyerIcon(ReadStringAny(item, type == "retail" ? "store" : "building", "iconName", "icono"))));
+            index++;
+        }
+
+        return result.Count > 0 ? result : new[] { new ValueRouteBuyerSegmentDto("buyer-1", "Segmento industrial", "B2B", "N/D", 50, "Directo", "enterprise", "building") };
+    }
+
+    private static IReadOnlyCollection<ValueRouteMarketKpiDto> ParseKpis(JsonElement kpis)
+    {
+        if (kpis.ValueKind != JsonValueKind.Array)
+        {
+            return new[] { new ValueRouteMarketKpiDto("kpi-1", "Confianza IA", "50%", "Fallback", 50, "slate") };
+        }
+
+        var result = new List<ValueRouteMarketKpiDto>();
+        var index = 1;
+        foreach (var item in kpis.EnumerateArray())
+        {
+            result.Add(new ValueRouteMarketKpiDto(
+                ReadStringAny(item, $"kpi-{index}", "id"),
+                ReadStringAny(item, "KPI", "label", "etiqueta"),
+                ReadStringAny(item, "N/D", "value", "valor"),
+                ReadStringAny(item, "N/D", "helper", "ayuda"),
+                NormalizeInt(ReadNullableIntAny(item, "trendPercent", "tendenciaPorcentaje"), 0, 0, 100),
+                NormalizeTone(ReadStringAny(item, "slate", "tone", "tono"))));
+            index++;
+        }
+
+        return result.Count > 0 ? result : new[] { new ValueRouteMarketKpiDto("kpi-1", "Confianza IA", "50%", "Fallback", 50, "slate") };
+    }
+
+    private static IReadOnlyCollection<ValueRouteCostStructureItemDto> ParseCosts(JsonElement costs)
+    {
+        if (costs.ValueKind != JsonValueKind.Array)
+        {
+            return new[] { new ValueRouteCostStructureItemDto("cost-1", "Materia prima", 0m, 50) };
+        }
+
+        var result = new List<ValueRouteCostStructureItemDto>();
+        var index = 1;
+        foreach (var item in costs.EnumerateArray())
+        {
+            result.Add(new ValueRouteCostStructureItemDto(
+                ReadStringAny(item, $"cost-{index}", "id"),
+                ReadStringAny(item, "Costo", "label", "etiqueta"),
+                NormalizeDecimal(ReadNullableDecimalAny(item, "amountUsd", "montoUsd"), 0m, 0m, 100000m),
+                NormalizeInt(ReadNullableIntAny(item, "percent", "porcentaje"), 0, 0, 100)));
+            index++;
+        }
+
+        return result.Count > 0 ? result : new[] { new ValueRouteCostStructureItemDto("cost-1", "Materia prima", 0m, 50) };
+    }
+
+    private static bool TryGetProperty(JsonElement element, string name, out JsonElement value)
+    {
+        if (element.ValueKind == JsonValueKind.Object)
+        {
+            foreach (var property in element.EnumerateObject())
+            {
+                if (string.Equals(property.Name, name, StringComparison.OrdinalIgnoreCase))
+                {
+                    value = property.Value;
+                    return true;
+                }
+            }
+        }
+
+        value = default;
+        return false;
+    }
+
+    private static string ReadString(JsonElement element, string property, string? fallback)
+    {
+        if (TryGetProperty(element, property, out var value) && value.ValueKind == JsonValueKind.String)
+        {
+            var text = value.GetString()?.Trim();
+            if (!string.IsNullOrWhiteSpace(text))
+            {
+                return text;
+            }
+        }
+
+        return fallback ?? string.Empty;
+    }
+
+    private static bool TryGetPropertyAny(JsonElement element, out JsonElement value, params string[] names)
+    {
+        foreach (var name in names)
+        {
+            if (TryGetProperty(element, name, out value))
+            {
+                return true;
+            }
+        }
+
+        value = default;
+        return false;
+    }
+
+    private static string ReadStringAny(JsonElement element, string fallback, params string[] names)
+    {
+        foreach (var name in names)
+        {
+            if (TryGetProperty(element, name, out var value) && value.ValueKind == JsonValueKind.String)
+            {
+                var text = value.GetString()?.Trim();
+                if (!string.IsNullOrWhiteSpace(text))
+                {
+                    return text;
+                }
+            }
+        }
+
+        return fallback;
+    }
+
+    private static IReadOnlyCollection<string> ReadStringArray(JsonElement element, string property, IReadOnlyCollection<string> fallback)
+    {
+        if (TryGetProperty(element, property, out var value) && value.ValueKind == JsonValueKind.Array)
+        {
+            var items = value.EnumerateArray()
+                .Where(item => item.ValueKind == JsonValueKind.String)
+                .Select(item => item.GetString()?.Trim())
+                .Where(item => !string.IsNullOrWhiteSpace(item))
+                .Cast<string>()
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+            if (items.Length > 0)
+            {
+                return items;
+            }
+        }
+
+        return fallback;
+    }
+
+    private static IReadOnlyCollection<string> ReadStringArrayAny(JsonElement element, IReadOnlyCollection<string> fallback, params string[] names)
+    {
+        foreach (var name in names)
+        {
+            var values = ReadStringArray(element, name, Array.Empty<string>());
+            if (values.Count > 0)
+            {
+                return values;
+            }
+        }
+
+        return fallback;
+    }
+
+    private static IReadOnlyCollection<decimal> ReadDecimalArray(JsonElement element, string property, IReadOnlyCollection<decimal> fallback)
+    {
+        if (TryGetProperty(element, property, out var value) && value.ValueKind == JsonValueKind.Array)
+        {
+            var items = new List<decimal>();
+            foreach (var item in value.EnumerateArray())
+            {
+                if (item.ValueKind == JsonValueKind.Number && item.TryGetDecimal(out var number))
+                {
+                    items.Add(number);
+                }
+            }
+
+            if (items.Count > 0)
+            {
+                return items;
+            }
+        }
+
+        return fallback;
+    }
+
+    private static IReadOnlyCollection<decimal> ReadDecimalArrayAny(JsonElement element, IReadOnlyCollection<decimal> fallback, params string[] names)
+    {
+        foreach (var name in names)
+        {
+            var values = ReadDecimalArray(element, name, Array.Empty<decimal>());
+            if (values.Count > 0)
+            {
+                return values;
+            }
+        }
+
+        return fallback;
+    }
+
+    private static int? ReadNullableInt(JsonElement element, string property)
+    {
+        if (!TryGetProperty(element, property, out var value))
+        {
+            return null;
+        }
+
+        if (value.ValueKind == JsonValueKind.Number && value.TryGetInt32(out var number))
+        {
+            return number;
+        }
+
+        if (value.ValueKind == JsonValueKind.String && int.TryParse(value.GetString(), out number))
+        {
+            return number;
+        }
+
+        return null;
+    }
+
+    private static int? ReadNullableIntAny(JsonElement element, params string[] names)
+    {
+        foreach (var name in names)
+        {
+            var value = ReadNullableInt(element, name);
+            if (value.HasValue)
+            {
+                return value;
+            }
+        }
+
+        return null;
+    }
+
+    private static decimal? ReadNullableDecimal(JsonElement element, string property)
+    {
+        if (!TryGetProperty(element, property, out var value))
+        {
+            return null;
+        }
+
+        if (value.ValueKind == JsonValueKind.Number && value.TryGetDecimal(out var number))
+        {
+            return number;
+        }
+
+        if (value.ValueKind == JsonValueKind.String && decimal.TryParse(value.GetString(), out number))
+        {
+            return number;
+        }
+
+        return null;
+    }
+
+    private static decimal? ReadNullableDecimalAny(JsonElement element, params string[] names)
+    {
+        foreach (var name in names)
+        {
+            var value = ReadNullableDecimal(element, name);
+            if (value.HasValue)
+            {
+                return value;
+            }
+        }
+
+        return null;
+    }
+
+    private static int NormalizeInt(int? value, int fallback, int min, int max)
+    {
+        return value.HasValue ? Math.Clamp(value.Value, min, max) : fallback;
+    }
+
+    private static decimal NormalizeDecimal(decimal? value, decimal fallback, decimal min, decimal max)
+    {
+        return value.HasValue ? Math.Clamp(value.Value, min, max) : fallback;
+    }
+
+    private static string NormalizeProcessIcon(string icon)
+    {
+        return icon switch
+        {
+            "package-search" or "droplets" or "wind" or "factory" or "scan-line" or "package" or "archive" => icon,
+            _ => "factory"
+        };
+    }
+
+    private static string NormalizeBuyerType(string type)
+    {
+        return type switch
+        {
+            "enterprise" or "retail" or "consumer" => type,
+            _ => "enterprise"
+        };
+    }
+
+    private static string NormalizeBuyerIcon(string icon)
+    {
+        return icon switch
+        {
+            "building" or "store" or "leaf" => icon,
+            _ => "building"
+        };
+    }
+
+    private static string NormalizeTone(string tone)
+    {
+        return tone switch
+        {
+            "emerald" or "slate" or "amber" => tone,
+            _ => "slate"
+        };
+    }
 }
