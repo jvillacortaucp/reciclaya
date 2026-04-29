@@ -73,12 +73,24 @@ export class MyListingsFacade {
 
   deactivate(id: string): void {
     this.actionLoadingId.set(id);
-    queueMicrotask(() => {
-      this.actionLoadingId.set(null);
-      this.listings.update((items) => items.map((item) => (item.id === id ? { ...item, status: 'inactive' } : item)));
-      this.activeTab.set('inactive');
-      this.toast.set({ type: 'info', message: MY_LISTINGS_COPY.deactivatedSuccess });
-    });
+    this.repository
+      .cancelListing(id)
+      .pipe(
+        catchError((error: unknown) => {
+          this.toast.set({
+            type: 'info',
+            message: getErrorMessage(error, 'No se pudo cancelar la publicación.')
+          });
+          return EMPTY;
+        }),
+        finalize(() => this.actionLoadingId.set(null))
+      )
+      .subscribe(() => {
+        this.listings.update((items) =>
+          items.map((item) => (item.id === id ? { ...item, status: 'inactive' } : item))
+        );
+        this.toast.set({ type: 'info', message: MY_LISTINGS_COPY.deactivatedSuccess });
+      });
   }
 
   restore(id: string): void {
@@ -142,7 +154,12 @@ export class MyListingsFacade {
       quantity: item.quantity,
       unitLabel: item.unit,
       estimatedPriceLabel: item.pricePerUnitUsd === null ? 'A coordinar' : `USD ${item.pricePerUnitUsd.toFixed(2)}`,
-      status: 'active',
+      status:
+        item.status === 'inactive'
+          ? 'inactive'
+          : item.status === 'draft'
+            ? 'draft'
+            : 'active',
       publishedAt: item.createdAt,
       exchangeType: item.exchangeType,
       exchangeLabel: this.mapExchangeLabel(item.exchangeType),

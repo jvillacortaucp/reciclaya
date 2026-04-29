@@ -120,6 +120,8 @@
           [tourTarget]="isFirst"
           [isSelected]="selectedListingId() === item.id"
           (selected)="selectListing($event)"
+          (edit)="editListing($event)"
+          (cancel)="deactivateListing($event)"
         />
       }
     </div>

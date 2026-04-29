@@ -5,12 +5,12 @@ export const LOGIN_SCREEN_COPY: LoginScreenCopy = {
   headline: 'Transforma residuos en oportunidades de negocio confiables',
   supportingText:
     'Publica lotes, compra subproductos y descubre nuevos usos para residuos agroindustriales con trazabilidad y velocidad comercial.',
-  forgotPasswordLabel: 'Olvidaste tu contrasena?',
+  forgotPasswordLabel: 'Olvidaste tu contraseña?',
   createAccountLabel: 'Aun no tienes cuenta?',
   createAccountCta: 'Crear cuenta',
-  signInLabel: 'Sign in',
+  signInLabel: 'Iniciar sesión',
   emailLabel: 'Email corporativo',
-  passwordLabel: 'Contrasena'
+  passwordLabel: 'Contraseña'
 };
 
 export const LOGIN_FEATURE_ITEMS: readonly LoginFeatureItem[] = [

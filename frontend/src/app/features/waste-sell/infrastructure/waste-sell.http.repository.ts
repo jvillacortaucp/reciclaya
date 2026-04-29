@@ -7,13 +7,19 @@ import { environment } from '../../../../environments/environment';
 import { EMPTY_WASTE_SELL_STATE } from '../data/waste-sell.constants';
 import { ListingPreviewSummary, WasteSellPageState } from '../domain/waste-sell.models';
 import { WasteSellRepository } from '../domain/waste-sell.repository';
+import { MyListingsRepository } from '../../my-listings/my-listings.repository';
 
 @Injectable({ providedIn: 'root' })
 export class WasteSellHttpRepository implements WasteSellRepository {
   private readonly http = inject(HttpClient);
+  private readonly myListingsRepository = inject(MyListingsRepository);
 
-  getInitialState(): Observable<WasteSellPageState> {
-    return of(EMPTY_WASTE_SELL_STATE);
+  getInitialState(listingId?: string | null): Observable<WasteSellPageState> {
+    if (!listingId) {
+      return of(EMPTY_WASTE_SELL_STATE);
+    }
+
+    return this.myListingsRepository.getEditState(listingId);
   }
 
   saveDraft(state: WasteSellPageState): Observable<WasteSellPageState> {
@@ -25,9 +31,11 @@ export class WasteSellHttpRepository implements WasteSellRepository {
       );
   }
 
-  publish(state: WasteSellPageState): Observable<WasteSellPageState> {
+  publish(state: WasteSellPageState, listingId?: string | null): Observable<WasteSellPageState> {
     return this.http
-      .post<ApiResponse<unknown>>(`${environment.apiBaseUrl}/waste-sell/publish`, this.toRequestState(state))
+      .post<ApiResponse<unknown>>(`${environment.apiBaseUrl}/waste-sell/publish`, this.toRequestState(state), {
+        params: listingId ? { listingId } : undefined
+      })
       .pipe(
         map((response) => {
           unwrapApiResponse(response);

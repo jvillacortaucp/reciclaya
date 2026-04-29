@@ -1,12 +1,12 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { LucideEye} from '@lucide/angular';
+import { LucideEye, LucidePencil, LucideXCircle } from '@lucide/angular';
 import { MyListing } from '../../domain/my-listing.model';
 
 @Component({
   selector: 'app-my-listing-card',
   standalone: true,
-  imports: [RouterLink, LucideEye],
+  imports: [RouterLink, LucideEye, LucidePencil, LucideXCircle],
   template: `
     <article
       role="button"
@@ -72,6 +72,25 @@ import { MyListing } from '../../domain/my-listing.model';
               <svg lucideEye size="15"></svg>
               Ver detalle
             </a>
+
+            <div class="inline-flex items-center gap-3 text-slate-500">
+              <button
+                type="button"
+                class="inline-flex items-center justify-center rounded-lg p-2 transition hover:bg-slate-100 hover:text-slate-700"
+                aria-label="Editar publicación"
+                (click)="editListing($event)"
+              >
+                <svg lucidePencil size="16"></svg>
+              </button>
+              <button
+                type="button"
+                class="inline-flex items-center justify-center rounded-lg p-2 transition hover:bg-rose-50 hover:text-rose-600"
+                aria-label="Cancelar publicación"
+                (click)="cancelListing($event)"
+              >
+                <svg lucideXCircle size="16"></svg>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -86,8 +105,19 @@ export class MyListingCardComponent {
   @Output() readonly selected = new EventEmitter<string>();
   @Output() readonly recommendations = new EventEmitter<string>();
   @Output() readonly edit = new EventEmitter<string>();
+  @Output() readonly cancel = new EventEmitter<string>();
 
   protected selectCard(): void {
     this.selected.emit(this.listing.id);
+  }
+
+  protected editListing(event: Event): void {
+    event.stopPropagation();
+    this.edit.emit(this.listing.id);
+  }
+
+  protected cancelListing(event: Event): void {
+    event.stopPropagation();
+    this.cancel.emit(this.listing.id);
   }
 }

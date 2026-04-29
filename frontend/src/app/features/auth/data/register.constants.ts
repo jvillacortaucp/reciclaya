@@ -68,5 +68,14 @@ export const REGISTER_VALIDATION_MESSAGES = {
   invalidEmail: 'Ingresa un email valido.',
   passwordMismatch: 'Las contrasenas no coinciden.',
   invalidRuc: 'El RUC debe tener 11 digitos.',
-  invalidDocument: 'El documento debe tener entre 8 y 12 digitos.'
+  invalidDocument: 'El documento debe tener entre 8 y 12 digitos.',
+  invalidPhone: 'Ingresa un telefono valido de 7 a 15 digitos.',
+  invalidPostalCode: 'El codigo postal solo debe contener numeros.',
+  invalidBusinessName: 'La razon social solo permite letras, numeros y signos comerciales basicos.',
+  invalidAddress: 'La direccion contiene caracteres no permitidos.',
+  invalidName: 'Solo se permiten letras, espacios y signos de nombre validos.',
+  invalidJobTitle: 'El cargo solo permite letras, espacios y guiones.',
+  suspiciousContent: 'No se permite HTML, scripts ni contenido sospechoso.',
+  notMeaningful: 'Ingresa un valor valido y legible.',
+  invalidPassword: 'La contrasena debe tener al menos 8 caracteres, 1 mayuscula y 1 numero.'
 } as const;

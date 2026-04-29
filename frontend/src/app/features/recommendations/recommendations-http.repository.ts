@@ -365,7 +365,7 @@ export class RecommendationsHttpRepository {
   }
 
   private normalizeCurrencyText(text: string): string {
-    return this.translateMarketText((text ?? '').replace(/\$/g, 'S/ '));
+    return this.translateMarketText(text ?? '');
   }
 
   private normalizeRecommendation(item: Recommendation): Recommendation {

@@ -79,7 +79,9 @@ export const CONDITION_OPTIONS: readonly SelectOption<'fresh' | 'dry' | 'wet' | 
 export const WASTE_FORM_MESSAGES = {
   required: 'Este campo es obligatorio.',
   positiveNumber: 'Ingrese un valor numerico mayor a cero.',
-  mediaLimit: 'Maximo 5 fotos permitidas.'
+  mediaLimit: 'Maximo 5 fotos permitidas.',
+  maxLength: 'Se superó el límite permitido para este campo.',
+  invalidText: 'El contenido ingresado contiene caracteres o formato no permitido.'
 } as const;
 
 export const EMPTY_WASTE_SELL_STATE: WasteSellPageState = {
