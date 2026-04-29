@@ -2,10 +2,12 @@ import { computed, ChangeDetectionStrategy, Component, inject, signal } from '@a
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import {
+  LucideAlertCircle,
   LucideArrowRight,
   LucideChartNoAxesColumnIncreasing,
   LucideEye,
   LucideEyeOff,
+  LucideLoaderCircle,
   LucideLockKeyhole,
   LucideMail,
   LucideRecycle,
@@ -31,6 +33,8 @@ import { AuthFacade } from '../services/auth.facade';
     LucideEye,
     LucideEyeOff,
     LucideArrowRight,
+    LucideLoaderCircle,
+    LucideAlertCircle,
     LucideRecycle,
     LucideChartNoAxesColumnIncreasing,
     LucideTruck,
@@ -71,7 +75,12 @@ export class LoginPageComponent {
   }
 
   protected submit(): void {
+    if (this.emailLoading() || this.socialLoading()) {
+      return;
+    }
+
     this.authFacade.clearError();
+
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
