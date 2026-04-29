@@ -153,7 +153,7 @@ export class MyListingsFacade {
       sector: item.sector,
       quantity: item.quantity,
       unitLabel: item.unit,
-      estimatedPriceLabel: item.pricePerUnitUsd === null ? 'A coordinar' : `USD ${item.pricePerUnitUsd.toFixed(2)}`,
+      estimatedPriceLabel: item.pricePerUnitUsd === null ? 'A coordinar' : `S/ ${item.pricePerUnitUsd.toFixed(2)}`,
       status:
         item.status === 'inactive'
           ? 'inactive'

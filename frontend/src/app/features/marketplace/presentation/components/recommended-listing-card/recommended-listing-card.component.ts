@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
+import { FALLBACK_IMAGE_URL } from '../../../../../core/constants/media.constants';
 import { RouterLink } from '@angular/router';
 import { MarketplaceListing } from '../../../domain/marketplace.models';
 
@@ -10,7 +11,7 @@ import { MarketplaceListing } from '../../../domain/marketplace.models';
     <article class="flex h-full min-h-[360px] min-w-0 flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md">
       <div class="relative h-44 overflow-hidden">
         @if (primaryMedia(); as media) {
-          <img [src]="media.url" [alt]="media.alt" class="h-full w-full object-cover" />
+          <img [src]="media.url || fallbackImage" [alt]="media.alt" class="h-full w-full object-cover" />
         } @else {
           <div class="grid h-full w-full place-items-center bg-gradient-to-br from-slate-200 to-slate-300 text-slate-500">
             <span class="text-xs font-semibold uppercase tracking-[0.1em]">Sin imagen</span>
@@ -38,6 +39,8 @@ import { MarketplaceListing } from '../../../domain/marketplace.models';
 })
 export class RecommendedListingCardComponent {
   @Input({ required: true }) listing!: MarketplaceListing;
+
+  protected readonly fallbackImage = FALLBACK_IMAGE_URL;
 
   protected primaryMedia(): MarketplaceListing['media'][number] | null {
     return this.listing.media[0] ?? null;

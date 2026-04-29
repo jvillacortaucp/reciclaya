@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { FALLBACK_IMAGE_URL } from '../../../../../core/constants/media.constants';
 import {
   LucideExternalLink,
   LucideEye
@@ -43,4 +44,6 @@ export class ValueRouteSummaryComponent {
 
   protected readonly complexityStyles = VALUE_ROUTE_COMPLEXITY_STYLES;
   protected readonly potentialStyles = VALUE_ROUTE_POTENTIAL_STYLES;
+
+  protected readonly fallbackImage = FALLBACK_IMAGE_URL;
 }

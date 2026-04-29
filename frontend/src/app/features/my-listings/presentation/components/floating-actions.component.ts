@@ -6,6 +6,7 @@ import {
   Output,
   signal
 } from '@angular/core';
+import { FALLBACK_IMAGE_URL } from '../../../../core/constants/media.constants';
 import { LucideBot } from '@lucide/angular';
 
 @Component({
@@ -27,7 +28,7 @@ import { LucideBot } from '@lucide/angular';
           </span>
         } @else {
           <img
-            [src]="botImageUrl"
+            [src]="botImageUrl || fallbackImage"
             alt="Bot guía"
             class="h-full w-full object-cover"
             (error)="imageError.set(true)"
@@ -43,6 +44,8 @@ export class FloatingActionsComponent {
   @Output() readonly guideRequested = new EventEmitter<void>();
 
   protected readonly imageError = signal(false);
+
+  protected readonly fallbackImage = FALLBACK_IMAGE_URL;
 
   protected onGuideRequested(): void {
     this.guideRequested.emit();

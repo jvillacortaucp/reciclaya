@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject, OnDestroy, OnInit, signal } from '@angular/core';
+import { FALLBACK_IMAGE_URL } from '../../core/constants/media.constants';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { catchError, EMPTY, finalize } from 'rxjs';
 import { getErrorMessage } from '../../core/http/api-response.helpers';
@@ -38,7 +39,7 @@ import { ProfileHttpRepository } from './profile-http.repository';
               <div class="mt-4 flex flex-col items-center gap-3">
                 <div class="h-28 w-28 overflow-hidden rounded-full border border-slate-200 bg-white">
                   @if (avatarPreviewUrl()) {
-                    <img [src]="avatarPreviewUrl()!" [alt]="profile()!.fullName" class="h-full w-full object-cover" />
+                    <img [src]="avatarPreviewUrl()! || fallbackImage" [alt]="profile()!.fullName" class="h-full w-full object-cover" />
                   } @else {
                     <div class="grid h-full w-full place-items-center text-2xl font-bold text-slate-500">
                       {{ profile()!.fullName.slice(0, 1).toUpperCase() }}
@@ -67,7 +68,7 @@ import { ProfileHttpRepository } from './profile-http.repository';
                 </div>
                 <div class="mt-4 rounded-2xl border border-dashed border-slate-300 bg-white p-4">
                   @if (logoPreviewUrl()) {
-                    <img [src]="logoPreviewUrl()!" [alt]="profile()!.company!.businessName" class="h-20 max-w-full object-contain" />
+                    <img [src]="logoPreviewUrl()! || fallbackImage" [alt]="profile()!.company!.businessName" class="h-20 max-w-full object-contain" />
                   } @else {
                     <p class="text-sm text-slate-500">Aun no tienes logo cargado.</p>
                   }
@@ -260,6 +261,8 @@ export class ProfilePageComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.loadProfile();
   }
+
+  protected readonly fallbackImage = FALLBACK_IMAGE_URL;
 
   ngOnDestroy(): void {
     this.revokeAvatarPreview();

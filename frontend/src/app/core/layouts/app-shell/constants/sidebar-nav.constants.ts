@@ -28,15 +28,15 @@ export const SIDEBAR_NAV_ITEMS: readonly SidebarNavItem[] = [
     exact: true,
     publicAccess: true
   },
-  {
-    label: 'Publicar residuo',
-    group: 'Marketplace',
-    icon: 'package-plus',
-    route: APP_ROUTES.wasteSell,
-    exact: true,
-    permissions: [PERMISSIONS.MANAGE_WASTE],
-    roles: ['seller']
-  },
+  // {
+  //   label: 'Publicar residuo',
+  //   group: 'Marketplace',
+  //   icon: 'package-plus',
+  //   route: APP_ROUTES.wasteSell,
+  //   exact: true,
+  //   permissions: [PERMISSIONS.MANAGE_WASTE],
+  //   roles: ['seller']
+  // },
   {
     label: 'Preferencias de compra',
     group: 'Marketplace',
@@ -56,7 +56,7 @@ export const SIDEBAR_NAV_ITEMS: readonly SidebarNavItem[] = [
     roles: ['seller']
   },
   {
-    label: 'Pre-ordenes',
+    label: 'Mis compras',
     group: 'Marketplace',
     icon: 'clipboard-list',
     route: APP_ROUTES.preOrders,
@@ -65,15 +65,7 @@ export const SIDEBAR_NAV_ITEMS: readonly SidebarNavItem[] = [
     roles: ['buyer', 'seller']
   },
   {
-    label: 'Mis compras',
-    group: 'Marketplace',
-    icon: 'clipboard-list',
-    route: APP_ROUTES.orders,
-    exact: false,
-    roles: ['buyer']
-  },
-  {
-    label: 'Ventas recibidas',
+    label: 'Mis ventas',
     group: 'Marketplace',
     icon: 'clipboard-list',
     route: APP_ROUTES.orders,
@@ -88,24 +80,24 @@ export const SIDEBAR_NAV_ITEMS: readonly SidebarNavItem[] = [
     exact: false,
     roles: ['admin']
   },
-  {
-    label: 'Solicitudes',
-    group: 'Marketplace',
-    icon: 'sparkles',
-    route: APP_ROUTES.requests,
-    exact: true,
-    permissions: [PERMISSIONS.VIEW_REQUESTS],
-    roles: ['seller', 'buyer']
-  },
-  {
-    label: 'Recomendaciones',
-    group: 'Intelligence',
-    icon: 'sparkles',
-    route: APP_ROUTES.recommendations,
-    exact: true,
-    permissions: [PERMISSIONS.VIEW_RECOMMENDATIONS],
-    roles: ['buyer', 'seller']
-  },
+  // {
+  //   label: 'Solicitudes',
+  //   group: 'Marketplace',
+  //   icon: 'sparkles',
+  //   route: APP_ROUTES.requests,
+  //   exact: true,
+  //   permissions: [PERMISSIONS.VIEW_REQUESTS],
+  //   roles: ['seller', 'buyer']
+  // },
+  // {
+  //   label: 'Recomendaciones',
+  //   group: 'Intelligence',
+  //   icon: 'sparkles',
+  //   route: APP_ROUTES.recommendations,
+  //   exact: true,
+  //   permissions: [PERMISSIONS.VIEW_RECOMMENDATIONS],
+  //   roles: ['buyer', 'seller']
+  // },
   // {
   //   label: 'Sector de valor',
   //   group: 'Intelligence',
@@ -123,15 +115,15 @@ export const SIDEBAR_NAV_ITEMS: readonly SidebarNavItem[] = [
   //   permissions: [PERMISSIONS.VIEW_RECOMMENDATIONS],
   //   roles: ['buyer', 'seller']
   // },
-  {
-    label: 'Mensajes',
-    group: 'Intelligence',
-    icon: 'messages',
-    route: APP_ROUTES.messages,
-    exact: true,
-    permissions: [PERMISSIONS.VIEW_MESSAGES],
-    roles: ['seller', 'buyer']
-  },
+  // {
+  //   label: 'Mensajes',
+  //   group: 'Intelligence',
+  //   icon: 'messages',
+  //   route: APP_ROUTES.messages,
+  //   exact: true,
+  //   permissions: [PERMISSIONS.VIEW_MESSAGES],
+  //   roles: ['seller', 'buyer']
+  // },
   {
     label: 'Admin empresas',
     group: 'Account',

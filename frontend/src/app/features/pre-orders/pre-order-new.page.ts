@@ -246,7 +246,33 @@ export class PreOrderNewPageComponent implements OnInit, OnDestroy {
       }
       this.pendingPreOrderInput = null;
       this.awaitingCardConfirmation.set(false);
+      return;
     }
+
+    // If there was no pending pre-order (user confirmed card directly),
+    // build the input from the current form and submit immediately.
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
+
+    const listing = this.listing();
+    if (!listing) {
+      return;
+    }
+
+    const input = {
+      listingId: listing.id,
+      requestedQuantity: Number(this.form.controls.quantity.value),
+      unit: listing.unit,
+      paymentMethod: 'card' as PaymentMethodType,
+      requestedAt: this.form.controls.desiredDate.value,
+      notes: this.form.controls.notes.value ?? '',
+      reserveStock: Boolean(this.form.controls.reserveStock.value)
+    };
+
+    this.facade.submitPreOrder(input);
+    this.toast.info(this.copy.processingMessage);
   }
 
   protected downloadQuote(): void {

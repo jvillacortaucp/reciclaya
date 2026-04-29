@@ -172,12 +172,12 @@ export class PreOrdersFacade {
         const objectUrl = URL.createObjectURL(blob);
         const anchor = document.createElement('a');
         anchor.href = objectUrl;
-        anchor.download = `cotizacion-preorden-${preOrderId}.pdf`;
+        anchor.download = `orden-compra-${preOrderId}.pdf`;
         document.body.appendChild(anchor);
         anchor.click();
         anchor.remove();
         URL.revokeObjectURL(objectUrl);
-        this.toastMessage.set('Cotizacion descargada correctamente.');
+        this.toastMessage.set('Orden de compra descargada correctamente.');
       });
   }
 

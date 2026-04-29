@@ -77,6 +77,6 @@ export class PreOrderEconomicSummaryComponent {
   @Output() readonly downloadReceipt = new EventEmitter<void>();
 
   protected get currencySymbol(): string {
-    return this.summary?.currency === 'PEN' ? 'S/' : '$';
+    return 'S/';
   }
 }

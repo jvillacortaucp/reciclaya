@@ -54,7 +54,7 @@
       </span>
     } @else {
       <img
-        [src]="botImageUrl"
+        [src]="botImageUrl || fallbackImage"
         alt="Bot guía"
         class="h-full w-full object-cover"
         (error)="imageError.set(true)" />

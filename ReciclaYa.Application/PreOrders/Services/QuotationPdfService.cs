@@ -51,7 +51,7 @@ public sealed class QuotationPdfService(IAuthDbContext dbContext) : IQuotationPd
 
                 page.Header().Column(column =>
                 {
-                    column.Item().Text("Cotizacion de Pre-Orden").FontSize(20).SemiBold();
+                    column.Item().Text("Orden de compra").FontSize(20).SemiBold();
                     column.Item().Text($"Codigo: {dto.QuotationCode}");
                     column.Item().Text($"Fecha de emision: {dto.CreatedAt:yyyy-MM-dd HH:mm} UTC");
                     column.Item().Text($"Estado: {dto.Status}");
@@ -84,7 +84,7 @@ public sealed class QuotationPdfService(IAuthDbContext dbContext) : IQuotationPd
                         body.Item().Text($"Ubicacion: {ValueOrNotSpecified(dto.SellerLocation)}");
                     }));
 
-                    column.Item().Element(el => SectionCard(el, "Detalle de cotizacion", body =>
+                    column.Item().Element(el => SectionCard(el, "Detalle de orden de compra", body =>
                     {
                         body.Item().Table(table =>
                         {
@@ -109,19 +109,20 @@ public sealed class QuotationPdfService(IAuthDbContext dbContext) : IQuotationPd
                             table.Cell().Element(BodyCell).Text(dto.ProductName);
                             table.Cell().Element(BodyCell).Text(dto.Quantity.ToString("0.###"));
                             table.Cell().Element(BodyCell).Text(dto.UnitMeasure);
-                            table.Cell().Element(BodyCell).Text($"{CurrencySymbol(dto.Currency)} {dto.UnitPrice:0.00}");
-                            table.Cell().Element(BodyCell).Text($"{CurrencySymbol(dto.Currency)} {dto.TotalAmount:0.00}");
+                            // Force display currency symbol as Soles (S/)
+                            table.Cell().Element(BodyCell).Text($"S/ {dto.UnitPrice:0.00}");
+                            table.Cell().Element(BodyCell).Text($"S/ {dto.TotalAmount:0.00}");
                         });
                     }));
 
                     column.Item().AlignRight().Element(el => SectionCard(el.Width(220), "Resumen", body =>
                     {
-                        body.Item().Text($"Subtotal: {CurrencySymbol(dto.Currency)} {dto.Subtotal:0.00}");
-                        body.Item().Text($"Logistica: {CurrencySymbol(dto.Currency)} {dto.LogisticsFee:0.00}");
-                        body.Item().Text($"Comision admin: {CurrencySymbol(dto.Currency)} {dto.AdminFee:0.00}");
-                        body.Item().Text($"Total: {CurrencySymbol(dto.Currency)} {dto.TotalAmount:0.00}")
+                        body.Item().Text($"Subtotal: S/ {dto.Subtotal:0.00}");
+                        body.Item().Text($"Logistica: S/ {dto.LogisticsFee:0.00}");
+                        body.Item().Text($"Comision admin: S/ {dto.AdminFee:0.00}");
+                        body.Item().Text($"Total: S/ {dto.TotalAmount:0.00}")
                             .SemiBold();
-                        body.Item().Text($"Moneda: {dto.Currency}");
+                        body.Item().Text($"Moneda: S/");
                     }));
 
                     if (!string.IsNullOrWhiteSpace(dto.Notes))
@@ -133,7 +134,7 @@ public sealed class QuotationPdfService(IAuthDbContext dbContext) : IQuotationPd
                     }
 
                     column.Item().PaddingTop(8).Text(
-                        "Este documento es una cotizacion generada automaticamente y no representa una factura.");
+                        "Este documento es una orden de compra generada automaticamente y no representa una factura.");
                     column.Item().Text(
                         "La disponibilidad del producto puede variar hasta la confirmacion de la operacion.");
                 });
@@ -218,9 +219,10 @@ public sealed class QuotationPdfService(IAuthDbContext dbContext) : IQuotationPd
             .DefaultTextStyle(style => style.FontSize(9));
     }
 
+    // Currency symbol is forced to Soles (S/)
     private static string CurrencySymbol(string currency)
     {
-        return string.Equals(currency, "PEN", StringComparison.OrdinalIgnoreCase) ? "S/" : "$";
+        return "S/";
     }
 
     private static string ValueOrNotSpecified(string? value)

@@ -168,7 +168,7 @@ public sealed class PreOrdersController(
                 IsAdmin(role),
                 cancellationToken);
 
-            var fileName = $"cotizacion-preorden-{preOrderId}.pdf";
+            var fileName = $"orden-compra-{preOrderId}.pdf";
             return File(pdfBytes, "application/pdf", fileName);
         }
         catch (KeyNotFoundException)

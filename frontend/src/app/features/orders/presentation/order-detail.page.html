@@ -30,16 +30,16 @@
         </div>
         <div class="rounded-2xl bg-slate-50 p-4">
           <p class="text-xs uppercase tracking-[0.08em] text-slate-400">Total</p>
-          <p class="mt-1 text-base font-semibold text-slate-900">{{ order()!.pricing.total }} {{ order()!.pricing.currency }}</p>
+          <p class="mt-1 text-base font-semibold text-slate-900">S/ {{ order()!.pricing.total }}</p>
         </div>
       </div>
 
       <div class="mt-5 rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
         <div class="space-y-2 text-sm text-slate-800">
-          <div class="flex justify-between"><span>Unit price</span><strong>{{ order()!.pricing.unitPrice }} {{ order()!.pricing.currency }}</strong></div>
-          <div class="flex justify-between"><span>Subtotal</span><strong>{{ order()!.pricing.subtotal }} {{ order()!.pricing.currency }}</strong></div>
-          <div class="flex justify-between"><span>Logistics fee</span><strong>{{ order()!.pricing.logisticsFee }} {{ order()!.pricing.currency }}</strong></div>
-          <div class="flex justify-between"><span>Admin fee</span><strong>{{ order()!.pricing.adminFee }} {{ order()!.pricing.currency }}</strong></div>
+          <div class="flex justify-between"><span>Unit price</span><strong>S/ {{ order()!.pricing.unitPrice }}</strong></div>
+          <div class="flex justify-between"><span>Subtotal</span><strong>S/ {{ order()!.pricing.subtotal }}</strong></div>
+          <div class="flex justify-between"><span>Logistics fee</span><strong>S/ {{ order()!.pricing.logisticsFee }}</strong></div>
+          <div class="flex justify-between"><span>Admin fee</span><strong>S/ {{ order()!.pricing.adminFee }}</strong></div>
         </div>
       </div>
     </ui-card>
@@ -64,7 +64,7 @@
                 <ui-badge [text]="payment.status" [status]="badgeStatus(payment.status)" />
               </div>
               <div class="mt-3 grid gap-2 text-sm text-slate-600 sm:grid-cols-2">
-                <p><span class="font-semibold text-slate-700">Monto:</span> {{ payment.amount }} {{ payment.currency }}</p>
+                <p><span class="font-semibold text-slate-700">Monto:</span> S/ {{ payment.amount }}</p>
                 <p><span class="font-semibold text-slate-700">Tarjeta:</span> {{ payment.cardBrand || '-' }} {{ payment.cardLast4 ? ('**** ' + payment.cardLast4) : '' }}</p>
                 <p><span class="font-semibold text-slate-700">Creado:</span> {{ payment.createdAt | date:'short' }}</p>
                 <p><span class="font-semibold text-slate-700">Pagado:</span> {{ payment.paidAt ? (payment.paidAt | date:'short') : 'Pendiente' }}</p>

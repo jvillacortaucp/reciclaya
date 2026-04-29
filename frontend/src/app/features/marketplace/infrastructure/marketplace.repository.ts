@@ -231,7 +231,7 @@ function toWasteListing(listing: MarketplaceListing): WasteListing {
     category: listing.productType,
     description: listing.residueCondition,
     pricePerUnit: listing.pricePerUnitUsd ?? 0,
-    currency: 'USD',
+    currency: 'PEN',
     volume: {
       amount: listing.quantity,
       unit: listing.unit === 'tons' ? 'ton' : 'kg'
