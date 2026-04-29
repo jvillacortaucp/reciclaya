@@ -54,7 +54,8 @@ public static class DependencyInjection
             {
                 ApiKey = section["ApiKey"] ?? string.Empty,
                 BaseUrl = section["BaseUrl"] ?? "https://api.deepseek.com",
-                Model = section["Model"] ?? "deepseek-chat"
+                Model = section["Model"] ?? "deepseek-chat",
+                TimeoutSeconds = ParseTimeoutSeconds(section["TimeoutSeconds"])
             };
 
             return Microsoft.Extensions.Options.Options.Create(deepSeekOptions);
@@ -87,7 +88,7 @@ public static class DependencyInjection
             var client = new HttpClient
             {
                 BaseAddress = new Uri($"{baseUrl.TrimEnd('/')}/"),
-                Timeout = TimeSpan.FromSeconds(25)
+                Timeout = TimeSpan.FromSeconds(NormalizeTimeoutSeconds(deepSeekOptions.Value.TimeoutSeconds))
             };
 
             return new DeepSeekValorizationIdeaGenerator(
@@ -105,7 +106,7 @@ public static class DependencyInjection
             var client = new HttpClient
             {
                 BaseAddress = new Uri($"{baseUrl.TrimEnd('/')}/"),
-                Timeout = TimeSpan.FromSeconds(25)
+                Timeout = TimeSpan.FromSeconds(NormalizeTimeoutSeconds(deepSeekOptions.Value.TimeoutSeconds))
             };
 
             return new DeepSeekRecommendationGenerator(
@@ -123,7 +124,7 @@ public static class DependencyInjection
             var client = new HttpClient
             {
                 BaseAddress = new Uri($"{baseUrl.TrimEnd('/')}/"),
-                Timeout = TimeSpan.FromSeconds(25)
+                Timeout = TimeSpan.FromSeconds(NormalizeTimeoutSeconds(deepSeekOptions.Value.TimeoutSeconds))
             };
 
             return new DeepSeekValueSectorGenerator(
@@ -134,4 +135,17 @@ public static class DependencyInjection
 
         return services;
     }
+
+    private static int ParseTimeoutSeconds(string? raw)
+    {
+        return int.TryParse(raw, out var parsed)
+            ? NormalizeTimeoutSeconds(parsed)
+            : 60;
+    }
+
+    private static int NormalizeTimeoutSeconds(int seconds)
+    {
+        return Math.Clamp(seconds, 10, 180);
+    }
 }
+

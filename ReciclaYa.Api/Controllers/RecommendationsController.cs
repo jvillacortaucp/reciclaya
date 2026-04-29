@@ -80,6 +80,7 @@ public sealed class RecommendationsController(IRecommendationService recommendat
     private static bool CanUseRecommendations(string role)
     {
         return string.Equals(role, "buyer", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(role, "seller", StringComparison.OrdinalIgnoreCase)
             || string.Equals(role, "admin", StringComparison.OrdinalIgnoreCase);
     }
 

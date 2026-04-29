@@ -59,7 +59,7 @@ export class RecommendationsFacade {
     return market.potentialBuyers.filter((buyer: BuyerSegment) => buyer.scope === this.selectedBuyerSegment());
   });
 
-  load(productOrListingId?: string | null, tab: RecommendationTab = 'process'): void {
+  load(productOrListingId?: string | null, tab: RecommendationTab = 'process', listingId?: string | null): void {
     this.error.set(null);
     this.activeTab.set(tab);
     this.loading.set(true);
@@ -82,6 +82,25 @@ export class RecommendationsFacade {
 
     this.usingCommercialMode.set(false);
     this.commercialRecommendations.set([]);
+
+    const listingCandidate = listingId?.trim() || null;
+    if (listingCandidate && this.isGuid(listingCandidate)) {
+      this.recommendationsRepository
+        .getListingAnalysis(listingCandidate, true, true)
+        .pipe(
+          catchError((error: unknown) => {
+            this.error.set(getErrorMessage(error, 'No se pudo cargar el detalle de recomendacion.'));
+            return EMPTY;
+          }),
+          finalize(() => this.loading.set(false))
+        )
+        .subscribe((process: RecommendationProcess) => {
+          this.recommendation.set(process);
+          this.selectedStepId.set(process.processSteps[0]?.id ?? null);
+          this.selectedExplanationStepId.set(process.explanationSteps[0]?.id ?? null);
+        });
+      return;
+    }
 
     if (!this.isGuid(productOrListingId)) {
       this.recommendationsRepository

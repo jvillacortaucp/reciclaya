@@ -62,7 +62,7 @@ export class RecommendationsPageComponent implements OnInit {
 
         if (this.loadedProductId !== productId) {
           this.loadedProductId = productId;
-          this.facade.load(productId, tab);
+          this.facade.load(productId, tab, this.sourceListingId());
           return;
         }
 
