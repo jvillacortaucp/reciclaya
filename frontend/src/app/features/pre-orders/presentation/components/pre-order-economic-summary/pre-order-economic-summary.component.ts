@@ -48,6 +48,7 @@ import { PreOrderPricingSummary, SimulatedPaymentStatus } from '../../../models/
           {{ paymentStatus === 'processing' ? 'Procesando pago...' : 'Realizar pago' }}
         </button>
 
+
         <button
           type="button"
           [disabled]="!preOrderCreated"
