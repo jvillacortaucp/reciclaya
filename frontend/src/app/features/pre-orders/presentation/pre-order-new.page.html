@@ -99,7 +99,7 @@
           [summary]="pricingSummary()"
           [unitLabel]="listing()?.unit ?? 'Ton'"
           [paymentStatus]="paymentStatus()"
-          (simulatePayment)="simulateAndSubmit()"
+          (simulatePayment)="simulateAndSubmitWrapped()"
           (downloadQuote)="downloadQuote()"
         />
 

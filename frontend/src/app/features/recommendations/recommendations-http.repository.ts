@@ -1,12 +1,10 @@
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { catchError, map, Observable, throwError } from 'rxjs';
 import { normalizeHttpError, unwrapApiResponse } from '../../core/http/api-response.helpers';
 import { ApiResponse, Recommendation } from '../../core/models/app.models';
 import { environment } from '../../../environments/environment';
 import { BuyerSegment, RecommendationProcess } from './models/recommendation.model';
-import { RecommendationsService } from './infrastructure/recommendations.service';
-import { RecommendationsMockRepository } from './recommendations.service';
 
 interface ValueRouteDetailApi {
   readonly recommendationId: string;
@@ -117,8 +115,6 @@ interface ValueRouteDetailApi {
 @Injectable({ providedIn: 'root' })
 export class RecommendationsHttpRepository {
   private readonly http = inject(HttpClient);
-  private readonly fallback = inject(RecommendationsMockRepository);
-  private readonly processFallback = inject(RecommendationsService);
 
   list(limit = 5, useAi = true, includeExplanation = true): Observable<readonly Recommendation[]> {
     return this.http
@@ -132,7 +128,9 @@ export class RecommendationsHttpRepository {
       .pipe(
         map(unwrapApiResponse),
         map((items: readonly Recommendation[]) => items.map((item: Recommendation) => this.normalizeRecommendation(item))),
-        catchError((error: unknown) => this.fallbackOnNetworkError(error))
+        catchError((error: unknown) =>
+          throwError(() => normalizeHttpError(error, 'No se pudieron cargar las recomendaciones.'))
+        )
       );
   }
 
@@ -147,7 +145,9 @@ export class RecommendationsHttpRepository {
       .pipe(
         map(unwrapApiResponse),
         map((detail: ValueRouteDetailApi) => this.mapToRecommendationProcess(detail)),
-        catchError((error: unknown) => this.fallbackOnNetworkErrorDetail(error, listingId))
+        catchError((error: unknown) =>
+          throwError(() => normalizeHttpError(error, 'No se pudo cargar el analisis de la recomendacion.'))
+        )
       );
   }
 
@@ -156,30 +156,10 @@ export class RecommendationsHttpRepository {
       .get<ApiResponse<RecommendationProcess>>(`${environment.apiBaseUrl}/value-sectors/products/${productId}`)
       .pipe(
         map(unwrapApiResponse),
-        catchError((error: unknown) => {
-          if (error instanceof HttpErrorResponse && (error as HttpErrorResponse).status === 0) {
-            return this.processFallback.getProcessRecommendation(productId);
-          }
-
-          return throwError(() => normalizeHttpError(error, 'No se pudo cargar el detalle industrial del producto.'));
-        })
+        catchError((error: unknown) =>
+          throwError(() => normalizeHttpError(error, 'No se pudo cargar el detalle industrial del producto.'))
+        )
       );
-  }
-
-  private fallbackOnNetworkError(error: unknown): Observable<readonly Recommendation[]> {
-    if (error instanceof HttpErrorResponse && (error as HttpErrorResponse).status === 0) {
-      return this.fallback.list().pipe(map((items: readonly Recommendation[]) => items.map((item: Recommendation) => this.normalizeRecommendation(item))));
-    }
-
-    return throwError(() => normalizeHttpError(error, 'No se pudieron cargar las recomendaciones.'));
-  }
-
-  private fallbackOnNetworkErrorDetail(error: unknown, listingId: string): Observable<RecommendationProcess> {
-    if (error instanceof HttpErrorResponse && (error as HttpErrorResponse).status === 0) {
-      return this.processFallback.getProcessRecommendation(listingId);
-    }
-
-    return throwError(() => normalizeHttpError(error, 'No se pudo cargar el analisis de la recomendacion.'));
   }
 
   private mapToRecommendationProcess(detail: ValueRouteDetailApi): RecommendationProcess {

@@ -2,94 +2,63 @@ import { ProductSuggestion } from '../models/assistant-chat.model';
 
 export const ASSISTANT_CHAT_SUGGESTIONS_MOCK: readonly ProductSuggestion[] = [
   {
-    id: 'product-harina-funcional',
+    id: 'mango-flour',
     residueInput: 'Cáscara de mango',
     productName: 'Harina funcional',
-    description: 'Harina rica en fibra para panificación y mezclas saludables.',
-    sectorName: 'Sector alimentaria',
+    description: 'Ingrediente rico en fibra para panificación y mezclas alimentarias.',
+    sectorName: 'Sector Alimentaria',
     complexity: 'medium',
     marketPotential: 'high',
-    iconName: 'wheat'
+    iconName: 'shell'
   },
   {
-    id: 'product-extracto-antioxidante',
+    id: 'mango-extract',
     residueInput: 'Cáscara de mango',
     productName: 'Extracto antioxidante',
-    description: 'Polifenoles para suplementos y formulaciones nutracéuticas.',
-    sectorName: 'Sector nutracéutica',
+    description: 'Base natural para suplementos y formulaciones cosméticas.',
+    sectorName: 'Sector Nutracéutica',
     complexity: 'high',
     marketPotential: 'high',
     iconName: 'flask-conical'
   },
   {
-    id: 'product-compost-organico',
+    id: 'mango-compost',
     residueInput: 'Cáscara de mango',
     productName: 'Compost orgánico',
-    description: 'Abono para regeneración de suelos en agricultura sostenible.',
-    sectorName: 'Sector agricultura',
+    description: 'Abono para regeneración de suelos y agricultura circular.',
+    sectorName: 'Sector Agricultura',
     complexity: 'low',
     marketPotential: 'medium',
     iconName: 'recycle'
   },
   {
-    id: 'product-biochar-cafe',
+    id: 'coffee-substrate',
     residueInput: 'Cascarilla de café',
-    productName: 'Biochar agrícola',
-    description: 'Mejora retención hídrica y captura carbono en suelos.',
-    sectorName: 'Sector agricultura',
-    complexity: 'medium',
-    marketPotential: 'high',
-    iconName: 'flame'
-  },
-  {
-    id: 'product-ingrediente-cafe',
-    residueInput: 'Cascarilla de café',
-    productName: 'Fibra alimentaria café',
-    description: 'Ingrediente funcional para snacks y barras nutritivas.',
-    sectorName: 'Sector alimentaria',
-    complexity: 'medium',
-    marketPotential: 'medium',
-    iconName: 'wheat'
-  },
-  {
-    id: 'product-sustrato-uva',
-    residueInput: 'Bagazo de uva',
-    productName: 'Sustrato enológico',
-    description: 'Base para compost premium y bioinsumos agrícolas.',
-    sectorName: 'Sector agricultura',
+    productName: 'Sustrato agrícola',
+    description: 'Mezcla orgánica para viveros y producción hortícola.',
+    sectorName: 'Sector Agricultura',
     complexity: 'low',
-    marketPotential: 'medium',
-    iconName: 'sprout'
-  },
-  {
-    id: 'product-polifenoles-uva',
-    residueInput: 'Bagazo de uva',
-    productName: 'Extracto de polifenoles',
-    description: 'Materia prima para cosmética antioxidante.',
-    sectorName: 'Sector cosmética',
-    complexity: 'high',
     marketPotential: 'high',
-    iconName: 'flask-conical'
+    iconName: 'leaf'
   },
   {
-    id: 'product-harina-palta',
-    residueInput: 'Semilla de palta',
-    productName: 'Harina de semilla',
-    description: 'Uso en formulaciones funcionales y mezclas nutricionales.',
-    sectorName: 'Sector alimentaria',
-    complexity: 'high',
-    marketPotential: 'medium',
-    iconName: 'wheat'
-  },
-  {
-    id: 'product-biomasa-palta',
-    residueInput: 'Semilla de palta',
-    productName: 'Biomasa energética',
-    description: 'Aprovechamiento térmico para plantas industriales.',
-    sectorName: 'Sector energía',
+    id: 'grape-biomass',
+    residueInput: 'Bagazo de uva',
+    productName: 'Biomasa para compost',
+    description: 'Valorización orgánica para compostaje y enmiendas de suelo.',
+    sectorName: 'Sector Agricultura',
     complexity: 'medium',
     marketPotential: 'medium',
     iconName: 'flame'
+  },
+  {
+    id: 'avocado-oil-base',
+    residueInput: 'Semilla de palta',
+    productName: 'Base para bioinsumo',
+    description: 'Materia prima para procesos de extracción y transformación.',
+    sectorName: 'Sector Manufactura',
+    complexity: 'high',
+    marketPotential: 'medium',
+    iconName: 'factory'
   }
 ] as const;
-

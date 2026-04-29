@@ -24,9 +24,8 @@ import { ProductPreOrderSummaryComponent } from './presentation/components/produ
 import { SellerInfoCardComponent } from './presentation/components/seller-info-card/seller-info-card.component';
 import { SimulatedPaymentStatusComponent } from './presentation/components/simulated-payment-status/simulated-payment-status.component';
 import { PreOrderConfirmationCardComponent } from './presentation/components/pre-order-confirmation-card/pre-order-confirmation-card.component';
-import { PaymentMethodType } from './models/pre-order.model';
+import { PaymentMethodType, SimulatedPaymentCard } from './models/pre-order.model';
 import { ToastService } from '../../core/services/toast.service';
-import { MOCK_PAYMENT_CARD, MockPaymentCard } from './data/payment-card.mock';
 import {
   CardPaymentConfirmation,
   CardPaymentModalComponent
@@ -52,6 +51,16 @@ import {
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class PreOrderNewPageComponent implements OnInit, OnDestroy {
+  private static readonly EMPTY_CARD: SimulatedPaymentCard = {
+    id: 'temporary-card',
+    holderName: '',
+    cardNumber: '',
+    expiryDate: '',
+    cvv: '',
+    brand: 'generic',
+    lastFour: ''
+  };
+
   private readonly fb = inject(FormBuilder);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -73,13 +82,19 @@ export class PreOrderNewPageComponent implements OnInit, OnDestroy {
   protected readonly toastMessage = this.facade.toastMessage;
   protected readonly listing = computed(() => this.screenState()?.listing ?? null);
   protected readonly seller = computed(() => this.screenState()?.listing.seller ?? null);
-  protected readonly paymentMethods = computed(() => this.screenState()?.paymentMethods ?? []);
+  // Only expose card and contraentrega (cash_on_delivery) for now
+  protected readonly paymentMethods = computed(() =>
+    (this.screenState()?.paymentMethods ?? []).filter((m) => m.id === 'card' || m.id === 'cash_on_delivery')
+  );
   protected readonly maxQuantityLabel = computed(
     () => `MAX ${this.listing()?.availableQuantity ?? 0}`
   );
   protected readonly cardModalOpen = signal(false);
-  protected readonly configuredCard = signal<MockPaymentCard | null>(null);
+  protected readonly configuredCard = signal<SimulatedPaymentCard | null>(null);
   private previousPaymentMethod: PaymentMethodType | null = null;
+  // pending pre-order when waiting for card confirmation
+  private pendingPreOrderInput: any | null = null;
+  private awaitingCardConfirmation = signal(false);
 
   protected readonly form = this.fb.nonNullable.group({
     quantity: [1, [Validators.required, Validators.min(0.1)]],
@@ -119,7 +134,7 @@ export class PreOrderNewPageComponent implements OnInit, OnDestroy {
         desiredDate: state.defaultPickupDate,
         reserveStock: true,
         notes: state.defaultNotes ?? '',
-        paymentMethod: state.paymentMethods[0]?.id ?? 'card'
+        paymentMethod: (state.paymentMethods.find((p) => p.id === 'card' || p.id === 'cash_on_delivery')?.id) ?? 'card'
       });
       this.patching.set(false);
     });
@@ -159,6 +174,11 @@ export class PreOrderNewPageComponent implements OnInit, OnDestroy {
   }
 
   protected simulateAndSubmit(): void {
+    // kept for backward compatibility if needed
+    this.simulateAndSubmitWrapped();
+  }
+
+  protected simulateAndSubmitWrapped(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
@@ -169,7 +189,7 @@ export class PreOrderNewPageComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.facade.submitPreOrder({
+    const input = {
       listingId: listing.id,
       requestedQuantity: Number(this.form.controls.quantity.value),
       unit: listing.unit,
@@ -177,18 +197,22 @@ export class PreOrderNewPageComponent implements OnInit, OnDestroy {
       requestedAt: this.form.controls.desiredDate.value,
       notes: this.form.controls.notes.value ?? '',
       reserveStock: Boolean(this.form.controls.reserveStock.value)
-    });
-    this.toast.info(this.copy.processingMessage);
-  }
+    };
 
-  protected selectPayment(type: PaymentMethodType): void {
-    if (type === 'card') {
-      this.previousPaymentMethod = this.form.controls.paymentMethod.value;
-      this.form.controls.paymentMethod.setValue(type);
+    if (this.form.controls.paymentMethod.value === 'card') {
+      // open card modal and wait confirmation before submitting
+      this.pendingPreOrderInput = input;
+      this.awaitingCardConfirmation.set(true);
       this.cardModalOpen.set(true);
       return;
     }
 
+    this.facade.submitPreOrder(input);
+    this.toast.info(this.copy.processingMessage);
+  }
+
+  protected selectPayment(type: PaymentMethodType): void {
+    // Do not open card modal on selection; only change selected payment method
     this.previousPaymentMethod = null;
     this.cardModalOpen.set(false);
     this.form.controls.paymentMethod.setValue(type);
@@ -203,8 +227,8 @@ export class PreOrderNewPageComponent implements OnInit, OnDestroy {
   }
 
   protected onCardModalConfirmed(data: CardPaymentConfirmation): void {
-    const normalized: MockPaymentCard = {
-      ...MOCK_PAYMENT_CARD,
+    const normalized: SimulatedPaymentCard = {
+      ...PreOrderNewPageComponent.EMPTY_CARD,
       holderName: data.holderName,
       cardNumber: data.cardNumber,
       expiryDate: data.expiryDate,
@@ -216,6 +240,15 @@ export class PreOrderNewPageComponent implements OnInit, OnDestroy {
     this.cardModalOpen.set(false);
     this.form.controls.paymentMethod.setValue('card');
     this.toast.success('Tarjeta simulada configurada');
+    // If we were awaiting confirmation for a pending pre-order, submit it now
+    if (this.awaitingCardConfirmation()) {
+      if (this.pendingPreOrderInput) {
+        this.facade.submitPreOrder(this.pendingPreOrderInput);
+        this.toast.info(this.copy.processingMessage);
+      }
+      this.pendingPreOrderInput = null;
+      this.awaitingCardConfirmation.set(false);
+    }
   }
 
   protected downloadQuote(): void {
@@ -226,7 +259,7 @@ export class PreOrderNewPageComponent implements OnInit, OnDestroy {
     return this.form.controls.paymentMethod.value;
   }
 
-  protected get cardMockData(): MockPaymentCard {
-    return this.configuredCard() ?? MOCK_PAYMENT_CARD;
+  protected get cardMockData(): SimulatedPaymentCard | null {
+    return this.configuredCard();
   }
 }

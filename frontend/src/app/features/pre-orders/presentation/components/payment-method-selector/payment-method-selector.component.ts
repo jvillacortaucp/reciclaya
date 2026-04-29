@@ -13,12 +13,12 @@ import { PaymentMethod, PaymentMethodType } from '../../../models/pre-order.mode
   standalone: true,
   imports: [LucideLandmark, LucideCreditCard, LucideQrCode, LucideHandshake, LucideFileText],
   template: `
-    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    <div class="grid grid-cols-2 gap-3 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2">
       @for (method of methods; track method.id) {
         <button
           type="button"
           [disabled]="!method.enabled"
-          class="rounded-2xl border px-4 py-4 text-left transition disabled:cursor-not-allowed disabled:opacity-45"
+          class="rounded-2xl border px-4 py-4 text-left transition disabled:cursor-not-allowed disabled:opacity-45 w-full text-start"
           [class.border-emerald-600]="selectedType === method.id"
           [class.bg-emerald-50]="selectedType === method.id"
           [class.text-emerald-700]="selectedType === method.id"
