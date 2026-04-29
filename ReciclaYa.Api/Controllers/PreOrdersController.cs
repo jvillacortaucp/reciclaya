@@ -155,6 +155,7 @@ public sealed class PreOrdersController(IPreOrderService preOrderService) : Cont
     private static bool CanUsePreOrders(string role)
     {
         return string.Equals(role, "buyer", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(role, "seller", StringComparison.OrdinalIgnoreCase)
             || string.Equals(role, "admin", StringComparison.OrdinalIgnoreCase);
     }
 

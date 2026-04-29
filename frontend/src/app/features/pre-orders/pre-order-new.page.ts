@@ -63,12 +63,14 @@ export class PreOrderNewPageComponent implements OnInit, OnDestroy {
   protected readonly copy = PRE_ORDER_COPY;
   protected readonly listingId = this.route.snapshot.paramMap.get('listingId') ?? '';
   protected readonly screenLoading = this.facade.screenLoading;
+  protected readonly screenError = this.facade.screenError;
   protected readonly summaryLoading = this.facade.summaryLoading;
   protected readonly submitting = this.facade.submitting;
   protected readonly screenState = this.facade.screenState;
   protected readonly pricingSummary = this.facade.economicSummary;
   protected readonly paymentStatus = this.facade.paymentStatus;
   protected readonly createdPreOrder = this.facade.createdPreOrder;
+  protected readonly toastMessage = this.facade.toastMessage;
   protected readonly listing = computed(() => this.screenState()?.listing ?? null);
   protected readonly seller = computed(() => this.screenState()?.listing.seller ?? null);
   protected readonly paymentMethods = computed(() => this.screenState()?.paymentMethods ?? []);
@@ -92,9 +94,17 @@ export class PreOrderNewPageComponent implements OnInit, OnDestroy {
       const status = this.paymentStatus();
       if (status === 'success') {
         this.toast.success(this.copy.successMessage);
-      } else if (status === 'failed') {
-        this.toast.error(this.copy.failureMessage);
       }
+    });
+
+    effect(() => {
+      const message = this.toastMessage();
+      if (!message || message === this.copy.successMessage) {
+        return;
+      }
+
+      this.toast.error(message);
+      this.facade.clearToastMessage();
     });
 
     effect(() => {
