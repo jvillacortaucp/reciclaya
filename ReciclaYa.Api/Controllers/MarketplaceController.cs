@@ -16,18 +16,36 @@ public sealed class MarketplaceController(IListingService listingService) : Cont
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 12,
         [FromQuery] string? query = null,
+        [FromQuery] string? sortBy = null,
         [FromQuery] string? wasteType = null,
         [FromQuery] string? sector = null,
         [FromQuery] string? productType = null,
+        [FromQuery] string? specificResidue = null,
+        [FromQuery] string? exchangeType = null,
+        [FromQuery] string? location = null,
+        [FromQuery] decimal? minPrice = null,
+        [FromQuery] decimal? maxPrice = null,
+        [FromQuery] string? deliveryMode = null,
+        [FromQuery] bool? immediateOnly = null,
+        [FromQuery] string? residueCondition = null,
         CancellationToken cancellationToken = default)
     {
         var response = await listingService.GetMarketplaceListingsAsync(
             page,
             pageSize,
             query,
+            sortBy,
             wasteType,
             sector,
             productType,
+            specificResidue,
+            exchangeType,
+            location,
+            minPrice,
+            maxPrice,
+            deliveryMode,
+            immediateOnly,
+            residueCondition,
             cancellationToken);
 
         return Ok(ApiResponse<MarketplaceListingsPageDto>.Ok(response));

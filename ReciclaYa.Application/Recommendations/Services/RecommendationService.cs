@@ -60,6 +60,7 @@ public sealed class RecommendationService(
         Guid userId,
         bool isAdmin,
         Guid listingId,
+        string? selectedProductId = null,
         bool useAi = true,
         bool includeExplanation = true,
         CancellationToken cancellationToken = default)
@@ -78,7 +79,7 @@ public sealed class RecommendationService(
         }
 
         var candidate = ToCandidate(listing);
-        var fallback = BuildFullFallbackValueRoute(preference, listing);
+        var fallback = BuildFullFallbackValueRoute(preference, listing, selectedProductId);
 
         // Try AI analysis if requested
         if (useAi)
@@ -86,10 +87,11 @@ public sealed class RecommendationService(
             try
             {
                 var context = BuildAiContext(userId, 1, includeExplanation, preference, [candidate]);
-                var aiAnalysis = await aiGenerator.AnalyzeListingProcessAsync(context, candidate, cancellationToken);
+                var aiAnalysis = await aiGenerator.AnalyzeListingProcessAsync(context, candidate, selectedProductId, cancellationToken);
                 if (aiAnalysis is not null)
                 {
-                    var merged = MergeWithFallback(aiAnalysis, fallback);
+                    var selected = ApplySelectedProduct(aiAnalysis, selectedProductId);
+                    var merged = MergeWithFallback(selected, fallback);
                     LogCoverage(listingId, merged);
                     return merged;
                 }
@@ -208,11 +210,15 @@ public sealed class RecommendationService(
 
     private static ReciclaYa.Application.ValueSectors.Dtos.ValueRouteDetailDto BuildFullFallbackValueRoute(
         PurchasePreference? preference,
-        Domain.Entities.Listing listing)
+        Domain.Entities.Listing listing,
+        string? selectedProductId = null)
     {
         // Build a complete fallback ValueRouteDetailDto using DB data, ensuring no empty arrays for UI.
         var baseResidue = string.IsNullOrWhiteSpace(listing.SpecificResidue) ? (string.IsNullOrWhiteSpace(listing.ProductType) ? "residuo" : listing.ProductType) : listing.SpecificResidue;
-        var recommendedProduct = $"Producto valorizado de {baseResidue}";
+        var preferredProduct = ToProductNameFromSlug(selectedProductId);
+        var recommendedProduct = string.IsNullOrWhiteSpace(preferredProduct)
+            ? $"Producto valorizado de {baseResidue}"
+            : preferredProduct;
 
         var processSteps = new List<ReciclaYa.Application.ValueSectors.Dtos.ValueRouteProcessStepDto>();
         for (var i = 1; i <= 4; i++)
@@ -296,6 +302,48 @@ public sealed class RecommendationService(
                 "Variable segun escala y logistica.",
                 "Riesgo medio por variacion de calidad.",
                 "Reduce merma y mejora circularidad."));
+    }
+
+    private static ValueRouteDetailDto ApplySelectedProduct(ValueRouteDetailDto detail, string? selectedProductId)
+    {
+        var selectedName = ToProductNameFromSlug(selectedProductId);
+        if (string.IsNullOrWhiteSpace(selectedName))
+        {
+            return detail;
+        }
+
+        var marketAnalysis = detail.MarketAnalysis with
+        {
+            FinishedProduct = detail.MarketAnalysis.FinishedProduct with
+            {
+                Name = selectedName
+            }
+        };
+
+        return detail with
+        {
+            RecommendedProduct = selectedName,
+            MarketAnalysis = marketAnalysis
+        };
+    }
+
+    private static string? ToProductNameFromSlug(string? selectedProductId)
+    {
+        if (string.IsNullOrWhiteSpace(selectedProductId))
+        {
+            return null;
+        }
+
+        var tokens = selectedProductId
+            .Trim()
+            .Split('-', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        if (tokens.Length == 0)
+        {
+            return null;
+        }
+
+        return string.Join(" ", tokens.Select(token => char.ToUpperInvariant(token[0]) + token[1..]));
     }
 
     private static ValueRouteDetailDto MergeWithFallback(ValueRouteDetailDto ai, ValueRouteDetailDto fallback)

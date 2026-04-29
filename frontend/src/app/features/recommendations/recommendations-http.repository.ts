@@ -146,10 +146,15 @@ export class RecommendationsHttpRepository {
       );
   }
 
-  getListingAnalysis(listingId: string, useAi = true, includeExplanation = true): Observable<RecommendationProcess> {
+  getListingAnalysis(
+    listingId: string,
+    selectedProductId?: string | null,
+    useAi = true,
+    includeExplanation = true): Observable<RecommendationProcess> {
     return this.http
       .get<ApiResponse<ValueRouteDetailApi>>(`${environment.apiBaseUrl}/recommendations/listings/${listingId}/analysis`, {
         params: {
+          selectedProductId: selectedProductId ?? '',
           useAi,
           includeExplanation
         }

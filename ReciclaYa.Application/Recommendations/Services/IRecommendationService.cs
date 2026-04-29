@@ -16,6 +16,7 @@ public interface IRecommendationService
         Guid userId,
         bool isAdmin,
         Guid listingId,
+        string? selectedProductId = null,
         bool useAi = true,
         bool includeExplanation = true,
         CancellationToken cancellationToken = default);
