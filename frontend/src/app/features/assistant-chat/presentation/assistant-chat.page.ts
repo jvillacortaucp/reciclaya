@@ -103,7 +103,7 @@ export class AssistantChatPageComponent {
 
     const targetUrl = this.router.serializeUrl(
       this.router.createUrlTree(['/app/recommendations', suggestion.id], {
-        queryParams: { tab: 'process' }
+        queryParams: { tab: 'process', recommendedProduct: suggestion.productName }
       })
     );
 

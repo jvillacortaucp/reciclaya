@@ -1,4 +1,10 @@
-import { ProductCategory, ResidueType, SectorType } from '../../../core/enums/marketplace.enums';
+import {
+  DeliveryMode,
+  ExchangeType,
+  ProductCategory,
+  ResidueType,
+  SectorType
+} from '../../../core/enums/marketplace.enums';
 
 export interface SelectOption<TValue extends string> {
   readonly value: TValue;
@@ -9,8 +15,8 @@ export interface SelectOption<TValue extends string> {
 export type PurchaseUnit = 'tons' | 'kg' | 'm3';
 export type PurchaseFrequency = 'one_time' | 'weekly' | 'biweekly' | 'monthly' | 'recurring';
 export type MaterialCondition = 'fresh' | 'dry' | 'wet' | 'processed';
-export type PreferredMode = 'pickup' | 'coordinated_delivery' | 'either';
-export type AcceptedExchangeType = 'purchase' | 'barter' | 'either';
+export type PreferredMode = DeliveryMode | 'either';
+export type AcceptedExchangeType = ExchangeType | 'either';
 export type PriorityLevel = 'low' | 'medium' | 'high';
 
 export interface DesiredResidueData {

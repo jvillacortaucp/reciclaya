@@ -153,8 +153,8 @@ public sealed class PurchasePreferenceService(
         preference.DesiredCondition = request.Sourcing.DesiredCondition;
         preference.ReceivingLocation = request.Logistics.ReceivingLocation;
         preference.RadiusKm = request.Logistics.RadiusKm;
-        preference.PreferredMode = request.Logistics.PreferredMode;
-        preference.AcceptedExchangeType = request.Logistics.AcceptedExchangeType;
+        preference.PreferredMode = NormalizePreferredMode(request.Logistics.PreferredMode);
+        preference.AcceptedExchangeType = NormalizeExchangeType(request.Logistics.AcceptedExchangeType);
         preference.Notes = EmptyToNull(request.Alerts.Notes);
         preference.AlertOnMatch = request.Alerts.AlertOnMatch;
         preference.Priority = request.Alerts.Priority;
@@ -185,8 +185,8 @@ public sealed class PurchasePreferenceService(
                 new LogisticsPreferencesDto(
                     preference.ReceivingLocation,
                     preference.RadiusKm,
-                    preference.PreferredMode,
-                    preference.AcceptedExchangeType),
+                    NormalizePreferredMode(preference.PreferredMode),
+                    NormalizeExchangeType(preference.AcceptedExchangeType)),
                 new AlertPreferencesDto(
                     preference.Notes ?? string.Empty,
                     preference.AlertOnMatch,
@@ -201,6 +201,11 @@ public sealed class PurchasePreferenceService(
         PurchasePreference preference,
         CancellationToken cancellationToken)
     {
+        var normalizedSpecificResidue = preference.SpecificResidue?.Trim().ToLowerInvariant();
+        var normalizedLocation = preference.ReceivingLocation.Trim().ToLowerInvariant();
+        var normalizedPreferredMode = NormalizePreferredMode(preference.PreferredMode);
+        var normalizedExchangeType = NormalizeExchangeType(preference.AcceptedExchangeType);
+
         var publishedListings = dbContext.Listings
             .AsNoTracking()
             .Where(listing => listing.Status == ListingStatus.Published && listing.DeletedAt == null);
@@ -208,11 +213,49 @@ public sealed class PurchasePreferenceService(
         var directMatchQuery = publishedListings
             .Where(listing => listing.WasteType == preference.ResidueType
                 && listing.Sector == preference.Sector
-                && listing.ProductType == preference.ProductType);
+                && listing.ProductType == preference.ProductType
+                && listing.Condition == preference.DesiredCondition
+                && (!preference.MinPriceUsd.HasValue || (listing.PricePerUnitUsd.HasValue && listing.PricePerUnitUsd.Value >= preference.MinPriceUsd.Value))
+                && (!preference.MaxPriceUsd.HasValue || (listing.PricePerUnitUsd.HasValue && listing.PricePerUnitUsd.Value <= preference.MaxPriceUsd.Value))
+                && (string.IsNullOrWhiteSpace(normalizedSpecificResidue) || listing.SpecificResidue.ToLower().Contains(normalizedSpecificResidue))
+                && (string.IsNullOrWhiteSpace(normalizedLocation) || listing.Location.ToLower().Contains(normalizedLocation))
+                && (normalizedPreferredMode == "either" || listing.DeliveryMode == normalizedPreferredMode)
+                && (normalizedExchangeType == "either" || listing.ExchangeType == normalizedExchangeType));
 
         var potentialMatchQuery = publishedListings
             .Where(listing => listing.WasteType == preference.ResidueType
-                || listing.Sector == preference.Sector);
+                || listing.Sector == preference.Sector
+                || listing.ProductType == preference.ProductType);
+
+        if (!string.IsNullOrWhiteSpace(normalizedSpecificResidue))
+        {
+            potentialMatchQuery = potentialMatchQuery.Where(listing => listing.SpecificResidue.ToLower().Contains(normalizedSpecificResidue));
+        }
+
+        if (!string.IsNullOrWhiteSpace(normalizedLocation))
+        {
+            potentialMatchQuery = potentialMatchQuery.Where(listing => listing.Location.ToLower().Contains(normalizedLocation));
+        }
+
+        if (normalizedPreferredMode != "either")
+        {
+            potentialMatchQuery = potentialMatchQuery.Where(listing => listing.DeliveryMode == normalizedPreferredMode);
+        }
+
+        if (normalizedExchangeType != "either")
+        {
+            potentialMatchQuery = potentialMatchQuery.Where(listing => listing.ExchangeType == normalizedExchangeType);
+        }
+
+        if (preference.MinPriceUsd.HasValue)
+        {
+            potentialMatchQuery = potentialMatchQuery.Where(listing => listing.PricePerUnitUsd.HasValue && listing.PricePerUnitUsd.Value >= preference.MinPriceUsd.Value);
+        }
+
+        if (preference.MaxPriceUsd.HasValue)
+        {
+            potentialMatchQuery = potentialMatchQuery.Where(listing => listing.PricePerUnitUsd.HasValue && listing.PricePerUnitUsd.Value <= preference.MaxPriceUsd.Value);
+        }
 
         var suppliersCount = await potentialMatchQuery
             .Select(listing => listing.SellerId)
@@ -235,7 +278,7 @@ public sealed class PurchasePreferenceService(
             new PurchasePreferenceFormValueDto(
                 new DesiredResidueDto("organic", "agroindustry", "mango", string.Empty),
                 new SourcingPreferencesDto(0, "tons", "weekly", null, null, "fresh"),
-                new LogisticsPreferencesDto(string.Empty, 50, "pickup", "purchase"),
+                new LogisticsPreferencesDto(string.Empty, 50, "warehouse_pickup", "sale"),
                 new AlertPreferencesDto(string.Empty, false, "medium")),
             BuildProfileStatus(EmptyStatus, 0),
             new MatchProjectionDto(0, 0, 0, "Sin ahorro proyectado aun"),
@@ -348,5 +391,41 @@ public sealed class PurchasePreferenceService(
     private static bool HasValue(string? value)
     {
         return !string.IsNullOrWhiteSpace(value);
+    }
+
+    private static string NormalizePreferredMode(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return "either";
+        }
+
+        return value.Trim().ToLowerInvariant() switch
+        {
+            "pickup" => "warehouse_pickup",
+            "warehouse_pickup" => "warehouse_pickup",
+            "coordinated_delivery" => "coordinated_delivery",
+            "third_party_transport" => "third_party_transport",
+            "either" => "either",
+            _ => "either"
+        };
+    }
+
+    private static string NormalizeExchangeType(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return "either";
+        }
+
+        return value.Trim().ToLowerInvariant() switch
+        {
+            "purchase" => "sale",
+            "sale" => "sale",
+            "barter" => "barter",
+            "pickup" => "pickup",
+            "either" => "either",
+            _ => "either"
+        };
     }
 }
