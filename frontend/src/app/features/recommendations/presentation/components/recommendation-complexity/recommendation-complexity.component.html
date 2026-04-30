@@ -47,17 +47,27 @@
               </div>
 
               <div class="flex min-w-[120px] flex-col items-start gap-2 sm:items-end">
-                <span class="text-2xl font-semibold tracking-tight text-slate-950">{{ complexityPercent() }}%</span>
+                @if (complexityPercent() !== null) {
+                  <span class="text-2xl font-semibold tracking-tight text-slate-950">{{ complexityPercent() }}%</span>
+                } @else {
+                  <span class="text-sm font-semibold tracking-tight text-slate-700">No se pudo obtener</span>
+                }
                 <span class="text-xs font-medium uppercase tracking-[0.16em] text-slate-400">Carga estimada</span>
               </div>
             </div>
 
-            <div class="mt-4 h-3 overflow-hidden rounded-full bg-slate-200/80">
-              <div
-                [ngClass]="complexityMeterClass()"
-                class="h-full rounded-full shadow-[0_0_18px_rgba(16,185,129,0.18)] transition-all duration-500"
-                [style.width.%]="complexityPercent()"></div>
-            </div>
+            @if (complexityPercent() !== null) {
+              <div class="mt-4 h-3 overflow-hidden rounded-full bg-slate-200/80">
+                <div
+                  [ngClass]="complexityMeterClass()"
+                  class="h-full rounded-full shadow-[0_0_18px_rgba(16,185,129,0.18)] transition-all duration-500"
+                  [style.width.%]="complexityPercent()"></div>
+              </div>
+            } @else {
+              <p class="mt-4 text-xs font-medium text-slate-500">
+                No se pudo obtener el porcentaje de complejidad desde el análisis.
+              </p>
+            }
           </div>
         </div>
       </div>

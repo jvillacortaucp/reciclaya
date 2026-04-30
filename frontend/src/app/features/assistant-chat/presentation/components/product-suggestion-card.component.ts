@@ -45,6 +45,9 @@ import { ProductSuggestion } from '../../models/assistant-chat.model';
           <span class="rounded-lg px-3 py-1 text-xs font-semibold uppercase tracking-[0.06em]" [class]="potentialStyles[suggestion().marketPotential]">
             {{ potentialLabels[suggestion().marketPotential] }}
           </span>
+          <span class="rounded-lg bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.06em] text-slate-600">
+            estimado preliminar
+          </span>
         </div>
         <button
           type="button"

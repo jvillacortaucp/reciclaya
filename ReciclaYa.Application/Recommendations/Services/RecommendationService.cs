@@ -53,7 +53,7 @@ public sealed class RecommendationService(
             }
         }
 
-        return BuildFallbackRecommendations(preference, candidates, safeLimit);
+        return Array.Empty<RecommendationDto>();
     }
 
     public async Task<ReciclaYa.Application.ValueSectors.Dtos.ValueRouteDetailDto?> GetListingAnalysisAsync(
@@ -65,7 +65,6 @@ public sealed class RecommendationService(
         bool includeExplanation = true,
         CancellationToken cancellationToken = default)
     {
-        var preference = await GetCurrentPreferenceAsync(userId, cancellationToken);
         var listing = await dbContext.Listings
             .AsNoTracking()
             .Where(item => item.Id == listingId
@@ -79,21 +78,20 @@ public sealed class RecommendationService(
         }
 
         var candidate = ToCandidate(listing);
-        var fallback = BuildFullFallbackValueRoute(preference, listing, selectedProductId);
 
         // Try AI analysis if requested
         if (useAi)
         {
             try
             {
+                var preference = await GetCurrentPreferenceAsync(userId, cancellationToken);
                 var context = BuildAiContext(userId, 1, includeExplanation, preference, [candidate]);
                 var aiAnalysis = await aiGenerator.AnalyzeListingProcessAsync(context, candidate, selectedProductId, cancellationToken);
                 if (aiAnalysis is not null)
                 {
                     var selected = ApplySelectedProduct(aiAnalysis, selectedProductId);
-                    var merged = MergeWithFallback(selected, fallback);
-                    LogCoverage(listingId, merged);
-                    return merged;
+                    LogCoverage(listingId, selected);
+                    return selected;
                 }
             }
             catch (Exception)
@@ -105,8 +103,128 @@ public sealed class RecommendationService(
             }
         }
 
-        LogCoverage(listingId, fallback);
-        return fallback;
+        var unavailable = BuildNoCreditsValueRoute(listing, selectedProductId);
+        LogCoverage(listingId, unavailable);
+        return unavailable;
+    }
+
+    public async Task<ValueRouteDetailDto> GetChatbotAnalysisAsync(
+        Guid userId,
+        ChatbotRecommendationAnalysisRequestDto request,
+        bool useAi = true,
+        bool includeExplanation = true,
+        CancellationToken cancellationToken = default)
+    {
+        var syntheticListing = BuildSyntheticListing(request);
+        var candidate = ToCandidate(syntheticListing);
+
+        if (useAi)
+        {
+            try
+            {
+                var preference = await GetCurrentPreferenceAsync(userId, cancellationToken);
+                var context = BuildAiContext(userId, 1, includeExplanation, preference, [candidate]);
+                var aiAnalysis = await aiGenerator.AnalyzeListingProcessAsync(context, candidate, request.ProductId, cancellationToken);
+                if (aiAnalysis is not null)
+                {
+                    var selected = ApplySelectedProduct(aiAnalysis, request.ProductId);
+                    var aligned = ApplyRequestedLevels(selected, request.Complexity, request.MarketPotential);
+                    LogCoverage(syntheticListing.Id, aligned);
+                    return aligned;
+                }
+            }
+            catch (Exception)
+            {
+                logger.LogWarning(
+                    "Recommendation chatbot analysis failed. ProductId={ProductId}, Reason={Reason}",
+                    request.ProductId,
+                    "ai-exception");
+            }
+        }
+
+        var unavailable = BuildNoCreditsValueRoute(syntheticListing, request.ProductId);
+        LogCoverage(syntheticListing.Id, unavailable);
+        return unavailable;
+    }
+
+    private static ValueRouteDetailDto BuildNoCreditsValueRoute(
+        Listing listing,
+        string? selectedProductId)
+    {
+        var productName = ToProductNameFromSlug(selectedProductId)
+            ?? (string.IsNullOrWhiteSpace(listing.ProductType) ? "No se pudo obtener" : listing.ProductType);
+        var baseResidue = string.IsNullOrWhiteSpace(listing.SpecificResidue)
+            ? "No se pudo obtener"
+            : listing.SpecificResidue;
+        const string unavailable = "No se pudo obtener por falta de creditos en IA.";
+
+        return new ValueRouteDetailDto(
+            $"rec-{listing.Id:N}",
+            productName,
+            baseResidue,
+            "medium",
+            unavailable,
+            unavailable,
+            "medium",
+            Array.Empty<string>(),
+            unavailable,
+            unavailable,
+            Array.Empty<ValueRouteExplanationStepDto>(),
+            new ValueRouteEnvironmentalSummaryDto(0m, "No se pudo obtener", 0, "No se pudo obtener", 0, unavailable),
+            new ValueRouteMarketAnalysisDto(
+                new ValueRouteFinishedProductDto(productName, unavailable, unavailable, 0m, unavailable, string.Empty),
+                Array.Empty<ValueRouteBuyerSegmentDto>(),
+                Array.Empty<ValueRouteMarketKpiDto>(),
+                Array.Empty<ValueRouteCostStructureItemDto>(),
+                0m,
+                0m,
+                0m,
+                new ValueRouteCompetitionInsightDto("No se pudo obtener", Array.Empty<string>(), unavailable),
+                new ValueRouteOpportunitySummaryDto(
+                    DateTime.UtcNow.ToString("yyyy-MM-dd"),
+                    unavailable,
+                    unavailable,
+                    unavailable,
+                    "No se pudo obtener",
+                    Array.Empty<string>(),
+                    unavailable),
+                Array.Empty<string>(),
+                Array.Empty<decimal>()),
+            Array.Empty<ValueRouteProcessStepDto>(),
+            "sin-creditos",
+            unavailable,
+            null);
+    }
+
+    private static ValueRouteDetailDto ApplyRequestedLevels(
+        ValueRouteDetailDto detail,
+        string? requestedComplexity,
+        string? requestedMarketPotential)
+    {
+        var complexity = NormalizeLevelOrNull(requestedComplexity);
+        var marketPotential = NormalizeLevelOrNull(requestedMarketPotential);
+
+        return detail with
+        {
+            Complexity = complexity ?? detail.Complexity,
+            MarketPotential = marketPotential ?? detail.MarketPotential
+        };
+    }
+
+    private static string? NormalizeLevelOrNull(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            return null;
+        }
+
+        return raw.Trim().ToLowerInvariant() switch
+        {
+            "high" or "alto" => "high",
+            "medium" or "medio" => "medium",
+            "low" or "bajo" => "low",
+            _ => null
+        };
     }
 
     private static ReciclaYa.Application.ValueSectors.Dtos.ValueRouteDetailDto MapRecommendationDetailToValueRoute(
@@ -522,6 +640,36 @@ public sealed class RecommendationService(
         score += !string.IsNullOrWhiteSpace(listing.Restrictions) ? -4 : 0;
 
         return Math.Clamp(score, 0, 100);
+    }
+
+    private static Listing BuildSyntheticListing(ChatbotRecommendationAnalysisRequestDto request)
+    {
+        var now = DateTime.UtcNow;
+        var residueInput = string.IsNullOrWhiteSpace(request.ResidueInput) ? "residuo" : request.ResidueInput.Trim();
+        var productName = string.IsNullOrWhiteSpace(request.ProductName) ? residueInput : request.ProductName.Trim();
+
+        return new Listing
+        {
+            Id = Guid.NewGuid(),
+            ReferenceCode = $"chat-{now:yyyyMMddHHmmss}",
+            WasteType = "organic",
+            Sector = string.IsNullOrWhiteSpace(request.SectorName) ? "agroindustry" : request.SectorName.Trim().ToLowerInvariant(),
+            ProductType = productName,
+            SpecificResidue = residueInput,
+            Description = string.IsNullOrWhiteSpace(request.Description) ? $"Idea de valorizacion para {productName}." : request.Description.Trim(),
+            Quantity = 1,
+            Unit = "tons",
+            Currency = "USD",
+            ExchangeType = "sale",
+            DeliveryMode = "coordinated_delivery",
+            ImmediateAvailability = true,
+            Condition = "dry",
+            Location = "Lima",
+            Status = ListingStatus.Published,
+            CreatedAt = now,
+            UpdatedAt = now,
+            PublishedAt = now
+        };
     }
 
     private static RecommendationAiContext BuildAiContext(

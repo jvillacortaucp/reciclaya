@@ -11,7 +11,7 @@ import {
   LucideSparkles,
   LucideWrench
 } from '@lucide/angular';
-import { ComplexityOverview, RecommendationProcess, StepRiskLevel } from '../../../models/recommendation.model';
+import { ComplexityOverview, RecommendationProcess } from '../../../models/recommendation.model';
 
 interface ComplexityItemViewModel {
   readonly label: string;
@@ -45,28 +45,19 @@ type ComplexityItemIcon = 'activity' | 'wrench' | 'brain' | 'clock' | 'dollar' |
 export class RecommendationComplexityComponent {
   recommendation = input.required<RecommendationProcess>();
 
-  protected readonly complexityOverview = computed<ComplexityOverview>(() => {
-    const recommendation = this.recommendation();
-    const fallbackOverview = this.buildFallbackOverview(recommendation);
-    return {
-      processingRequired: recommendation.complexityOverview?.processingRequired ?? fallbackOverview.processingRequired,
-      equipmentNeeded: recommendation.complexityOverview?.equipmentNeeded ?? fallbackOverview.equipmentNeeded,
-      technicalKnowledge: recommendation.complexityOverview?.technicalKnowledge ?? fallbackOverview.technicalKnowledge,
-      transformationTime: recommendation.complexityOverview?.transformationTime ?? fallbackOverview.transformationTime,
-      estimatedCost: recommendation.complexityOverview?.estimatedCost ?? fallbackOverview.estimatedCost,
-      operationalRisk: recommendation.complexityOverview?.operationalRisk ?? fallbackOverview.operationalRisk,
-      positiveEnvironmentalImpact:
-        recommendation.complexityOverview?.positiveEnvironmentalImpact ?? fallbackOverview.positiveEnvironmentalImpact
-    };
-  });
+  protected readonly complexityOverview = computed<ComplexityOverview | null>(() => this.recommendation().complexityOverview ?? null);
 
   protected readonly items = computed<readonly ComplexityItemViewModel[]>(() => {
     const overview = this.complexityOverview();
+    if (!overview) {
+      return [];
+    }
+
     return [
       this.createItem('Procesamiento requerido', this.getValue(overview.processingRequired), 'activity', 'emerald'),
       this.createItem('Equipos necesarios', this.getValue(overview.equipmentNeeded), 'wrench', 'slate'),
-      this.createItem('Conocimiento técnico', this.getValue(overview.technicalKnowledge), 'brain', 'amber'),
-      this.createItem('Tiempo de transformación', this.getValue(overview.transformationTime), 'clock', 'slate'),
+      this.createItem('Conocimiento tecnico', this.getValue(overview.technicalKnowledge), 'brain', 'amber'),
+      this.createItem('Tiempo de transformacion', this.getValue(overview.transformationTime), 'clock', 'slate'),
       this.createItem('Costo estimado', this.getValue(overview.estimatedCost), 'dollar', 'amber'),
       this.createItem('Riesgo operativo', this.getValue(overview.operationalRisk), 'shield', 'rose'),
       this.createItem('Impacto ambiental positivo', this.getValue(overview.positiveEnvironmentalImpact), 'leaf', 'emerald')
@@ -84,15 +75,13 @@ export class RecommendationComplexityComponent {
     return 'Baja';
   });
 
-  protected readonly complexityPercent = computed<number>(() => {
-    const complexity = this.recommendation().complexity;
-    if (complexity === 'high') {
-      return 86;
+  protected readonly complexityPercent = computed<number | null>(() => {
+    const value = this.recommendation().environmentalSummary?.utilizationPercent;
+    if (value === null || value === undefined || Number.isNaN(Number(value)) || Number(value) < 0 || Number(value) > 100) {
+      return null;
     }
-    if (complexity === 'medium') {
-      return 58;
-    }
-    return 32;
+
+    return Math.round(Number(value));
   });
 
   protected readonly complexityTone = computed<'emerald' | 'amber' | 'rose'>(() => {
@@ -128,68 +117,8 @@ export class RecommendationComplexityComponent {
     return 'bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-400';
   });
 
-  private buildFallbackOverview(recommendation: RecommendationProcess): ComplexityOverview {
-    const processingRequired = recommendation.processSteps
-      .slice(0, 5)
-      .map((step) => step.title)
-      .join(', ');
-
-    const equipmentNeeded = recommendation.principalEquipment.slice(0, 4).join(', ');
-
-    const positiveEnvironmentalImpact = Array.from(
-      new Set(recommendation.explanationSteps.flatMap((step) => step.natureBenefits))
-    ).join(', ');
-
-    return {
-      processingRequired,
-      equipmentNeeded,
-      technicalKnowledge: this.mapTechnicalKnowledge(recommendation.complexity),
-      transformationTime: recommendation.totalEstimatedTime,
-      estimatedCost: this.mapEstimatedCost(recommendation.approximateCost),
-      operationalRisk: this.mapOperationalRisk(recommendation.processSteps.map((step) => step.riskLevel)),
-      positiveEnvironmentalImpact
-    };
-  }
-
-  private mapTechnicalKnowledge(complexity: RecommendationProcess['complexity']): string {
-    if (complexity === 'high') {
-      return 'Especializado';
-    }
-
-    if (complexity === 'medium') {
-      return 'Intermedio';
-    }
-
-    return 'Básico';
-  }
-
-  private mapEstimatedCost(costLabel: string): string {
-    const normalized = costLabel.toLowerCase();
-    if (normalized.includes('6') || normalized.includes('7') || normalized.includes('8') || normalized.includes('9')) {
-      return 'Alto';
-    }
-
-    if (normalized.includes('4') || normalized.includes('5') || normalized.includes('3')) {
-      return 'Medio';
-    }
-
-    return 'Bajo';
-  }
-
-  private mapOperationalRisk(riskLevels: readonly StepRiskLevel[]): string {
-    if (riskLevels.includes('high')) {
-      return 'Alto';
-    }
-
-    if (riskLevels.includes('medium')) {
-      return 'Medio';
-    }
-
-    return 'Bajo';
-  }
-
   private getValue(value: string | null | undefined): string {
-    return value?.trim() || 'No especificado';
+    return value?.trim() || 'No se pudo obtener';
   }
 
   protected getCardLayoutClass(index: number): string {

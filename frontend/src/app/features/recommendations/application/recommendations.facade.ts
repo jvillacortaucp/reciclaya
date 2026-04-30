@@ -2,7 +2,7 @@ import { computed, inject, Injectable, signal } from '@angular/core';
 import { catchError, EMPTY, finalize } from 'rxjs';
 import { getErrorMessage } from '../../../core/http/api-response.helpers';
 import { Recommendation } from '../../../core/models/app.models';
-import { RecommendationsHttpRepository } from '../recommendations-http.repository';
+import { ChatbotAnalysisRequest, RecommendationsHttpRepository } from '../recommendations-http.repository';
 import {
   BuyerSegment,
   BuyerScope,
@@ -59,7 +59,13 @@ export class RecommendationsFacade {
     return market.potentialBuyers.filter((buyer: BuyerSegment) => buyer.scope === this.selectedBuyerSegment());
   });
 
-  load(productOrListingId?: string | null, tab: RecommendationTab = 'process', listingId?: string | null): void {
+  load(
+    productOrListingId?: string | null,
+    tab: RecommendationTab = 'process',
+    listingId?: string | null,
+    selectedProductId?: string | null,
+    chatbotContext?: ChatbotAnalysisRequest | null
+  ): void {
     this.error.set(null);
     this.activeTab.set(tab);
     this.loading.set(true);
@@ -83,10 +89,29 @@ export class RecommendationsFacade {
     this.usingCommercialMode.set(false);
     this.commercialRecommendations.set([]);
 
+    if (chatbotContext) {
+      this.recommendationsRepository
+        .getChatbotAnalysis(chatbotContext, true, true)
+        .pipe(
+          catchError((error: unknown) => {
+            this.error.set(getErrorMessage(error, 'No se pudo cargar el analisis IA desde chatbot.'));
+            return EMPTY;
+          }),
+          finalize(() => this.loading.set(false))
+        )
+        .subscribe((process: RecommendationProcess) => {
+          this.recommendation.set(process);
+          this.selectedStepId.set(process.processSteps[0]?.id ?? null);
+          this.selectedExplanationStepId.set(process.explanationSteps[0]?.id ?? null);
+        });
+      return;
+    }
+
     const listingCandidate = listingId?.trim() || null;
+    const selectedProductCandidate = selectedProductId?.trim() || null;
     if (listingCandidate && this.isGuid(listingCandidate)) {
       this.recommendationsRepository
-        .getListingAnalysis(listingCandidate, productOrListingId, true, true)
+        .getListingAnalysis(listingCandidate, selectedProductCandidate ?? productOrListingId, true, true)
         .pipe(
           catchError((error: unknown) => {
             this.error.set(getErrorMessage(error, 'No se pudo cargar el detalle de recomendacion.'));
@@ -103,8 +128,9 @@ export class RecommendationsFacade {
     }
 
     if (!this.isGuid(productOrListingId)) {
+      const industrialProductId = selectedProductCandidate ?? productOrListingId;
       this.recommendationsRepository
-        .getIndustrialProductDetail(productOrListingId)
+        .getIndustrialProductDetail(industrialProductId)
         .pipe(
           catchError((error: unknown) => {
             this.error.set(getErrorMessage(error, 'No se pudo cargar el detalle industrial.'));
@@ -167,5 +193,4 @@ export class RecommendationsFacade {
   private isGuid(value: string): boolean {
     return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
   }
-
 }

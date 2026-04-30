@@ -79,6 +79,35 @@ public sealed class RecommendationsController(IRecommendationService recommendat
         return Ok(ApiResponse<ReciclaYa.Application.ValueSectors.Dtos.ValueRouteDetailDto>.Ok(analysis));
     }
 
+    [HttpPost("chatbot-analysis")]
+    public async Task<IActionResult> GetChatbotAnalysis(
+        [FromBody] ChatbotRecommendationAnalysisRequestDto request,
+        [FromQuery] bool useAi = true,
+        [FromQuery] bool includeExplanation = true,
+        CancellationToken cancellationToken = default)
+    {
+        if (!TryGetUserContext(out var userId, out var role))
+        {
+            return Unauthorized(ApiResponse<object>.Fail("Unauthorized.", ["INVALID_TOKEN"]));
+        }
+
+        if (!CanUseRecommendations(role))
+        {
+            return StatusCode(
+                StatusCodes.Status403Forbidden,
+                ApiResponse<object>.Fail("Forbidden.", ["FORBIDDEN"]));
+        }
+
+        var analysis = await recommendationService.GetChatbotAnalysisAsync(
+            userId,
+            request,
+            useAi,
+            includeExplanation,
+            cancellationToken);
+
+        return Ok(ApiResponse<ReciclaYa.Application.ValueSectors.Dtos.ValueRouteDetailDto>.Ok(analysis));
+    }
+
     private static bool CanUseRecommendations(string role)
     {
         return string.Equals(role, "buyer", StringComparison.OrdinalIgnoreCase)
