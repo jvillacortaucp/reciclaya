@@ -17,5 +17,6 @@ public interface IRecommendationAiGenerator
     Task<ValueRouteDetailDto?> AnalyzeListingProcessAsync(
         RecommendationAiContext context,
         RecommendationCandidateDto candidate,
+        string? selectedProductId = null,
         CancellationToken cancellationToken = default);
 }

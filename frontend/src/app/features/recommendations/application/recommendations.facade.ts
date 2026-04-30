@@ -86,7 +86,7 @@ export class RecommendationsFacade {
     const listingCandidate = listingId?.trim() || null;
     if (listingCandidate && this.isGuid(listingCandidate)) {
       this.recommendationsRepository
-        .getListingAnalysis(listingCandidate, true, true)
+        .getListingAnalysis(listingCandidate, productOrListingId, true, true)
         .pipe(
           catchError((error: unknown) => {
             this.error.set(getErrorMessage(error, 'No se pudo cargar el detalle de recomendacion.'));
@@ -121,7 +121,7 @@ export class RecommendationsFacade {
     }
 
     this.recommendationsRepository
-      .getListingAnalysis(productOrListingId, true, true)
+      .getListingAnalysis(productOrListingId, productOrListingId, true, true)
       .pipe(
         catchError((error: unknown) => {
           this.error.set(getErrorMessage(error, 'No se pudo cargar el detalle de recomendacion.'));

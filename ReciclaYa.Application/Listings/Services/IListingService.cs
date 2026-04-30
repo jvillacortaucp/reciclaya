@@ -21,9 +21,18 @@ public interface IListingService
         int page,
         int pageSize,
         string? query,
+        string? sortBy,
         string? wasteType,
         string? sector,
         string? productType,
+        string? specificResidue,
+        string? exchangeType,
+        string? location,
+        decimal? minPrice,
+        decimal? maxPrice,
+        string? deliveryMode,
+        bool? immediateOnly,
+        string? residueCondition,
         CancellationToken cancellationToken = default);
 
     Task<ListingDetailDto?> GetListingDetailAsync(
