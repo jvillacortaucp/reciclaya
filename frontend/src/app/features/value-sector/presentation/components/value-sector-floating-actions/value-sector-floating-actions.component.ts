@@ -10,6 +10,7 @@ import {
 } from '@lucide/angular';
 import { APP_ROUTES } from '../../../../../core/constants/app.constants';
 import { TourGuideService } from '../../../../../core/services/tour-guide.service';
+import { FALLBACK_IMAGE_URL } from '../../../../../core/constants/media.constants';
 
 @Component({
   selector: 'app-value-sector-floating-actions',
@@ -34,6 +35,7 @@ export class ValueSectorFloatingActionsComponent {
   protected readonly imageError = signal(false);
   protected readonly routes = APP_ROUTES;
   protected readonly botImageUrl = 'assets/images/bot-guide.jpg';
+  protected readonly fallbackImage = FALLBACK_IMAGE_URL;
 
   toggleMenu(): void {
     this.isOpen.update((value) => !value);

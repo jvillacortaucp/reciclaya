@@ -19,7 +19,7 @@
     <div class="flex flex-wrap gap-2.5" animate.enter="fade-in">
       @for (media of mediaUploads; track media.id) {
         <article class="relative h-[4.8rem] w-[4.8rem] overflow-hidden rounded-xl border border-slate-300">
-          <img [src]="media.previewUrl" [alt]="media.name" />
+          <img [src]="media.previewUrl || fallbackImage" [alt]="media.name" />
           <span class="absolute left-1 top-1 rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide" [class]="uploadStatusClasses(media.uploadStatus)">
             {{ uploadStatusLabel(media.uploadStatus) }}
           </span>

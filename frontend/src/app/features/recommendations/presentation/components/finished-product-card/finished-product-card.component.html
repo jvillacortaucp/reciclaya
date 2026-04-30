@@ -3,7 +3,7 @@
     <div class="grid min-w-0 grid-cols-1 overflow-hidden rounded-3xl md:grid-cols-[240px_minmax(0,1fr)]">
       <div class="relative h-52 md:h-full">
         <img
-          [src]="item.productImageUrl"
+          [src]="item.productImageUrl || fallbackImage"
           [alt]="item.name"
           class="h-full w-full object-cover"
           loading="lazy" />

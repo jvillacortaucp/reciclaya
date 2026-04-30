@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from 
 import { RouterLink } from '@angular/router';
 import { LucideEye, LucidePencil, LucideXCircle } from '@lucide/angular';
 import { MyListing } from '../../domain/my-listing.model';
+import { FALLBACK_IMAGE_URL } from '../../../../core/constants/media.constants';
 
 @Component({
   selector: 'app-my-listing-card',
@@ -21,13 +22,8 @@ import { MyListing } from '../../domain/my-listing.model';
       (keydown.enter)="selectCard()"
       (keydown.space)="selectCard(); $event.preventDefault()">
       <div class="relative h-52 overflow-hidden rounded-t-3xl bg-slate-200">
-        @if (listing.imageUrl) {
-          <img [src]="listing.imageUrl" [alt]="listing.specificResidue" class="h-full w-full object-cover" />
-        } @else {
-          <div class="grid h-full w-full place-items-center bg-linear-to-br from-slate-200 to-slate-300 text-slate-500">
-            <span class="text-xs font-semibold uppercase tracking-[0.1em]">Sin imagen</span>
-          </div>
-        }
+        <img [src]="listing.imageUrl || fallbackImage" [alt]="listing.specificResidue" class="h-full w-full object-cover" />
+        
         <span class="absolute left-3 top-3 rounded-lg bg-emerald-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] text-emerald-700">
           Activo
         </span>
@@ -110,6 +106,8 @@ export class MyListingCardComponent {
   protected selectCard(): void {
     this.selected.emit(this.listing.id);
   }
+
+  protected readonly fallbackImage = FALLBACK_IMAGE_URL;
 
   protected editListing(event: Event): void {
     event.stopPropagation();

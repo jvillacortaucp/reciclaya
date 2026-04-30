@@ -1,4 +1,4 @@
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { catchError, map, Observable, throwError } from 'rxjs';
 import { normalizeHttpError, unwrapApiResponse } from '../../../core/http/api-response.helpers';
@@ -11,7 +11,6 @@ import {
   PreOrderPricingSummary,
   PreOrderScreenState
 } from '../models/pre-order.model';
-import { PreOrdersRepository } from './pre-orders.repository';
 
 interface BackendPreOrderPaymentMethod {
   readonly type: string;
@@ -78,15 +77,12 @@ interface CreatePreOrderPayload {
 @Injectable({ providedIn: 'root' })
 export class PreOrdersHttpRepository {
   private readonly http = inject(HttpClient);
-  private readonly fallback = inject(PreOrdersRepository);
 
   list(): Observable<readonly LegacyPreOrder[]> {
     return this.http.get<ApiResponse<readonly BackendPreOrderDto[]>>(`${environment.apiBaseUrl}/pre-orders`).pipe(
       map(unwrapApiResponse),
       map((orders) => orders.map((order) => this.toLegacyPreOrder(order))),
-      catchError((error: unknown) =>
-        this.fallbackOnNetworkError(error, 'No se pudieron cargar las pre-ordenes.', () => this.fallback.list())
-      )
+      catchError((error: unknown) => this.handleHttpError(error, 'No se pudieron cargar las pre-ordenes.'))
     );
   }
 
@@ -96,11 +92,7 @@ export class PreOrdersHttpRepository {
       .pipe(
         map(unwrapApiResponse),
         map((response) => this.toScreenState(response)),
-        catchError((error: unknown) =>
-          this.fallbackOnNetworkError(error, 'No se pudo cargar la pantalla de pre-orden.', () =>
-            this.fallback.getScreenState(listingId)
-          )
-        )
+        catchError((error: unknown) => this.handleHttpError(error, 'No se pudo cargar la pantalla de pre-orden.'))
       );
   }
 
@@ -110,11 +102,7 @@ export class PreOrdersHttpRepository {
       .pipe(
         map(unwrapApiResponse),
         map((pricing) => this.toPricingSummary(pricing)),
-        catchError((error: unknown) =>
-          this.fallbackOnNetworkError(error, 'No se pudo simular el resumen.', () =>
-            this.fallback.simulatePricing(input.listingId, input.requestedQuantity)
-          )
-        )
+        catchError((error: unknown) => this.handleHttpError(error, 'No se pudo simular el resumen.'))
       );
   }
 
@@ -124,10 +112,18 @@ export class PreOrdersHttpRepository {
       .pipe(
         map(unwrapApiResponse),
         map((response) => this.toUiPreOrder(response, input.unit)),
+        catchError((error: unknown) => this.handleHttpError(error, 'No se pudo crear la pre-orden.'))
+      );
+  }
+
+  downloadQuotationPdf(preOrderId: string): Observable<Blob> {
+    return this.http
+      .get(`${environment.apiBaseUrl}/pre-orders/${preOrderId}/quotation/pdf`, {
+        responseType: 'blob'
+      })
+      .pipe(
         catchError((error: unknown) =>
-          this.fallbackOnNetworkError(error, 'No se pudo crear la pre-orden.', () =>
-            this.fallback.submitSimulatedPreOrder(this.toFallbackPreOrder(input))
-          )
+          this.handleHttpError(error, 'No se pudo generar la cotizacion en PDF.')
         )
       );
   }
@@ -227,29 +223,6 @@ export class PreOrdersHttpRepository {
       requestedAt: order.desiredDate ?? new Date().toISOString().slice(0, 10),
       notes: order.notes ?? '',
       reserveStock: order.reserveStock ?? false
-    };
-  }
-
-  private toFallbackPreOrder(input: CreatePreOrderPayload): PreOrder {
-    return {
-      id: `pre-${Date.now()}`,
-      listingId: input.listingId,
-      requestedQuantity: input.requestedQuantity,
-      unit: input.unit,
-      paymentMethod: input.paymentMethod,
-      pricing: {
-        unitPrice: 0,
-        requestedQuantity: input.requestedQuantity,
-        subtotal: 0,
-        serviceFee: 0,
-        total: 0,
-        currency: 'PEN'
-      },
-      status: 'submitted',
-      createdAt: new Date().toISOString(),
-      requestedAt: input.requestedAt,
-      notes: input.notes,
-      reserveStock: input.reserveStock
     };
   }
 
@@ -382,15 +355,7 @@ export class PreOrdersHttpRepository {
     }
   }
 
-  private fallbackOnNetworkError<T>(
-    error: unknown,
-    fallbackMessage: string,
-    fallbackFactory: () => Observable<T>
-  ): Observable<T> {
-    if (error instanceof HttpErrorResponse && error.status === 0) {
-      return fallbackFactory();
-    }
-
+  private handleHttpError(error: unknown, fallbackMessage: string): Observable<never> {
     return throwError(() => normalizeHttpError(error, fallbackMessage));
   }
 }

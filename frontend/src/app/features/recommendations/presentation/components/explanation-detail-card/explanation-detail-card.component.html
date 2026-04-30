@@ -26,7 +26,7 @@
 
       <div class="space-y-3">
         <div class="overflow-hidden rounded-2xl">
-          <img [src]="selectedStep.processImageUrl" [alt]="selectedStep.title" class="h-48 w-full object-cover" />
+          <img [src]="selectedStep.processImageUrl || fallbackImage" [alt]="selectedStep.title" class="h-48 w-full object-cover" />
           <div class="-mt-8 px-3 pb-2 text-xs font-medium text-white">
             <span class="inline-flex items-center gap-1 rounded-md bg-slate-900/70 px-2 py-1">
               <svg lucideEye class="h-3.5 w-3.5"></svg>

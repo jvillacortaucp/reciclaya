@@ -31,6 +31,7 @@ public static class DependencyInjection
         services.AddScoped<IDashboardService, DashboardService>();
         services.AddScoped<IPurchasePreferenceService, PurchasePreferenceService>();
         services.AddScoped<IPreOrderService, PreOrderService>();
+        services.AddScoped<IQuotationPdfService, QuotationPdfService>();
         services.AddScoped<IRecommendationService, RecommendationService>();
         services.AddScoped<ValueSectorFallbackFactory>();
         services.AddScoped<IValueSectorService, ValueSectorService>();

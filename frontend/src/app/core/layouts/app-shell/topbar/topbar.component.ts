@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, output } from '@angular/core';
+import { FALLBACK_IMAGE_URL } from '../../../constants/media.constants';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { LucideMenu, LucideSearch, LucideBell, LucideLeaf } from '@lucide/angular';
@@ -25,6 +26,7 @@ export class TopbarComponent {
   protected readonly isAuthenticated = this.authFacade.isAuthenticated;
   protected readonly displayName = computed(() => this.authFacade.user()?.fullName ?? 'Usuario');
   protected readonly avatarUrl = computed(() => this.authFacade.user()?.avatarUrl ?? null);
+  protected readonly fallbackImage = FALLBACK_IMAGE_URL;
   protected readonly initials = computed(() => {
     const name = this.displayName().trim();
     if (!name) {

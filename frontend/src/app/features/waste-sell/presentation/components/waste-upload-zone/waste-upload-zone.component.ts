@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output, signal } from '@angular/core';
+import { FALLBACK_IMAGE_URL } from '../../../../../core/constants/media.constants';
 import { LucideImageUp, LucidePlus, LucideTrash2 } from '@lucide/angular';
 import { WasteMediaUpload } from '../../../domain/waste-sell.models';
 
@@ -17,6 +18,8 @@ export class WasteUploadZoneComponent {
   @Output() readonly fileRemoved = new EventEmitter<string>();
 
   protected readonly dragActive = signal(false);
+
+  protected readonly fallbackImage = FALLBACK_IMAGE_URL;
 
   protected onDragOver(event: DragEvent): void {
     event.preventDefault();

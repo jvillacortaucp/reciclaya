@@ -9,6 +9,10 @@
 *.user
 *.userosscache
 *.sln.docstates
+.github/VisualStudio/*
+.github
+.tmp-preorder-build
+.tmp-preorder-pdf-build
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
@@ -478,3 +482,10 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# Application configuration (ignore local secrets)
+appsettings.json
+appsettings.Development.json
+
+.tpm-preorder-build
+.tpm-preorder-pdf-build

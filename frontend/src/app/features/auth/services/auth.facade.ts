@@ -108,11 +108,13 @@ export class AuthFacade {
       return true;
     }
 
-    if (this.permissions().includes(permission)) {
+    const normalize = (s: string) => s.trim().toLowerCase();
+    const perms = this.permissions().map((p) => normalize(p));
+    if (perms.includes(normalize(permission))) {
       return true;
     }
 
-    return permission === PERMISSIONS.MANAGE_USERS && this.user()?.role === UserRole.Admin;
+    return normalize(permission) === normalize(PERMISSIONS.MANAGE_USERS) && this.user()?.role === UserRole.Admin;
   }
 
   hasAnyRole(roles: readonly string[]): boolean {

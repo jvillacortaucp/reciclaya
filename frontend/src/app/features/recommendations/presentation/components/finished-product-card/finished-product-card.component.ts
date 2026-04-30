@@ -1,5 +1,6 @@
 import { DecimalPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import { FALLBACK_IMAGE_URL } from '../../../../../core/constants/media.constants';
 import { LucideCircleDollarSign } from '@lucide/angular';
 import { FinishedProductMarketCard } from '../../../models/recommendation.model';
 
@@ -12,4 +13,5 @@ import { FinishedProductMarketCard } from '../../../models/recommendation.model'
 })
 export class FinishedProductCardComponent {
   product = input<FinishedProductMarketCard | null>(null);
+  protected readonly fallbackImage = FALLBACK_IMAGE_URL;
 }

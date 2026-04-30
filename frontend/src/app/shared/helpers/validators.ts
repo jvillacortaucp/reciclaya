@@ -4,10 +4,10 @@ const HTML_OR_SCRIPT_PATTERN = /<[^>]*>|javascript:|data:text\/html|on\w+\s*=|<s
 const MULTIPLE_SPACES_PATTERN = /\s{2,}/g;
 
 export const INPUT_PATTERNS = {
-  businessName: /^[A-Za-zÀ-ÿ0-9][A-Za-zÀ-ÿ0-9&.,\- ]*[A-Za-zÀ-ÿ0-9)]$/u,
-  address: /^[A-Za-zÀ-ÿ0-9#/,.\- ]*[A-Za-zÀ-ÿ0-9)]$/u,
-  personName: /^[A-Za-zÀ-ÿ]+(?:[ '-][A-Za-zÀ-ÿ]+)*$/u,
-  jobTitle: /^[A-Za-zÀ-ÿ]+(?:[ -][A-Za-zÀ-ÿ]+)*$/u,
+  businessName: /^[A-Za-zÀ-ÿ0-9]+(?: [A-Za-zÀ-ÿ0-9]+)*$/u,
+  address: /^[A-Za-zÀ-ÿ0-9 ]+$/u,
+  personName: /^[A-Za-zÀ-ÿ]+(?: [A-Za-zÀ-ÿ]+)*$/u,
+  jobTitle: /^[A-Za-zÀ-ÿ]+(?: [A-Za-zÀ-ÿ]+)*$/u,
   phone: /^\+?\d{7,15}$/u,
   postalCode: /^\d{4,10}$/u,
   documentNumber: /^\d{8,12}$/u,
@@ -111,16 +111,16 @@ export function sanitizeInputValue(
   const stripped = stripHtml(value);
   switch (mode) {
     case 'businessName':
-      return normalizeWhitespace(stripped.replace(/[^A-Za-zÀ-ÿ0-9&.,\- ]/gu, ''));
+      return normalizeWhitespace(stripped.replace(/[^A-Za-zÀ-ÿ0-9 ]/gu, ''), true);
     case 'address':
-      return normalizeWhitespace(stripped.replace(/[^A-Za-zÀ-ÿ0-9#/,.\- ]/gu, ''));
+      return normalizeWhitespace(stripped.replace(/[^A-Za-zÀ-ÿ0-9 ]/gu, ''), true);
     case 'jobTitle':
-      return normalizeWhitespace(stripped.replace(/[^A-Za-zÀ-ÿ -]/gu, ''));
+      return normalizeWhitespace(stripped.replace(/[^A-Za-zÀ-ÿ ]/gu, ''), true);
     case 'text':
-      return normalizeWhitespace(stripped.replace(/[<>]/g, ''));
+      return normalizeWhitespace(stripped.replace(/[<>]/g, ''), true);
     case 'personName':
     default:
-      return normalizeWhitespace(stripped.replace(/[^A-Za-zÀ-ÿ' -]/gu, ''));
+      return normalizeWhitespace(stripped.replace(/[^A-Za-zÀ-ÿ ]/gu, ''), true);
   }
 }
 
@@ -139,6 +139,7 @@ function containsHtmlOrScript(value: string): boolean {
   return HTML_OR_SCRIPT_PATTERN.test(value);
 }
 
-function normalizeWhitespace(value: string): string {
-  return value.trim().replace(MULTIPLE_SPACES_PATTERN, ' ');
+function normalizeWhitespace(value: string, preserveEdges = false): string {
+  const collapsed = value.replace(MULTIPLE_SPACES_PATTERN, ' ');
+  return preserveEdges ? collapsed : collapsed.trim();
 }
