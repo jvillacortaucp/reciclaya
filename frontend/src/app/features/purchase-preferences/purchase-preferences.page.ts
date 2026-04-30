@@ -107,8 +107,8 @@ export class PurchasePreferencesPageComponent implements OnInit, OnDestroy, Pend
     desiredCondition: ['fresh'],
     receivingLocation: ['', [Validators.required]],
     radiusKm: [50, [Validators.required, Validators.min(RADIUS_RANGE.min), Validators.max(RADIUS_RANGE.max)]],
-    preferredMode: ['pickup'],
-    acceptedExchangeType: ['purchase'],
+    preferredMode: ['warehouse_pickup'],
+    acceptedExchangeType: ['sale'],
     notes: [''],
     alertOnMatch: [true],
     priority: ['medium']

@@ -21,9 +21,7 @@ export interface AssistantChatResponse {
 @Injectable()
 export class AssistantChatHttpService {
   private readonly http = inject(HttpClient);
-  private readonly webhookUrl = 'https://n8n-production-7f55.up.railway.app/webhook-test/recicla-ia'
-  //https://n8n-production-7f55.up.railway.app/webhook/recicla-ia';
-  //url test n8n https://n8n-production-7f55.up.railway.app/webhook-test/recicla-ia';
+  private readonly webhookUrl = 'https://n8n-production-7f55.up.railway.app/webhook/botdotcom';
 
   sendMessage(sessionId: string, residueInput: string): Observable<AssistantChatResponse> {
     const headers = new HttpHeaders({

@@ -1,4 +1,10 @@
-import { ProductCategory, ResidueType, SectorType } from '../../../core/enums/marketplace.enums';
+import {
+  DeliveryMode,
+  ExchangeType,
+  ProductCategory,
+  ResidueType,
+  SectorType
+} from '../../../core/enums/marketplace.enums';
 import {
   AcceptedExchangeType,
   MaterialCondition,
@@ -72,14 +78,16 @@ export const CONDITION_OPTIONS: readonly SelectOption<MaterialCondition>[] = [
 ];
 
 export const PREFERRED_MODE_OPTIONS: readonly SelectOption<PreferredMode>[] = [
-  { value: 'pickup', label: 'Recojo por mi parte' },
-  { value: 'coordinated_delivery', label: 'Entrega coordinada' },
+  { value: DeliveryMode.WarehousePickup, label: 'Recojo en almacén' },
+  { value: DeliveryMode.CoordinatedDelivery, label: 'Entrega coordinada' },
+  { value: DeliveryMode.ThirdPartyTransport, label: 'Transporte tercero' },
   { value: 'either', label: 'Cualquiera' }
 ];
 
 export const ACCEPTED_EXCHANGE_OPTIONS: readonly SelectOption<AcceptedExchangeType>[] = [
-  { value: 'purchase', label: 'Compra monetaria' },
-  { value: 'barter', label: 'Trueque' },
+  { value: ExchangeType.Sale, label: 'Venta' },
+  { value: ExchangeType.Barter, label: 'Trueque' },
+  { value: ExchangeType.Pickup, label: 'Recojo' },
   { value: 'either', label: 'Cualquiera' }
 ];
 
