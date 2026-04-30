@@ -98,7 +98,22 @@ export class AssistantChatPageComponent {
   }
 
   protected onProductSelected(suggestion: ProductSuggestion): void {
+    // Select suggestion in the facade and navigate to recommendations 'process' tab.
     this.facade.selectSuggestion(suggestion);
+
+    const targetUrl = this.router.serializeUrl(
+      this.router.createUrlTree(['/app/recommendations', suggestion.id], {
+        queryParams: { tab: 'process', recommendedProduct: suggestion.productName }
+      })
+    );
+
+    this.protectedActionService.requireAuthForAction({
+      actionName: this.getProtectedActionLabel('process'),
+      returnUrl: targetUrl,
+      onAllowed: () => {
+        void this.router.navigateByUrl(targetUrl);
+      }
+    });
   }
 
   protected goToRecommendations(tab: 'process' | 'explanation' | 'market'): void {
