@@ -486,3 +486,6 @@ $RECYCLE.BIN/
 # Application configuration (ignore local secrets)
 appsettings.json
 appsettings.Development.json
+
+.tpm-preorder-build
+.tpm-preorder-pdf-build

@@ -1,0 +1,5 @@
+app setting "DefaultConnection": "Host=localhost;Port=5433;Database=reciclaya;Username=postgres;Password=admin123"
+develop "DefaultConnection": "Host=localhost;Port=5433;Database=reciclaya_dev;Username=postgres;Password=admin123"
+
+actual:"DefaultConnection": "Host=localhost;Port=5432;Database=reciclaya_dev;Username=postgres;Password=mondongo23"
+appsetiing ; "DefaultConnection": "Host=localhost;Port=5432;Database=reciclaya;Username=postgres;Password=mondongo23"

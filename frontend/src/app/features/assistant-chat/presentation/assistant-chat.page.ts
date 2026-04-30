@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, ViewChild, ElementRef, effect } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -7,7 +7,7 @@ import {
   ASSISTANT_QUICK_SUGGESTIONS
 } from '../data/assistant-chat.constants';
 import { AssistantChatFacade } from '../application/assistant-chat.facade';
-import { AssistantChatMockService } from '../infrastructure/assistant-chat.mock.service';
+import { AssistantChatHttpService } from '../infrastructure/assistant-chat.http.service';
 import { ProductSuggestion } from '../models/assistant-chat.model';
 import { ProtectedActionService } from '../../../core/services/protected-action.service';
 import { ChatInputComponent } from './components/chat-input.component';
@@ -19,7 +19,7 @@ import { TypingIndicatorComponent } from './components/typing-indicator.componen
 @Component({
   selector: 'app-assistant-chat-page',
   standalone: true,
-  providers: [AssistantChatMockService, AssistantChatFacade, DatePipe],
+  providers: [AssistantChatHttpService, AssistantChatFacade, DatePipe],
   imports: [
     ReactiveFormsModule,
     ChatMessageBubbleComponent,
@@ -36,6 +36,8 @@ export class AssistantChatPageComponent {
   private readonly router = inject(Router);
   private readonly facade = inject(AssistantChatFacade);
   private readonly protectedActionService = inject(ProtectedActionService);
+
+  @ViewChild('chatContainer') private readonly chatContainer?: ElementRef<HTMLDivElement>;
 
   protected readonly copy = ASSISTANT_CHAT_COPY;
   protected readonly quickSuggestions = ASSISTANT_QUICK_SUGGESTIONS;
@@ -60,15 +62,32 @@ export class AssistantChatPageComponent {
 
   constructor() {
     this.facade.initializeConversation();
+
+    effect(() => {
+      // Create a dependency on messages so this runs when messages change
+      const msgs = this.messages();
+      if (msgs.length) {
+        setTimeout(() => this.scrollToBottom(), 100);
+      }
+    });
+  }
+
+  private scrollToBottom(): void {
+    if (this.chatContainer?.nativeElement) {
+      const el = this.chatContainer.nativeElement;
+      el.scrollTop = el.scrollHeight;
+    }
   }
 
   protected sendMessage(): void {
-    if (this.form.invalid) {
+    const rawValue = this.form.controls.input.getRawValue();
+    const residue = rawValue.trim();
+
+    if (this.form.invalid || !residue) {
       this.form.markAllAsTouched();
       return;
     }
 
-    const residue = this.form.controls.input.getRawValue();
     this.facade.submitResidueMessage(residue);
     this.form.reset({ input: '' });
   }
