@@ -96,6 +96,7 @@ public sealed class DeepSeekRecommendationGenerator(
     public async Task<ValueRouteDetailDto?> AnalyzeListingProcessAsync(
         RecommendationAiContext context,
         RecommendationCandidateDto candidate,
+        string? selectedProductId = null,
         CancellationToken cancellationToken = default)
     {
         if (!HasApiKeyConfigured(out var apiKey))
@@ -106,7 +107,7 @@ public sealed class DeepSeekRecommendationGenerator(
 
         try
         {
-            var prompt = BuildProcessPrompt(context, candidate);
+            var prompt = BuildProcessPrompt(context, candidate, selectedProductId);
             var content = await RequestCompletionAsync(apiKey, prompt, cancellationToken);
             if (string.IsNullOrWhiteSpace(content))
             {
@@ -370,10 +371,13 @@ Reglas:
 - Si un listing tiene poca viabilidad, no lo recomiendes salvo que no haya mejores opciones.";
     }
 
-    private static string BuildProcessPrompt(RecommendationAiContext context, RecommendationCandidateDto candidate)
+    private static string BuildProcessPrompt(RecommendationAiContext context, RecommendationCandidateDto candidate, string? selectedProductId)
     {
         var preferenceJson = JsonSerializer.Serialize(context.Preference, JsonOptions);
         var candidateJson = JsonSerializer.Serialize(candidate, JsonOptions);
+        var selectedProduct = string.IsNullOrWhiteSpace(selectedProductId)
+            ? "N/A"
+            : selectedProductId.Trim();
 
         return $@"Genera un analisis completo tab-driven para recomendaciones industriales basado en ESTE listing.
 
@@ -382,6 +386,9 @@ Buyer preference:
 
 Listing:
 {candidateJson}
+
+Producto seleccionado por usuario (debes centrar todo el analisis en este producto):
+{selectedProduct}
 
 Devuelve SOLO JSON valido con esta forma exacta:
 {{
@@ -512,6 +519,7 @@ Devuelve SOLO JSON valido con esta forma exacta:
 Reglas:
 - No markdown.
 - Completa todos los bloques (proceso, complejidad, mercado).
+- recommendedProduct y marketAnalysis.finishedProduct.name deben corresponder al producto seleccionado.
 - riskLevel/complexity/marketPotential solo low|medium|high.
 - utilizationPercent/environmentalRiskPercent/probability/trendPercent/percent en rango 0..100.
 - Incluye al menos 3 processSteps y 2 explanationSteps.

@@ -45,6 +45,7 @@ public sealed class RecommendationsController(IRecommendationService recommendat
     [HttpGet("listings/{listingId:guid}/analysis")]
     public async Task<IActionResult> GetListingAnalysis(
         Guid listingId,
+        [FromQuery] string? selectedProductId = null,
         [FromQuery] bool useAi = true,
         [FromQuery] bool includeExplanation = true,
         CancellationToken cancellationToken = default)
@@ -65,6 +66,7 @@ public sealed class RecommendationsController(IRecommendationService recommendat
             userId,
             IsAdmin(role),
             listingId,
+            selectedProductId,
             useAi,
             includeExplanation,
             cancellationToken);
