@@ -1,6 +1,5 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import {
-  LucideCheck,
   LucideFlame,
   LucideFlaskConical,
   LucideRecycle,
@@ -18,7 +17,7 @@ import { ProductSuggestion } from '../../models/assistant-chat.model';
 @Component({
   selector: 'app-product-suggestion-card',
   standalone: true,
-  imports: [LucideCheck, LucideWheat, LucideFlaskConical, LucideRecycle, LucideSprout, LucideFlame],
+  imports: [LucideWheat, LucideFlaskConical, LucideRecycle, LucideSprout, LucideFlame],
   template: `
     <div
       class="w-full rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md sm:rounded-3xl sm:p-5">

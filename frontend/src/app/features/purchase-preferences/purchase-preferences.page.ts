@@ -14,10 +14,10 @@ import {
   LucideCircleDollarSign,
   LucideEye,
   LucideInfo,
-  LucideLoaderCircle,
+  // LucideLoaderCircle,
   LucideMapPin,
   LucidePackagePlus,
-  LucideSave,
+  // LucideSave,
   LucideTruck
 } from '@lucide/angular';
 import { PendingChangesAware } from '../../core/models/pending-changes.model';
@@ -54,14 +54,14 @@ import { ActiveSummaryCardComponent } from './presentation/components/active-sum
     ProfileStatusCardComponent,
     ActiveSummaryCardComponent,
     LucideEye,
-    LucideSave,
+    // LucideSave,
     LucideBell,
     LucideInfo,
     LucideCircleDollarSign,
     LucideTruck,
     LucideMapPin,
     LucidePackagePlus,
-    LucideLoaderCircle
+    // LucideLoaderCircle
   ],
   templateUrl: './presentation/purchase-preferences.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush
