@@ -1,0 +1,6 @@
+projectKey=recicl_ya
+serverUrl=http://localhost:9000
+serverVersion=26.1.0.118079
+dashboardUrl=http://localhost:9000/dashboard?id=recicl_ya
+ceTaskId=f2b55dbc-a941-4da7-b43d-d0567694e6e1
+ceTaskUrl=http://localhost:9000/api/ce/task?id=f2b55dbc-a941-4da7-b43d-d0567694e6e1
