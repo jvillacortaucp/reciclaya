@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output, computed, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import {
   LucideArrowRight,
@@ -10,7 +11,8 @@ import {
   LucidePhone,
   LucideShieldCheck,
   LucideUser,
-  LucideZap
+  LucideZap,
+  LucideIdCard
 } from '@lucide/angular';
 import { UserRole } from '../../../../../core/models/app.models';
 import {
@@ -32,6 +34,7 @@ import { hasPasswordMismatch } from '../../helpers/register-form.helpers';
 @Component({
   selector: 'app-company-register-form',
   imports: [
+    CommonModule,
     ReactiveFormsModule,
     LucideEye,
     LucideEyeOff,
@@ -42,6 +45,7 @@ import { hasPasswordMismatch } from '../../helpers/register-form.helpers';
     LucideArrowRight,
     LucideZap,
     LucideShieldCheck,
+    LucideIdCard,
     LucideCheckCircle
   ],
   templateUrl: './company-register-form.component.html',
@@ -60,15 +64,16 @@ export class CompanyRegisterFormComponent {
   protected readonly messages = REGISTER_VALIDATION_MESSAGES;
 
   protected readonly activeStep = signal(0);
+  protected readonly completedSteps = signal<boolean[]>(this.steps.map(() => false));
   protected readonly showPassword = signal(false);
   protected readonly showConfirmPassword = signal(false);
 
   protected readonly companyForm = this.fb.nonNullable.group({
-    ruc: ['', [Validators.required, Validators.pattern(/^\d{11}$/)]],
+    ruc: ['', [Validators.required, Validators.pattern(/^\d{12}$/)]],
     businessName: ['', [Validators.required, Validators.maxLength(120), safeBusinessNameValidator]],
-    mobilePhone: ['', [Validators.required, phoneValidator]],
+    mobilePhone: ['', [Validators.required, Validators.pattern(/^\d{9}$/)]],
     address: ['', [Validators.required, Validators.maxLength(180), safeAddressValidator]],
-    postalCode: ['', [Validators.required, postalCodeValidator]],
+    postalCode: ['', [Validators.required, Validators.pattern(/^\d{5,6}$/)]],
     legalRepresentative: ['', [Validators.required, Validators.maxLength(120), safePersonNameValidator]],
     position: ['', [Validators.required, Validators.maxLength(80), safeJobTitleValidator]]
   });
@@ -88,6 +93,13 @@ export class CompanyRegisterFormComponent {
       return;
     }
 
+    // marcar paso 0 como completado y avanzar al paso 1
+    this.completedSteps.update((prev) => {
+      const next = [...prev];
+      next[0] = true;
+      return next;
+    });
+
     this.activeStep.set(1);
   }
 
@@ -100,6 +112,12 @@ export class CompanyRegisterFormComponent {
     if (this.credentialsForm.invalid || this.passwordMismatch()) {
       return;
     }
+    // marcar paso 1 (credenciales) como completado antes de enviar
+    this.completedSteps.update((prev) => {
+      const next = [...prev];
+      next[1] = true;
+      return next;
+    });
 
     const payload: CompanyRegistrationPayload = {
       accountType: AccountType.Company,
@@ -207,6 +225,6 @@ export class CompanyRegisterFormComponent {
     }
   }
 
-  protected readonly rucPattern = INPUT_PATTERNS.numericOnly.source;
-  protected readonly postalCodePattern = INPUT_PATTERNS.numericOnly.source;
+  protected readonly rucPattern = '^\\d{12}$';
+  protected readonly postalCodePattern = '^\\d{5,6}$';
 }

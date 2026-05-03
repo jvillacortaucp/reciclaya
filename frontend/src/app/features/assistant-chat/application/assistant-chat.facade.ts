@@ -3,6 +3,7 @@ import { finalize, catchError } from 'rxjs/operators';
 import { of } from 'rxjs';
 import { ASSISTANT_CHAT_COPY } from '../data/assistant-chat.constants';
 import { AssistantChatHttpService } from '../infrastructure/assistant-chat.http.service';
+import { SessionStorageService } from '../../../core/services/session-storage.service';
 import {
   AssistantChatState,
   ChatMessage,
@@ -21,18 +22,24 @@ export class AssistantChatFacade {
     typing: false
   });
   private sessionId = '';
+  private currentScope = 'guest';
 
   readonly messages = computed(() => this.state().messages);
   readonly typing = computed(() => this.state().typing);
   readonly selectedSuggestionId = computed(() => this.state().selectedSuggestionId);
   readonly hasSelection = computed(() => !!this.state().selectedSuggestionId);
 
-  constructor(private readonly service: AssistantChatHttpService) {
+  constructor(
+    private readonly service: AssistantChatHttpService,
+    private readonly sessionStorageService: SessionStorageService
+  ) {
+    this.currentScope = this.resolveScope();
     this.initSession();
     this.loadState();
   }
 
   initializeConversation(): void {
+    this.ensureScopeSync();
     if (this.messages().length > 0) return;
 
     this.pushAssistantText(ASSISTANT_CHAT_COPY.greeting);
@@ -40,6 +47,7 @@ export class AssistantChatFacade {
   }
 
   submitResidueMessage(input: string): void {
+    this.ensureScopeSync();
     const residue = input.trim();
     if (!residue) return;
 
@@ -72,6 +80,7 @@ export class AssistantChatFacade {
   }
 
   selectSuggestion(suggestion: ProductSuggestion): void {
+    this.ensureScopeSync();
     this.state.update((prev) => {
       const newState = { ...prev, selectedSuggestionId: suggestion.id };
       this.saveState(newState.messages);
@@ -144,18 +153,18 @@ export class AssistantChatFacade {
   }
 
   private initSession(): void {
-    const storedId = localStorage.getItem(SESSION_KEY);
+    const storedId = localStorage.getItem(this.getSessionKey());
     if (storedId) {
       this.sessionId = storedId;
     } else {
       this.sessionId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : 'sess-' + Math.random().toString(36).substring(2);
-      localStorage.setItem(SESSION_KEY, this.sessionId);
+      localStorage.setItem(this.getSessionKey(), this.sessionId);
     }
   }
 
   private loadState(): void {
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
+      const stored = localStorage.getItem(this.getStorageKey());
       if (stored) {
         const messages = JSON.parse(stored) as readonly ChatMessage[];
         if (Array.isArray(messages)) {
@@ -170,9 +179,53 @@ export class AssistantChatFacade {
 
   private saveState(messages: readonly ChatMessage[]): void {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+      localStorage.setItem(this.getStorageKey(), JSON.stringify(messages));
     } catch (e) {
       console.error('Failed to save chat state', e);
     }
+  }
+
+  clearConversation(): void {
+    this.ensureScopeSync();
+    localStorage.removeItem(this.getStorageKey());
+    localStorage.removeItem(this.getSessionKey());
+    this.sessionId = '';
+    this.messageCounter.set(0);
+    this.state.set({
+      messages: [],
+      selectedSuggestionId: null,
+      typing: false
+    });
+    this.initSession();
+  }
+
+  private ensureScopeSync(): void {
+    const nextScope = this.resolveScope();
+    if (nextScope === this.currentScope) {
+      return;
+    }
+
+    this.currentScope = nextScope;
+    this.messageCounter.set(0);
+    this.state.set({
+      messages: [],
+      selectedSuggestionId: null,
+      typing: false
+    });
+    this.initSession();
+    this.loadState();
+  }
+
+  private resolveScope(): string {
+    const session = this.sessionStorageService.session();
+    return session?.user?.id?.trim() || 'guest';
+  }
+
+  private getStorageKey(): string {
+    return `${STORAGE_KEY}_${this.currentScope}`;
+  }
+
+  private getSessionKey(): string {
+    return `${SESSION_KEY}_${this.currentScope}`;
   }
 }
