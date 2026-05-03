@@ -31,7 +31,7 @@ import { ChatMessage } from '../../models/assistant-chat.model';
         <p
           class="mt-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400"
           [class.text-right]="message().role === 'user'">
-          {{ message().role === 'assistant' ? 'EcoInnovador' : 'Usted' }} ·
+          {{ message().role === 'assistant' ? 'RevaloraIA' : 'Usted' }} ·
           {{ message().createdAt | date: 'hh:mm a' }}
         </p>
       </div>

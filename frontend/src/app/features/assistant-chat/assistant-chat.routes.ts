@@ -7,8 +7,8 @@ export const ASSISTANT_CHAT_ROUTES: Route[] = [
       import('./presentation/assistant-chat.page').then((m) => m.AssistantChatPageComponent),
     data: {
       meta: {
-        title: 'Asistente ReciclaIA',
-        breadcrumb: 'Asistente ReciclaIA',
+        title: 'Asistente RevaloraIA',
+        breadcrumb: 'Asistente RevaloraIA',
         icon: 'messages'
       }
     }
