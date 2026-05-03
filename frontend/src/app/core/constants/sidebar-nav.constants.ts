@@ -72,7 +72,7 @@ export const SIDEBAR_NAV_ITEMS: readonly SidebarNavItem[] = [
     permissions: [PERMISSIONS.VIEW_RECOMMENDATIONS]
   },
   {
-    label: 'Asistente ReciclaIA',
+    label: 'Asistente RevaloraIA',
     group: 'Intelligence',
     icon: 'messages',
     route: APP_ROUTES.assistantChat,

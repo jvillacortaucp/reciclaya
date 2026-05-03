@@ -21,7 +21,7 @@ export const SIDEBAR_NAV_ITEMS: readonly SidebarNavItem[] = [
     publicAccess: true
   },
   {
-    label: 'EcoInnovador',
+    label: 'RevaloraIA',
     group: 'Intelligence',
     icon: 'bot-message-square',
     route: APP_ROUTES.assistantChat,
