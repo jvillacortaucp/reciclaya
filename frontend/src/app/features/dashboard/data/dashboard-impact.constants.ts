@@ -8,7 +8,7 @@ export const DASHBOARD_PERIOD_OPTIONS: readonly DashboardPeriodOption[] = [
 ];
 
 export const DASHBOARD_COPY = {
-  title: 'Dashboard de impacto',
+  title: 'Dashboard Principal',
   subtitle: 'Monitorea residuos, pre-órdenes, demanda e ingresos generados por valorización.',
   matrixTitle: 'Matriz de productos e ingresos',
   matrixSubtitle: 'Comparativo de stock, ventas e ingresos por producto.',

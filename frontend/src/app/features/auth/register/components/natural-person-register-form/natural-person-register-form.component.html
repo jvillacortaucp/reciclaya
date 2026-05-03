@@ -1,34 +1,34 @@
 <form class="grid gap-4" [formGroup]="form" (ngSubmit)="submit()" animate.enter="page-enter">
   <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
     <div>
-      <label class="grid gap-1.5 text-sm text-slate-700"><span class="font-semibold">First name</span><input class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100" formControlName="firstName" maxlength="80" (input)="sanitizeName('firstName')" /></label>
+      <label class="grid gap-1.5 text-sm text-slate-700"><span class="font-semibold">Nombres</span><input placeholder="Ej. Juan" class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100" formControlName="firstName" maxlength="80" (input)="sanitizeName('firstName')" /></label>
       @if (fieldError('firstName')) { <p class="mt-1 text-xs font-medium text-rose-500">{{ fieldError('firstName') }}</p> }
     </div>
     <div>
-      <label class="grid gap-1.5 text-sm text-slate-700"><span class="font-semibold">Last name</span><input class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100" formControlName="lastName" maxlength="80" (input)="sanitizeName('lastName')" /></label>
+      <label class="grid gap-1.5 text-sm text-slate-700"><span class="font-semibold">Apellidos</span><input placeholder="Ej. Pérez" class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100" formControlName="lastName" maxlength="80" (input)="sanitizeName('lastName')" /></label>
       @if (fieldError('lastName')) { <p class="mt-1 text-xs font-medium text-rose-500">{{ fieldError('lastName') }}</p> }
     </div>
   </div>
 
   <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
     <div>
-      <label class="grid gap-1.5 text-sm text-slate-700"><span class="font-semibold">DNI or document number</span><input class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100" formControlName="documentNumber" inputmode="numeric" maxlength="12" (input)="sanitizeDigitsField('documentNumber')" /></label>
+      <label class="grid gap-1.5 text-sm text-slate-700"><span class="font-semibold">DNI / Nº de documento</span><input placeholder="Ej. 12345678" class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100" formControlName="documentNumber" inputmode="numeric" maxlength="12" (input)="sanitizeDigitsField('documentNumber')" /></label>
       @if (fieldError('documentNumber')) { <p class="mt-1 text-xs font-medium text-rose-500">{{ fieldError('documentNumber') }}</p> }
     </div>
     <div>
-      <label class="grid gap-1.5 text-sm text-slate-700"><span class="font-semibold">Mobile phone</span><input class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100" formControlName="mobilePhone" inputmode="tel" maxlength="16" (input)="sanitizeDigitsField('mobilePhone')" /></label>
+      <label class="grid gap-1.5 text-sm text-slate-700"><span class="font-semibold">Teléfono móvil</span><input placeholder="Ej. 912345678" class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100" formControlName="mobilePhone" inputmode="tel" maxlength="9" (input)="sanitizeDigitsField('mobilePhone')" /></label>
       @if (fieldError('mobilePhone')) { <p class="mt-1 text-xs font-medium text-rose-500">{{ fieldError('mobilePhone') }}</p> }
     </div>
   </div>
 
-  <label class="grid gap-1.5 text-sm text-slate-700"><span class="font-semibold">Address</span><input class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100" formControlName="address" maxlength="180" (input)="sanitizeAddress()" /></label>
+  <label class="grid gap-1.5 text-sm text-slate-700"><span class="font-semibold">Dirección</span><input placeholder="Ej. Av. Siempre Viva 123" class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100" formControlName="address" maxlength="180" (input)="sanitizeAddress()" /></label>
   @if (fieldError('address')) { <p class="mt-1 text-xs font-medium text-rose-500">{{ fieldError('address') }}</p> }
 
-  <label class="grid gap-1.5 text-sm text-slate-700"><span class="font-semibold">Postal code</span><input class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100" formControlName="postalCode" inputmode="numeric" maxlength="10" (input)="sanitizeDigitsField('postalCode')" /></label>
+  <label class="grid gap-1.5 text-sm text-slate-700"><span class="font-semibold">Código postal</span><input placeholder="Ej. 15001" class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100" formControlName="postalCode" inputmode="numeric" maxlength="6" (input)="sanitizeDigitsField('postalCode')" /></label>
   @if (fieldError('postalCode')) { <p class="mt-1 text-xs font-medium text-rose-500">{{ fieldError('postalCode') }}</p> }
 
   <label class="grid gap-1.5 text-sm text-slate-700">
-    <span class="font-semibold">Intent</span>
+    <span class="font-semibold">Propósito</span>
     <select class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100" formControlName="intent">
       @for (intent of intents; track intent.value) {
         <option [value]="intent.value">{{ intent.label }}</option>
@@ -36,12 +36,12 @@
     </select>
   </label>
 
-  <label class="grid gap-1.5 text-sm text-slate-700"><span class="font-semibold">Email</span><input class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100" type="email" formControlName="email" /></label>
+  <label class="grid gap-1.5 text-sm text-slate-700"><span class="font-semibold">Correo electrónico</span><input placeholder="Ej. correo@ejemplo.com" class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100" type="email" formControlName="email" /></label>
   @if (fieldError('email')) { <p class="mt-1 text-xs font-medium text-rose-500">{{ fieldError('email') }}</p> }
 
   <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
     <div>
-      <label class="grid gap-1.5 text-sm text-slate-700"><span class="font-semibold">Password</span>
+      <label class="grid gap-1.5 text-sm text-slate-700"><span class="font-semibold">Contraseña</span>
         <div class="relative">
           <input class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 pr-10 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100" [type]="showPassword() ? 'text' : 'password'" formControlName="password" />
           <button type="button" class="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700" (click)="togglePassword()">
@@ -52,7 +52,7 @@
       @if (fieldError('password')) { <p class="mt-1 text-xs font-medium text-rose-500">{{ fieldError('password') }}</p> }
     </div>
     <div>
-      <label class="grid gap-1.5 text-sm text-slate-700"><span class="font-semibold">Confirm password</span>
+      <label class="grid gap-1.5 text-sm text-slate-700"><span class="font-semibold">Confirmar contraseña</span>
         <div class="relative">
           <input class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 pr-10 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100" [type]="showConfirmPassword() ? 'text' : 'password'" formControlName="confirmPassword" />
           <button type="button" class="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700" (click)="toggleConfirmPassword()">

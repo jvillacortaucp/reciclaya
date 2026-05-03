@@ -158,6 +158,7 @@ export class MyListingsPageComponent implements OnInit, OnDestroy {
       this.facade.showMissingListingToast();
       return;
     }
+    this.tourGuide.notifyRecommendationsClicked(listingId);
     this.facade.showGeneratingRoutesToast();
     this.router.navigate(['/app/value-sector'], { queryParams: { listing: listingId } });
   }

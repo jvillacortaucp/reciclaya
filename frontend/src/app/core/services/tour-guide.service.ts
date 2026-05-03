@@ -21,8 +21,8 @@ interface GuidedFlowStep {
   readonly selector: string;
   readonly title: string;
   readonly description: string;
-  readonly onAdvance?: () => void | Promise<void>;
-  readonly expectedSelectorAfterAdvance?: string;
+  readonly requiresUserAction?: boolean;
+  readonly actionHint?: string;
 }
 
 interface RecommendationsTourStep {
@@ -39,7 +39,9 @@ const FLOW_STEPS: readonly GuidedFlowStep[] = [
     route: APP_ROUTES.myListings,
     selector: TOUR_GUIDE_SELECTORS.firstListingCard,
     title: 'Selecciona tu primera publicación',
-    description: 'Comencemos aquí. Este es tu primer producto publicado.'
+    description: 'Comencemos aquí. Este es tu primer producto publicado.',
+    requiresUserAction: true,
+    actionHint: 'Selecciona una publicación para continuar.'
   },
   {
     id: 1,
@@ -47,7 +49,9 @@ const FLOW_STEPS: readonly GuidedFlowStep[] = [
     route: APP_ROUTES.myListings,
     selector: TOUR_GUIDE_SELECTORS.recommendationsButton,
     title: 'Ir a Sector de valor',
-    description: 'Aquí pasarás a explorar oportunidades de valorización para tu residuo.'
+    description: 'Aquí pasarás a explorar oportunidades de valorización para tu residuo.',
+    requiresUserAction: true,
+    actionHint: 'Pulsa "Recomendaciones" para avanzar.'
   },
   {
     id: 2,
@@ -56,11 +60,8 @@ const FLOW_STEPS: readonly GuidedFlowStep[] = [
     selector: TOUR_GUIDE_SELECTORS.firstValueSectorToggle,
     title: 'Selecciona el primer sector',
     description: 'Abre esta ruta para ver productos sugeridos según el residuo.',
-    onAdvance: () => {
-      const toggle = document.querySelector(TOUR_GUIDE_SELECTORS.firstValueSectorToggle);
-      if (toggle instanceof HTMLElement) toggle.click();
-    },
-    expectedSelectorAfterAdvance: TOUR_GUIDE_SELECTORS.firstValueProduct
+    requiresUserAction: true,
+    actionHint: 'Selecciona una ruta de valor para continuar.'
   },
   {
     id: 3,
@@ -69,11 +70,8 @@ const FLOW_STEPS: readonly GuidedFlowStep[] = [
     selector: TOUR_GUIDE_SELECTORS.firstValueProduct,
     title: 'Selecciona el primer producto sugerido',
     description: 'Elige este producto para activar el resumen y continuar.',
-    onAdvance: () => {
-      const product = document.querySelector(TOUR_GUIDE_SELECTORS.firstValueProduct);
-      if (product instanceof HTMLElement) product.click();
-    },
-    expectedSelectorAfterAdvance: TOUR_GUIDE_SELECTORS.processButton
+    requiresUserAction: true,
+    actionHint: 'Selecciona un producto sugerido para continuar.'
   },
   {
     id: 4,
@@ -87,9 +85,9 @@ const FLOW_STEPS: readonly GuidedFlowStep[] = [
     id: 5,
     label: TOUR_STEP_LABELS.EXPLAIN_EXPLANATION_BUTTON,
     route: APP_ROUTES.valueSector,
-    selector: TOUR_GUIDE_SELECTORS.explanationButton,
-    title: 'Ver explicación',
-    description: 'Aquí comprenderás el porqué técnico y ambiental de cada etapa.'
+    selector: TOUR_GUIDE_SELECTORS.complexityButton,
+    title: 'Ver nivel de complejidad',
+    description: 'Aquí comprenderás el esfuerzo técnico y operativo de esta ruta.'
   },
   {
     id: 6,
@@ -105,7 +103,9 @@ const FLOW_STEPS: readonly GuidedFlowStep[] = [
     route: APP_ROUTES.valueSector,
     selector: TOUR_GUIDE_SELECTORS.valueSectorActions,
     title: 'Elige una ruta de continuación',
-    description: 'Selecciona una de las opciones para continuar.'
+    description: 'Selecciona una de las opciones para continuar.',
+    requiresUserAction: true,
+    actionHint: 'Elige Ver proceso, Ver nivel de complejidad o Ver análisis de mercado.'
   }
 ] as const;
 
@@ -136,30 +136,30 @@ const PROCESS_TAB_STEPS: readonly RecommendationsTourStep[] = [
   }
 ];
 
-const EXPLANATION_TAB_STEPS: readonly RecommendationsTourStep[] = [
+const COMPLEXITY_TAB_STEPS: readonly RecommendationsTourStep[] = [
   {
     label: TOUR_STEP_LABELS.EXPLANATION_HEADER,
     selector: TOUR_GUIDE_SELECTORS.recommendationsHeader,
-    title: 'Explicación del proceso',
+    title: 'Nivel de complejidad',
     description: 'Ahora estás en el tab explicativo del flujo seleccionado.'
   },
   {
     label: TOUR_STEP_LABELS.EXPLANATION_SELECTOR,
     selector: TOUR_GUIDE_SELECTORS.explanationStepSelector,
-    title: 'Selector de etapas',
-    description: 'Puedes cambiar de etapa para entender cada transformación.'
+    title: 'Criterios de complejidad',
+    description: 'Aquí se organiza la evaluación técnica del producto recomendado.'
   },
   {
     label: TOUR_STEP_LABELS.EXPLANATION_DETAIL,
     selector: TOUR_GUIDE_SELECTORS.explanationDetailCard,
-    title: 'Detalle de la etapa',
-    description: 'Aquí se explica qué ocurre, su impacto y recomendaciones prácticas.'
+    title: 'Detalle técnico',
+    description: 'Aquí se explica el nivel técnico, tiempo y esfuerzo esperado.'
   },
   {
     label: TOUR_STEP_LABELS.ENVIRONMENTAL_FACTORS,
     selector: TOUR_GUIDE_SELECTORS.explanationFactors,
     title: 'Factores ambientales',
-    description: 'Aquí ves factores a favor y en contra para la etapa seleccionada.'
+    description: 'Aquí ves factores a favor y en contra para la recomendación.'
   },
   {
     label: TOUR_STEP_LABELS.NATURE_BENEFITS,
@@ -193,6 +193,12 @@ const MARKET_TAB_STEPS: readonly RecommendationsTourStep[] = [
     selector: TOUR_GUIDE_SELECTORS.marketCosts,
     title: 'Costos y rentabilidad',
     description: 'Aquí analizas estructura de costos, margen y precio sugerido.'
+  },
+  {
+    label: TOUR_STEP_LABELS.SAVE_RECOMMENDATION,
+    selector: TOUR_GUIDE_SELECTORS.saveRecommendationButton,
+    title: 'Guardar recomendación',
+    description: 'Guarda esta recomendación para revisarla luego y compararla con otras rutas.'
   }
 ];
 
@@ -221,11 +227,10 @@ export class TourGuideService {
     if (!TOUR_GUIDE_TEST_CONFIG.ENABLED) return;
 
     this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe(() => {
+      if (!this.isTourSessionActive()) return;
       this.logDebug('NavigationEnd detectado; reintentando montaje de paso.');
       void this.runCurrentStepIfPending('navigation');
     });
-
-    void this.runCurrentStepIfPending('init');
   }
 
   launchFromBot(): void {
@@ -233,12 +238,19 @@ export class TourGuideService {
     this.init();
 
     const currentPath = this.getCurrentPath();
-    const startStep = currentPath.startsWith(APP_ROUTES.valueSector) ? 2 : 0;
+    const startStep = currentPath.startsWith(APP_ROUTES.recommendations)
+      ? 7
+      : currentPath.startsWith(APP_ROUTES.valueSector)
+        ? 2
+        : 0;
 
     this.setCurrentStep(startStep);
     this.setCompleted(false);
+    this.setTourActive(true);
+    this.setStartedByUser(true);
     this.setPendingRecommendationTour(false);
     this.removeRecommendationTourState();
+    this.removeSelectionState();
     this.setAttemptCount(0);
     this.setFlowStep(this.stepFlowMap[startStep] ?? 'idle');
     this.recommendationsTourRunning = false;
@@ -248,6 +260,8 @@ export class TourGuideService {
   }
 
   notifyListingSelected(listingId: string): void {
+    if (!this.isTourSessionActive()) return;
+    this.setSelectedListingId(listingId);
     const flow = this.getFlowStep();
     if (flow === 'my_listings_focus_first_card' || flow === 'my_listings_wait_listing_selection') {
       this.logDebug(`Listing seleccionado (${listingId}). Avanzando flujo hacia Value Sector.`);
@@ -258,6 +272,8 @@ export class TourGuideService {
   }
 
   notifyValueSectorSelected(routeId: string): void {
+    if (!this.isTourSessionActive()) return;
+    this.setSelectedValueSectorId(routeId);
     const flow = this.getFlowStep();
     if (flow === 'value_sector_focus_first_sector' || flow === 'value_sector_wait_sector_selection') {
       this.logDebug(`Sector seleccionado (${routeId}). Avanzando a selección de producto.`);
@@ -269,6 +285,9 @@ export class TourGuideService {
   }
 
   notifyValueProductSelected(routeId: string, productId: string): void {
+    if (!this.isTourSessionActive()) return;
+    this.setSelectedValueSectorId(routeId);
+    this.setSelectedSuggestedProductId(productId);
     const flow = this.getFlowStep();
     if (flow === 'value_sector_focus_first_product' || flow === 'value_sector_wait_product_selection') {
       this.logDebug(`Producto seleccionado (${productId}) en ruta ${routeId}. Habilitando opciones de continuación.`);
@@ -279,7 +298,21 @@ export class TourGuideService {
     }
   }
 
+  notifyRecommendationsClicked(listingId: string): void {
+    if (!this.isTourSessionActive()) return;
+    this.setSelectedListingId(listingId);
+    const flow = this.getFlowStep();
+    if (flow !== 'my_listings_wait_listing_selection') {
+      return;
+    }
+    this.logDebug(`Click en recomendaciones con listing ${listingId}. Navegando a Sector de valor.`);
+    this.setCurrentStep(2);
+    this.setFlowStep('value_sector_focus_first_sector');
+    this.destroyDriver();
+  }
+
   notifyRecommendationRouteChosen(tab: RecommendationTourTab, productId: string): void {
+    if (!this.isTourSessionActive()) return;
     this.logDebug(`Ruta de recomendación elegida por usuario: ${tab}, producto ${productId}.`);
     const order = RECOMMENDATION_TOUR_ORDER_BY_INITIAL_TAB[tab];
     this.setRecommendationProductId(productId);
@@ -287,9 +320,11 @@ export class TourGuideService {
     this.setRecommendationTourIndex(0);
     this.setPendingRecommendationTour(true);
     this.setFlowStep('recommendations_running');
+    this.destroyDriver();
   }
 
   private async runCurrentStepIfPending(origin: string): Promise<void> {
+    if (!this.isTourSessionActive()) return;
     if (this.isRunningStepResolver) {
       this.logDebug(`Se omite runCurrentStepIfPending (${origin}) porque ya hay una resolución en curso.`);
       return;
@@ -297,6 +332,7 @@ export class TourGuideService {
 
     this.isRunningStepResolver = true;
     try {
+    this.syncStateFromRoute();
     if (this.isPendingRecommendationTour()) {
       this.setFlowStep('recommendations_running');
       if (this.getCurrentPath().startsWith(APP_ROUTES.recommendations)) {
@@ -321,9 +357,29 @@ export class TourGuideService {
       return;
     }
 
+    if (step.route === APP_ROUTES.valueSector) {
+      const ready = await this.waitForValueSectorReady();
+      if (!ready) {
+        this.stopTourWithMessage('No se encontraron rutas de valor disponibles para continuar el tour.');
+        return;
+      }
+    }
+
     await this.mountStep(step);
     } finally {
       this.isRunningStepResolver = false;
+    }
+  }
+
+  private syncStateFromRoute(): void {
+    const parsed = this.router.parseUrl(this.router.url);
+    const listingId = parsed.queryParams['listing'];
+    if (typeof listingId === 'string' && listingId.trim()) {
+      this.setSelectedListingId(listingId);
+    }
+    const pathProduct = this.getRecommendationProductId();
+    if (pathProduct) {
+      this.setSelectedSuggestedProductId(pathProduct);
     }
   }
 
@@ -338,14 +394,15 @@ export class TourGuideService {
     this.prepareElementForFocus(element);
 
     const isChoiceStep = step.id === FLOW_STEPS.length - 1;
+    const isActionStep = Boolean(step.requiresUserAction);
     const tourStep: DriveStep = {
       element,
       popover: {
         title: this.getStepTitle(step.label, step.title),
-        description: step.description,
+        description: isActionStep && step.actionHint ? `${step.description}<br/><br/><strong>${step.actionHint}</strong>` : step.description,
         side: 'bottom',
         align: 'start',
-        showButtons: ['close', 'next'],
+        showButtons: isActionStep ? ['close'] : ['close', 'next'],
         nextBtnText: isChoiceStep ? 'Entendido' : 'Siguiente',
         prevBtnText: 'Atrás',
         onNextClick: () => void this.handleNext(step.id),
@@ -370,8 +427,10 @@ export class TourGuideService {
   private async handleNext(currentStep: number): Promise<void> {
     const current = FLOW_STEPS[currentStep];
     if (!current) return;
-
-    await this.runOnAdvance(current);
+    if (!this.canAdvanceFromStep(currentStep)) {
+      this.logDebug(`Paso ${currentStep} bloqueado: acción obligatoria pendiente.`);
+      return;
+    }
     this.destroyDriver();
 
     const nextStep = currentStep + 1;
@@ -379,8 +438,16 @@ export class TourGuideService {
     this.setFlowStep(this.stepFlowMap[nextStep] ?? 'idle');
 
     if (currentStep === 1) {
+      const listingId = this.getSelectedListingId();
+      if (!listingId) {
+        this.logDebug('No hay listing seleccionado para navegar a value-sector.');
+        this.setCurrentStep(1);
+        this.setFlowStep('my_listings_wait_listing_selection');
+        await this.runCurrentStepIfPending('missing-listing-before-value-sector');
+        return;
+      }
       this.setFlowStep('value_sector_focus_first_sector');
-      await this.navigateToRoute(APP_ROUTES.valueSector);
+      await this.navigateToRoute(`${APP_ROUTES.valueSector}?listing=${encodeURIComponent(listingId)}`);
       return;
     }
 
@@ -393,8 +460,21 @@ export class TourGuideService {
 
     await this.runCurrentStepIfPending('next-flow-step');
   }
+  private canAdvanceFromStep(stepId: number): boolean {
+    if (stepId === 0 || stepId === 1) {
+      return Boolean(this.getSelectedListingId());
+    }
+    if (stepId === 2) {
+      return Boolean(this.getSelectedValueSectorId());
+    }
+    if (stepId === 3) {
+      return Boolean(this.getSelectedSuggestedProductId());
+    }
+    return true;
+  }
 
   private async runRecommendationsFlow(): Promise<void> {
+    if (!this.isTourSessionActive()) return;
     if (this.recommendationsTourRunning) return;
 
     this.initializeRecommendationTourStateIfNeeded();
@@ -410,10 +490,19 @@ export class TourGuideService {
 
     const targetTab = order[index];
     const currentTab = this.getRecommendationsTab();
+    const ready = await this.waitForRecommendationsReady(targetTab);
+    if (!ready) {
+      this.stopTourWithMessage('No se pudo cargar la recomendación para continuar el recorrido.');
+      return;
+    }
 
     if (currentTab !== targetTab) {
+      const listingId = this.getSelectedListingId();
       await this.router.navigate(['/app/recommendations', productId], {
-        queryParams: { tab: targetTab }
+        queryParams: {
+          tab: targetTab,
+          listing: listingId ?? undefined
+        }
       });
       return;
     }
@@ -428,6 +517,7 @@ export class TourGuideService {
     steps: readonly RecommendationsTourStep[],
     index: number
   ): Promise<void> {
+    if (!this.isTourSessionActive()) return;
     if (index >= steps.length) {
       this.recommendationsTourRunning = false;
       if (this.isLastRecommendationTab()) {
@@ -506,6 +596,7 @@ export class TourGuideService {
   }
 
   private advanceRecommendationTab(): void {
+    if (!this.isTourSessionActive()) return;
     const order = this.getRecommendationTourOrder();
     const nextIndex = this.getRecommendationTourIndex() + 1;
     this.setRecommendationTourIndex(nextIndex);
@@ -522,8 +613,12 @@ export class TourGuideService {
     }
 
     const nextTab = order[nextIndex];
+    const listingId = this.getSelectedListingId();
     void this.router.navigate(['/app/recommendations', productId], {
-      queryParams: { tab: nextTab }
+      queryParams: {
+        tab: nextTab,
+        listing: listingId ?? undefined
+      }
     });
   }
 
@@ -542,15 +637,74 @@ export class TourGuideService {
   }
 
   private getRecommendationsStepsByTab(tab: RecommendationTourTab): readonly RecommendationsTourStep[] {
-    if (tab === 'explanation') return EXPLANATION_TAB_STEPS;
+    if (tab === 'complexity') return COMPLEXITY_TAB_STEPS;
     if (tab === 'market') return MARKET_TAB_STEPS;
     return PROCESS_TAB_STEPS;
   }
 
+  private async waitForRecommendationsReady(tab: RecommendationTourTab): Promise<boolean> {
+    const loadingGone = await this.waitUntil(
+      () => !document.querySelector('[data-tour="recommendations-loading"]'),
+      12000,
+      180
+    );
+    if (!loadingGone) {
+      return false;
+    }
+
+    const hasError = document.querySelector('[data-tour="recommendations-error"]');
+    if (hasError) {
+      return false;
+    }
+
+    const readySelector =
+      tab === 'market'
+        ? TOUR_GUIDE_SELECTORS.marketBuyersGrid
+        : tab === 'complexity'
+          ? TOUR_GUIDE_SELECTORS.complexityOverview
+          : TOUR_GUIDE_SELECTORS.processProductCard;
+
+    const element = await this.waitForElement(
+      readySelector,
+      TOUR_GUIDE_TEST_CONFIG.MAX_ATTEMPTS,
+      `recommendations-ready-${tab}`
+    );
+
+    return Boolean(element);
+  }
+
+  private async waitForValueSectorReady(): Promise<boolean> {
+    const loadingGone = await this.waitUntil(
+      () => !document.querySelector('[data-tour="value-sector-loading"]'),
+      12000,
+      180
+    );
+
+    if (!loadingGone) {
+      return false;
+    }
+
+    const hasTerminalState = document.querySelector('[data-tour="value-sector-empty"], [data-tour="value-sector-error"], [data-tour="value-sector-missing-listing"]');
+    if (hasTerminalState) {
+      return false;
+    }
+
+    const firstToggle = await this.waitForElement(
+      TOUR_GUIDE_SELECTORS.firstValueSectorToggle,
+      TOUR_GUIDE_TEST_CONFIG.MAX_ATTEMPTS,
+      'value-sector-ready'
+    );
+
+    return Boolean(firstToggle);
+  }
+
   private getRecommendationsTab(): RecommendationTourTab {
     const rawTab = this.router.parseUrl(this.router.url).queryParams['tab'];
-    if (rawTab === 'explanation' || rawTab === 'market' || rawTab === 'process') {
+    if (rawTab === 'complexity' || rawTab === 'market' || rawTab === 'process') {
       return rawTab;
+    }
+    if (rawTab === 'explanation') {
+      return 'complexity';
     }
     return 'process';
   }
@@ -586,7 +740,7 @@ export class TourGuideService {
       if (!Array.isArray(parsed)) return [];
       return parsed.filter(
         (tab): tab is RecommendationTourTab =>
-          tab === 'process' || tab === 'explanation' || tab === 'market'
+          tab === 'process' || tab === 'complexity' || tab === 'market'
       );
     } catch {
       return [];
@@ -611,6 +765,49 @@ export class TourGuideService {
     this.removeKey(TOUR_GUIDE_STORAGE_KEYS.RECOMMENDATION_TOUR_ORDER);
     this.removeKey(TOUR_GUIDE_STORAGE_KEYS.RECOMMENDATION_TOUR_INDEX);
     this.removeKey(TOUR_GUIDE_STORAGE_KEYS.RECOMMENDATION_PRODUCT_ID);
+  }
+
+  private getSelectedListingId(): string | null {
+    return this.getValue(TOUR_GUIDE_STORAGE_KEYS.SELECTED_LISTING_ID);
+  }
+
+  private setSelectedListingId(listingId: string): void {
+    this.setValue(TOUR_GUIDE_STORAGE_KEYS.SELECTED_LISTING_ID, listingId);
+  }
+
+  private getSelectedValueSectorId(): string | null {
+    return this.getValue(TOUR_GUIDE_STORAGE_KEYS.SELECTED_VALUE_SECTOR_ID);
+  }
+
+  private setSelectedValueSectorId(routeId: string): void {
+    this.setValue(TOUR_GUIDE_STORAGE_KEYS.SELECTED_VALUE_SECTOR_ID, routeId);
+  }
+
+  private getSelectedSuggestedProductId(): string | null {
+    return this.getValue(TOUR_GUIDE_STORAGE_KEYS.SELECTED_SUGGESTED_PRODUCT_ID);
+  }
+
+  private setSelectedSuggestedProductId(productId: string): void {
+    this.setValue(TOUR_GUIDE_STORAGE_KEYS.SELECTED_SUGGESTED_PRODUCT_ID, productId);
+  }
+
+  private removeSelectionState(): void {
+    this.removeKey(TOUR_GUIDE_STORAGE_KEYS.SELECTED_LISTING_ID);
+    this.removeKey(TOUR_GUIDE_STORAGE_KEYS.SELECTED_VALUE_SECTOR_ID);
+    this.removeKey(TOUR_GUIDE_STORAGE_KEYS.SELECTED_SUGGESTED_PRODUCT_ID);
+  }
+
+  private isTourSessionActive(): boolean {
+    return this.getValue(TOUR_GUIDE_STORAGE_KEYS.IS_ACTIVE) === 'true' &&
+      this.getValue(TOUR_GUIDE_STORAGE_KEYS.STARTED_BY_USER) === 'true';
+  }
+
+  private setTourActive(value: boolean): void {
+    this.setValue(TOUR_GUIDE_STORAGE_KEYS.IS_ACTIVE, String(value));
+  }
+
+  private setStartedByUser(value: boolean): void {
+    this.setValue(TOUR_GUIDE_STORAGE_KEYS.STARTED_BY_USER, String(value));
   }
 
   private async mountTourCompletionStep(): Promise<void> {
@@ -666,12 +863,15 @@ export class TourGuideService {
 
   private finishFlow(): void {
     this.setCompleted(true);
+    this.setTourActive(false);
+    this.setStartedByUser(false);
     this.setPendingRecommendationTour(false);
     this.setFlowStep('completed');
     this.removeKey(TOUR_GUIDE_STORAGE_KEYS.CURRENT_STEP);
     this.removeKey(TOUR_GUIDE_STORAGE_KEYS.ATTEMPT_COUNT);
     this.recommendationsTourRunning = false;
     this.removeRecommendationTourState();
+    this.removeSelectionState();
     this.destroyDriver();
   }
 
@@ -706,8 +906,26 @@ export class TourGuideService {
 
     const errorMessage = `[${context}] No se encontró selector "${selector}" tras ${maxAttempts} intentos.`;
     this.setLastError(errorMessage);
-    console.error(errorMessage);
+    console.warn(errorMessage);
     return null;
+  }
+
+  private async waitUntil(
+    predicate: () => boolean,
+    timeoutMs = 10000,
+    intervalMs = 150
+  ): Promise<boolean> {
+    const start = Date.now();
+    while (Date.now() - start < timeoutMs) {
+      if (!this.isTourSessionActive()) {
+        return false;
+      }
+      if (predicate()) {
+        return true;
+      }
+      await new Promise<void>((resolve) => window.setTimeout(resolve, intervalMs));
+    }
+    return false;
   }
 
   private async observeSelector(selector: string, timeoutMs: number): Promise<HTMLElement | null> {
@@ -768,28 +986,6 @@ export class TourGuideService {
     });
   }
 
-  private async runOnAdvance(step: GuidedFlowStep): Promise<void> {
-    if (!step.onAdvance) return;
-
-    try {
-      this.logDebug(`Ejecutando onAdvance para step ${step.id}`);
-      await step.onAdvance();
-      if (step.expectedSelectorAfterAdvance) {
-        await this.waitForElement(
-          step.expectedSelectorAfterAdvance,
-          TOUR_GUIDE_TEST_CONFIG.MAX_ATTEMPTS,
-          `on-advance-step-${step.id}`
-        );
-      } else {
-        await this.observeSelector('body', 120);
-      }
-    } catch (error) {
-      const message = `Error ejecutando onAdvance en step ${step.id}`;
-      this.setLastError(message);
-      console.error(message, error);
-    }
-  }
-
   private handleMissingFlowStep(step: GuidedFlowStep): void {
     const reason = `No se pudo montar el step ${step.id} (${step.selector}).`;
     this.setLastError(reason);
@@ -803,6 +999,12 @@ export class TourGuideService {
       return;
     }
 
+    this.finishFlow();
+  }
+
+  private stopTourWithMessage(message: string): void {
+    this.setLastError(message);
+    console.warn(`[TourGuide] ${message}`);
     this.finishFlow();
   }
 
