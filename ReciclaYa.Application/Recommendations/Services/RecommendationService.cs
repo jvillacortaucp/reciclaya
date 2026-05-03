@@ -256,7 +256,7 @@ public sealed class RecommendationService(
                 "2-3 dias",
                 new[] { "Equipo basico" },
                 new[] { "Estandarizar lotes" },
-                "Realiza pruebas en peque�a escala",
+                "Realiza pruebas en pequena escala",
                 "medium",
                 "factory")
         };
@@ -271,8 +271,8 @@ public sealed class RecommendationService(
                 "Analisis IA",
                 detail.AiExplanation ?? string.Empty,
                 detail.BuyerBenefit ?? string.Empty,
-                detail.RecommendedUse ?? "Resultado esperado del proceso de valorizaci�n.",
-                detail.SuggestedAction ?? "Validar condiciones t�cnicas antes de escalar el proceso.",
+                detail.RecommendedUse ?? "Resultado esperado del proceso de valorizacion.",
+                detail.SuggestedAction ?? "Validar condiciones tecnicas antes de escalar el proceso.",
                 (detail.Risks ?? Array.Empty<string>()).FirstOrDefault() ?? "Validar riesgos",
                 string.Empty,
                 new ReciclaYa.Application.ValueSectors.Dtos.ValueRouteEnvironmentalFactorsDto(new[] { "Aprovecha residuos" }, detail.Risks ?? Array.Empty<string>()),
@@ -314,7 +314,7 @@ public sealed class RecommendationService(
             baseResidue,
             detail.ViabilityLevel ?? "medium",
             "48-72 horas para evaluacion comercial",
-            "Costo aproximado seg�n escala y logistica",
+            "Costo aproximado segun escala y logistica",
             detail.ViabilityLevel ?? "medium",
             new[] { "Validacion tecnica", "Logistica" },
             detail.BuyerBenefit ?? string.Empty,

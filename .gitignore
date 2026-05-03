@@ -489,3 +489,20 @@ appsettings.Development.json
 
 .tpm-preorder-build
 .tpm-preorder-pdf-build
+
+# Testing reports and analysis files
+.scannerwork/
+playwright-report/
+test-results/
+coverage/
+*.log
+
+# SonarQube
+/.scannerwork
+/.sonar_lock
+/sonar
+appsettings.json
+appsettings.Development.json
+/.tmp-preorder-build
+/.tmp-preorder-pdf-build
+

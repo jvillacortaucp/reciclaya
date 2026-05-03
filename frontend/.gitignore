@@ -46,3 +46,8 @@ Thumbs.db
 /playwright-report/
 /test-results/
 /test-results-shared/
+
+# SonarQube
+/.scannerwork
+/.sonar_lock
+/sonar
