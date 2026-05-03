@@ -496,3 +496,11 @@ playwright-report/
 test-results/
 coverage/
 *.log
+
+# SonarQube
+/.scannerwork
+/.sonar_lock
+/sonar
+appsettings.json
+appsettings.Development.json
+
