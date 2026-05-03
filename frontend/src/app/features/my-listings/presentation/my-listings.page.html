@@ -1,0 +1,133 @@
+<header class="mb-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+  <div class="min-w-0">
+    <h2 class="text-2xl font-semibold text-slate-900">{{ copy.title }}</h2>
+    <p class="max-w-3xl text-sm text-slate-500">{{ copy.subtitle }}</p>
+  </div>
+
+  <div class="flex flex-wrap items-center gap-2 lg:justify-end">
+    <button
+      type="button"
+      class="inline-flex h-10 items-center gap-2 rounded-xl border px-4 text-sm font-semibold transition"
+      [class.border-indigo-200]="hasSelectedListing()"
+      [class.bg-indigo-50]="hasSelectedListing()"
+      [class.text-indigo-700]="hasSelectedListing()"
+      [class.hover:bg-indigo-100]="hasSelectedListing()"
+      [class.cursor-not-allowed]="!hasSelectedListing()"
+      [class.border-slate-200]="!hasSelectedListing()"
+      [class.bg-slate-100]="!hasSelectedListing()"
+      [class.text-slate-400]="!hasSelectedListing()"
+      [disabled]="!hasSelectedListing()"
+      data-tour="recommendations-button"
+      (click)="goToValueSector()"
+    >
+      <svg lucideSparkles size="16"></svg>
+      {{ copy.valueSector }}
+    </button>
+
+    <button
+      type="button"
+      class="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+      (click)="toggleFilters()"
+      [attr.aria-expanded]="filtersOpen()"
+    >
+      <svg lucideFilter size="16"></svg>
+      {{ copy.filters }}
+    </button>
+
+    <a
+      [routerLink]="['/app/waste-sell']"
+      class="inline-flex h-10 items-center gap-2 rounded-xl border border-transparent bg-emerald-600 px-4 text-sm font-semibold text-white transition hover:bg-emerald-700"
+    >
+      <svg lucidePlusCircle size="16"></svg>
+      {{ copy.publishListing }}
+    </a>
+  </div>
+</header>
+
+<section class="mb-4">
+  <div class="relative">
+    <span class="pointer-events-none absolute inset-y-0 left-3 inline-flex items-center text-slate-400">
+      <svg lucideFilter size="16"></svg>
+    </span>
+    <input
+      [formControl]="filtersForm.controls.searchQuery"
+      type="search"
+      class="h-12 w-full rounded-2xl border border-slate-200 bg-white py-2 pl-10 pr-4 text-sm text-slate-700 placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200"
+      [placeholder]="copy.searchPlaceholder" />
+  </div>
+</section>
+
+@if (toast(); as message) {
+  <button
+    type="button"
+    class="mb-4 inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700"
+    animate.enter="fade-in"
+    (click)="dismissToast()"
+  >
+    <svg lucideInfo size="16"></svg>
+    {{ message.message }}
+  </button>
+}
+
+@if (filtersOpen()) {
+  <app-my-listings-filters
+    [form]="filtersForm"
+    [open]="filtersOpen()"
+    [residueTypeOptions]="residueTypeOptions"
+    [sectorOptions]="sectorOptions"
+    [productOptions]="productOptions"
+    [statusOptions]="statusOptions"
+    [exchangeOptions]="exchangeOptions"
+    (clearFilters)="clearFilters()"
+  />
+}
+
+<section class="mt-8">
+  <div class="mb-4 border-b border-slate-200">
+    <div class="flex flex-wrap gap-2 md:gap-4">
+      @for (tab of tabOptions; track tab.value) {
+        <button
+          type="button"
+          class="inline-flex h-10 items-center border-b-2 px-4 text-base font-semibold transition"
+          [class.border-emerald-500]="activeTab() === tab.value"
+          [class.text-emerald-700]="activeTab() === tab.value"
+          [class.border-transparent]="activeTab() !== tab.value"
+          [class.text-slate-500]="activeTab() !== tab.value"
+          [class.hover:text-slate-700]="activeTab() !== tab.value"
+          (click)="setTab(tab.value)"
+        >
+          {{ tab.label }}
+          @if (tab.value === 'active') { ({{ counts().active }}) }
+        </button>
+      }
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="py-10 text-sm text-slate-500">
+      <span class="inline-flex items-center gap-2">
+        <svg lucideLoaderCircle size="16" class="animate-spin"></svg>
+        Cargando publicaciones...
+      </span>
+    </div>
+  } @else if (isEmpty()) {
+    <ui-empty-state title="Sin resultados" [description]="copy.noResults" />
+  } @else {
+    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      @for (item of listings(); track item.id; let isFirst = $first) {
+        <app-my-listing-card
+          [listing]="item"
+          [tourTarget]="isFirst"
+          [isSelected]="selectedListingId() === item.id"
+          (selected)="selectListing($event)"
+          (edit)="editListing($event)"
+          (cancel)="deactivateListing($event)"
+        />
+      }
+    </div>
+  }
+</section>
+
+<app-floating-actions
+  (guideRequested)="startGuide()" />
+

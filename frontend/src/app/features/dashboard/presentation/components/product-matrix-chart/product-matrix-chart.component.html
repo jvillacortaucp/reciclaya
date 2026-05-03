@@ -1,0 +1,21 @@
+<section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+  @if (items().length) {
+    <apx-chart
+      [series]="chartOptions().series"
+      [chart]="chartOptions().chart"
+      [colors]="chartOptions().colors"
+      [plotOptions]="chartOptions().plotOptions"
+      [xaxis]="chartOptions().xaxis"
+      [yaxis]="chartOptions().yaxis"
+      [stroke]="chartOptions().stroke"
+      [dataLabels]="chartOptions().dataLabels"
+      [legend]="chartOptions().legend"
+      [tooltip]="chartOptions().tooltip">
+    </apx-chart>
+  } @else {
+    <div class="flex h-[320px] items-center justify-center rounded-xl bg-slate-50 text-sm text-slate-500">
+      Sin datos para mostrar en este período.
+    </div>
+  }
+</section>
+

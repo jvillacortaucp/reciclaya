@@ -1,0 +1,56 @@
+@if (step(); as selectedStep) {
+  <article class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+    <div class="mb-4 flex items-start justify-between gap-3">
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Paso {{ selectedStep.order }}</p>
+        <h3 class="mt-1 text-xl font-semibold text-slate-900 sm:text-2xl">{{ selectedStep.title }}</h3>
+      </div>
+      <span class="rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700">
+        {{ selectedStep.estimatedTime }}
+      </span>
+    </div>
+
+    <p class="text-sm leading-relaxed text-slate-600">{{ selectedStep.shortDescription }}</p>
+
+    <div class="mt-5 grid gap-4 md:grid-cols-2">
+      <div class="rounded-2xl bg-slate-50 p-4">
+        <p class="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Equipo requerido</p>
+        <ul class="mt-2 space-y-1">
+          @for (equipment of selectedStep.requiredEquipment; track equipment) {
+            <li class="text-sm text-slate-700">{{ equipment }}</li>
+          }
+        </ul>
+      </div>
+      <div class="rounded-2xl bg-slate-50 p-4">
+        <p class="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Acciones clave</p>
+        <ul class="mt-2 list-disc space-y-1 pl-4">
+          @for (action of selectedStep.keyActions; track action) {
+            <li class="text-sm text-slate-700">{{ action }}</li>
+          }
+        </ul>
+      </div>
+    </div>
+
+    <div class="mt-4 grid gap-4 md:grid-cols-2">
+      <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+        <p class="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700">Consejo rápido</p>
+        <p class="mt-1 text-sm text-emerald-900">{{ selectedStep.quickTip }}</p>
+      </div>
+      <div
+        class="rounded-2xl border p-4"
+        [class.border-emerald-200]="selectedStep.riskLevel === 'low'"
+        [class.bg-emerald-50]="selectedStep.riskLevel === 'low'"
+        [class.border-amber-200]="selectedStep.riskLevel === 'medium'"
+        [class.bg-amber-50]="selectedStep.riskLevel === 'medium'"
+        [class.border-rose-200]="selectedStep.riskLevel === 'high'"
+        [class.bg-rose-50]="selectedStep.riskLevel === 'high'">
+        <p class="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">Riesgo o cuidado principal</p>
+        <p class="mt-1 text-sm font-medium text-slate-800">
+          @if (selectedStep.riskLevel === 'low') { Bajo }
+          @if (selectedStep.riskLevel === 'medium') { Medio }
+          @if (selectedStep.riskLevel === 'high') { Alto }
+        </p>
+      </div>
+    </div>
+  </article>
+}

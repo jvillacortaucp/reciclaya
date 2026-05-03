@@ -1,0 +1,70 @@
+<article class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <h3 class="text-2xl font-semibold text-slate-900">Desglose de costos y rentabilidad</h3>
+    <div class="inline-flex rounded-xl bg-slate-100 p-1">
+      <button
+        type="button"
+        (click)="costViewChanged.emit('percent')"
+        [class]="
+          selectedCostView() === 'percent'
+            ? 'bg-white text-emerald-700 shadow-sm'
+            : 'text-slate-600 hover:bg-white/70 hover:text-slate-900'
+        "
+        class="h-8 rounded-lg px-3 text-xs font-semibold transition cursor-pointer">
+        %
+      </button>
+      <button
+        type="button"
+        (click)="costViewChanged.emit('usd')"
+        [class]="
+          selectedCostView() === 'usd'
+            ? 'bg-white text-emerald-700 shadow-sm'
+            : 'text-slate-600 hover:bg-white/70 hover:text-slate-900'
+        "
+        class="h-8 rounded-lg px-3 text-xs font-semibold transition cursor-pointer">
+        S/
+      </button>
+    </div>
+  </div>
+
+  <div class="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+    <div class="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+      <p class="text-sm font-semibold text-slate-700">Estructura de costos (/kg)</p>
+      <div class="mt-4 space-y-3">
+        @for (item of costStructure(); track trackByCost($index, item)) {
+          <div>
+            <div class="mb-1 flex items-center justify-between gap-3 text-sm text-slate-700">
+              <p>{{ item.label }}</p>
+              @if (selectedCostView() === 'percent') {
+                <p class="font-semibold">{{ item.percent }}%</p>
+              } @else {
+                <p class="font-semibold">S/ {{ item.amountUsd | number: '1.2-2' }}</p>
+              }
+            </div>
+            <div class="h-2 rounded-full bg-slate-200">
+              <div class="h-2 rounded-full bg-emerald-500" [style.width.%]="item.percent"></div>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+
+    <div class="space-y-4">
+      <app-market-chart-card
+        [series]="chartSeries()"
+        [labels]="chartLabels()"
+        [chartType]="selectedChartType()"
+        (chartTypeChanged)="chartTypeChanged.emit($event)" />
+
+      <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+        <p class="text-xs uppercase tracking-[0.12em] text-emerald-700">Margen bruto estimado</p>
+        <p class="mt-1 text-4xl font-semibold text-emerald-800">{{ grossMarginPercent() | number: '1.0-1' }}%</p>
+        <p class="mt-2 text-sm text-emerald-700">
+          Precio sugerido: S/ {{ suggestedPricePerKg() | number: '1.2-2' }} · Costo total:
+          S/ {{ totalCostPerKg() | number: '1.2-2' }}
+        </p>
+      </div>
+    </div>
+  </div>
+</article>
+

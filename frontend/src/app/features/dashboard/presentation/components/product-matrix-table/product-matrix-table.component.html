@@ -1,0 +1,27 @@
+<section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+  <div class="overflow-x-auto">
+    <table class="min-w-full divide-y divide-slate-200 text-sm">
+      <thead class="bg-slate-50">
+        <tr>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Producto</th>
+          <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Stock</th>
+          <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Vendido</th>
+          <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Ingreso</th>
+          <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Periodo</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100 bg-white">
+        @for (item of items(); track item.id) {
+          <tr>
+            <td class="px-4 py-3 font-medium text-slate-800">{{ item.productName }}</td>
+            <td class="px-4 py-3 text-right text-slate-700">{{ item.stockQuantity }}</td>
+            <td class="px-4 py-3 text-right text-slate-700">{{ item.soldQuantity }}</td>
+            <td class="px-4 py-3 text-right font-semibold text-emerald-700">{{ item.incomeAmount | currency:'PEN':'symbol':'1.0-0' }}</td>
+            <td class="px-4 py-3 text-right text-slate-500">{{ item.periodLabel }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</section>
+

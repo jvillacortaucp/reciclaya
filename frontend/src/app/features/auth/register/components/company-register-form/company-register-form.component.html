@@ -1,0 +1,189 @@
+<!-- Flowbite Detailed Stepper (exact style) -->
+<nav class="mb-8" aria-label="Progreso de registro de empresa">
+  <ol class="items-center w-full space-y-4 sm:flex sm:space-x-8 sm:space-y-0">
+    @for (step of steps; track step.index) {
+      <li class="flex items-center text-body space-x-3 rtl:space-x-reverse w-full">
+        <span class="flex items-center justify-center w-10 h-10 rounded-full transition-all"
+          [class.bg-emerald-500]="completedSteps()[step.index] || activeStep() === step.index"
+          [class.text-white]="completedSteps()[step.index] || activeStep() === step.index"
+          [class.bg-slate-50]="!completedSteps()[step.index] && activeStep() !== step.index"
+          [class.border]="!completedSteps()[step.index] && activeStep() !== step.index"
+          [class.border-slate-200]="!completedSteps()[step.index] && activeStep() !== step.index"
+        >
+          <ng-container *ngIf="completedSteps()[step.index]; else numberTpl">
+            <svg lucideCheckCircle size="16" class="text-white"></svg>
+          </ng-container>
+          <ng-template #numberTpl>
+            <ng-container *ngIf="step.index === 0">
+              <svg lucideIdCard size="16" [class.text-white]="activeStep() === step.index" [class.text-slate-500]="activeStep() !== step.index"></svg>
+            </ng-container>
+            <ng-container *ngIf="step.index === 1">
+              <svg lucideShieldCheck size="16" [class.text-white]="activeStep() === step.index" [class.text-slate-500]="activeStep() !== step.index"></svg>
+            </ng-container>
+            <ng-container *ngIf="step.index !== 0 && step.index !== 1">
+              <span class="text-sm font-medium" [class.text-slate-900]="activeStep() === step.index" [class.text-slate-500]="activeStep() !== step.index">{{ step.index + 1 }}</span>
+            </ng-container>
+          </ng-template>
+        </span>
+
+        <span class="flex flex-col">
+          <h3 class="font-medium leading-tight" [class.text-slate-900]="completedSteps()[step.index] || activeStep() === step.index" [class.text-slate-500]="!completedSteps()[step.index] && activeStep() !== step.index">{{ step.title }}</h3>
+          <p class="text-sm" [class.text-slate-500]="!completedSteps()[step.index] && activeStep() !== step.index" [class.text-slate-400]="completedSteps()[step.index] || activeStep() === step.index">{{ step.subtitle }}</p>
+        </span>
+
+        @if (step.index < steps.length - 1) {
+          <div class="hidden sm:block flex-1 ml-4 mr-4 h-0.5 bg-slate-100" [class.bg-emerald-500]="completedSteps()[step.index]"></div>
+        }
+      </li>
+    }
+  </ol>
+</nav>
+
+@if (activeStep() === 0) {
+  <form class="space-y-6" [formGroup]="companyForm" animate.enter="page-enter">
+    
+    <div class="section-title flex items-center gap-2 text-slate-800 font-bold text-sm mb-4">
+      <svg lucideBuilding2 size="18" class="text-emerald-500"></svg>
+      Datos de la Empresa
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <label for="ruc" class="mb-2 block text-sm font-semibold text-slate-700">RUC</label>
+        <input id="ruc" class="block w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100" formControlName="ruc" placeholder="Ej. 201514785236" [attr.inputmode]="'numeric'" [attr.pattern]="rucPattern" maxlength="12" (input)="sanitizeDigitsField('ruc')" />
+        @if (fieldError('company', 'ruc')) { <p class="mt-1.5 text-xs font-medium text-rose-500">{{ fieldError('company', 'ruc') }}</p> }
+      </div>
+      <div>
+        <label for="mobile" class="mb-2 block text-sm font-semibold text-slate-700">Celular</label>
+        <div class="relative">
+          <input id="mobile" class="block w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 pr-10 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100" formControlName="mobilePhone" placeholder="Ej. 912345678" inputmode="tel" maxlength="9" (input)="sanitizeDigitsField('mobilePhone')" />
+          <svg lucidePhone size="16" class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"></svg>
+        </div>
+        @if (fieldError('company', 'mobilePhone')) { <p class="mt-1.5 text-xs font-medium text-rose-500">{{ fieldError('company', 'mobilePhone') }}</p> }
+      </div>
+    </div>
+
+    <div>
+      <label for="businessName" class="mb-2 block text-sm font-semibold text-slate-700">Razón Social</label>
+      <input id="businessName" class="block w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100" formControlName="businessName" placeholder="Nombre legal de la empresa" maxlength="120" (input)="sanitizeCompanyField('businessName', 'businessName')" />
+      @if (fieldError('company', 'businessName')) { <p class="mt-1.5 text-xs font-medium text-rose-500">{{ fieldError('company', 'businessName') }}</p> }
+    </div>
+
+    <div>
+      <label for="address" class="mb-2 block text-sm font-semibold text-slate-700">Dirección Fiscal</label>
+      <div class="relative">
+        <input id="address" class="block w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 pr-10 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100" formControlName="address" placeholder="Av. Principal 123, Distrito" maxlength="180" (input)="sanitizeCompanyField('address', 'address')" />
+        <svg lucideMapPin size="16" class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"></svg>
+      </div>
+      @if (fieldError('company', 'address')) { <p class="mt-1.5 text-xs font-medium text-rose-500">{{ fieldError('company', 'address') }}</p> }
+    </div>
+
+    <div>
+      <label for="postalCode" class="mb-2 block text-sm font-semibold text-slate-700">Código Postal</label>
+      <input id="postalCode" class="block w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100" formControlName="postalCode" placeholder="Ej. 15001" [attr.inputmode]="'numeric'" [attr.pattern]="postalCodePattern" maxlength="6" (input)="sanitizeDigitsField('postalCode')" />
+      @if (fieldError('company', 'postalCode')) { <p class="mt-1.5 text-xs font-medium text-rose-500">{{ fieldError('company', 'postalCode') }}</p> }
+    </div>
+
+    <div class="divider border-t border-slate-100 my-6"></div>
+
+    <div class="section-title flex items-center gap-2 text-slate-800 font-bold text-sm mb-4">
+      <svg lucideUser size="18" class="text-emerald-500"></svg>
+      Representante Legal
+    </div>
+
+    <div>
+      <label for="legalRep" class="mb-2 block text-sm font-semibold text-slate-700">Nombre del Representante</label>
+      <div class="relative">
+        <input id="legalRep" class="block w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 pr-10 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100" formControlName="legalRepresentative" placeholder="Nombre completo" maxlength="120" (input)="sanitizeCompanyField('legalRepresentative', 'personName')" />
+        <svg lucideUser size="16" class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"></svg>
+      </div>
+      @if (fieldError('company', 'legalRepresentative')) { <p class="mt-1.5 text-xs font-medium text-rose-500">{{ fieldError('company', 'legalRepresentative') }}</p> }
+    </div>
+
+    <div>
+      <label for="position" class="mb-2 block text-sm font-semibold text-slate-700">Cargo</label>
+      <input id="position" class="block w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100" formControlName="position" placeholder="Puesto u ocupación" maxlength="80" (input)="sanitizeCompanyField('position', 'jobTitle')" />
+      @if (fieldError('company', 'position')) { <p class="mt-1.5 text-xs font-medium text-rose-500">{{ fieldError('company', 'position') }}</p> }
+    </div>
+
+    <div class="mt-10">
+      <button type="button" class="group inline-flex w-full items-center justify-center gap-2 rounded-xl border border-transparent bg-emerald-500 px-6 py-3.5 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-emerald-600 hover:shadow-lg hover:shadow-emerald-200" (click)="goNext()">
+        Continuar
+        <svg lucideArrowRight size="18" class="transition-transform group-hover:translate-x-1"></svg>
+      </button>
+    </div>
+  </form>
+}
+
+@if (activeStep() === 1) {
+  <form class="space-y-6" [formGroup]="credentialsForm" animate.enter="page-enter" (ngSubmit)="submit()">
+    
+    <div class="section-title flex items-center gap-2 text-slate-800 font-bold text-sm mb-4">
+      <svg lucideZap size="18" class="text-emerald-500"></svg>
+      Objetivo Comercial
+    </div>
+
+    <div>
+      <label for="intent" class="mb-2 block text-sm font-semibold text-slate-700">Deseo realizar</label>
+      <div class="relative">
+        <select id="intent" class="block w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 pr-10 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100" formControlName="intent">
+          @for (intent of intents; track intent.value) {
+            <option [value]="intent.value">{{ intent.label }}</option>
+          }
+        </select>
+        <svg lucideArrowRight size="14" class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rotate-90 text-slate-400"></svg>
+      </div>
+    </div>
+
+    <div class="divider border-t border-slate-100 my-6"></div>
+
+    <div class="section-title flex items-center gap-2 text-slate-800 font-bold text-sm mb-4">
+      <svg lucideShieldCheck size="18" class="text-emerald-500"></svg>
+      Credenciales de Acceso
+    </div>
+
+    <div>
+      <label for="email" class="mb-2 block text-sm font-semibold text-slate-700">Correo Electrónico</label>
+      <input id="email" class="block w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100" formControlName="email" type="email" placeholder="email@empresa.com" />
+      @if (fieldError('credentials', 'email')) { <p class="mt-1.5 text-xs font-medium text-rose-500">{{ fieldError('credentials', 'email') }}</p> }
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <label for="pass" class="mb-2 block text-sm font-semibold text-slate-700">Contraseña</label>
+        <div class="relative">
+          <input id="pass" class="block w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 pr-10 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100" [type]="showPassword() ? 'text' : 'password'" formControlName="password" placeholder="Ej. S3gur1d4d@$" />
+          <button type="button" class="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700" (click)="togglePassword()">
+            @if (showPassword()) { <svg lucideEyeOff size="16"></svg> } @else { <svg lucideEye size="16"></svg> }
+          </button>
+        </div>
+        @if (fieldError('credentials', 'password')) { <p class="mt-1.5 text-xs font-medium text-rose-500">{{ fieldError('credentials', 'password') }}</p> }
+      </div>
+      <div>
+        <label for="cpass" class="mb-2 block text-sm font-semibold text-slate-700">Confirmar Contraseña</label>
+        <div class="relative">
+          <input id="cpass" class="block w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 pr-10 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100" [type]="showConfirmPassword() ? 'text' : 'password'" formControlName="confirmPassword" placeholder="Ej. S3gur1d4d@$" />
+          <button type="button" class="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700" (click)="toggleConfirmPassword()">
+            @if (showConfirmPassword()) { <svg lucideEyeOff size="16"></svg> } @else { <svg lucideEye size="16"></svg> }
+          </button>
+        </div>
+        @if (passwordMismatch()) { <p class="mt-1.5 text-xs font-medium text-rose-500">{{ messages.passwordMismatch }}</p> }
+      </div>
+    </div>
+
+    @if (errorMessage) {
+      <div class="bg-amber-50 border border-amber-200 text-amber-800 p-4 rounded-xl text-sm mb-6">
+        {{ errorMessage }}
+      </div>
+    }
+
+    <div class="mt-10 flex flex-col-reverse items-stretch gap-3 sm:flex-row sm:items-center">
+      <button type="button" class="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-6 py-3.5 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50" (click)="goBack()">Volver</button>
+      <button type="submit" class="inline-flex min-h-10 flex-1 items-center justify-center gap-2 rounded-xl border border-transparent bg-emerald-500 px-5 py-2.5 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-emerald-600 hover:shadow-lg hover:shadow-emerald-200 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 sm:flex-none sm:min-w-[180px]" [disabled]="loading || credentialsForm.invalid || passwordMismatch()">
+        {{ loading ? 'Creando...' : 'Finalizar Registro' }}
+        <svg lucideCheckCircle size="18"></svg>
+      </button>
+    </div>
+  </form>
+}
+

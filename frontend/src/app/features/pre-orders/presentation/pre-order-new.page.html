@@ -1,0 +1,126 @@
+<div class="space-y-6">
+  <header class="space-y-2">
+    <div class="flex flex-wrap items-center gap-2 text-xs text-slate-500 md:text-sm">
+      <span>{{ copy.breadcrumbMarketplace }}</span>
+      <svg lucideChevronRight class="h-3.5 w-3.5"></svg>
+      <span>{{ copy.breadcrumbDetail }}</span>
+      <svg lucideChevronRight class="h-3.5 w-3.5"></svg>
+      <span class="font-semibold text-emerald-700">{{ copy.breadcrumbCurrent }}</span>
+    </div>
+    <h1 class="text-3xl font-semibold text-slate-900 md:text-4xl">{{ copy.title }}</h1>
+    <p class="max-w-4xl text-sm leading-relaxed text-slate-600 md:text-base">{{ copy.subtitle }}</p>
+  </header>
+
+  @if (screenLoading()) {
+    <div class="rounded-3xl border border-slate-200 bg-white p-10 text-center text-slate-500">Cargando pre-orden...</div>
+  } @else if (screenError()) {
+    <div class="rounded-3xl border border-rose-200 bg-rose-50 p-10 text-center text-rose-700">
+      {{ screenError() }}
+    </div>
+  } @else if (!listing()) {
+    <div class="rounded-3xl border border-slate-200 bg-white p-10 text-center text-slate-500">
+      No encontramos el residuo solicitado para generar la pre-orden.
+    </div>
+  } @else {
+    <form [formGroup]="form" class="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_380px] lg:gap-8">
+      <section class="flex flex-col min-w-0 space-y-5 md:space-y-6">
+        <app-product-pre-order-summary [listing]="listing()" />
+
+        <app-seller-info-card [seller]="seller()" (requestInfo)="requestInfo()" />
+
+        <article class="rounded-3xl border border-slate-200 bg-white p-5 md:p-6 shadow-sm">
+          <h3 class="flex items-center gap-2 text-2xl font-semibold text-slate-900 md:text-3xl">
+            <svg lucideSettings2 class="h-5 w-5 text-emerald-700"></svg>
+            {{ copy.configureTitle }}
+          </h3>
+          <div class="mt-4 grid gap-4 md:grid-cols-2">
+            <div>
+              <label class="mb-1 block text-sm text-slate-700">Cantidad a comprar ({{ listing()?.unit }})</label>
+              <div class="flex items-center gap-2 rounded-2xl bg-slate-50 p-2">
+                <input
+                  type="number"
+                  min="0.1"
+                  step="0.1"
+                  formControlName="quantity"
+                  class="w-full border-0 bg-transparent px-2 py-2 text-base font-semibold text-slate-900 focus:outline-none focus:ring-0"
+                />
+                <span class="text-sm font-medium text-slate-500">{{ maxQuantityLabel() }}</span>
+              </div>
+            </div>
+            <div>
+              <label class="mb-1 block text-sm text-slate-700">Fecha de recojo estimada</label>
+              <div class="rounded-2xl bg-slate-50 p-2">
+                <input
+                  type="date"
+                  formControlName="desiredDate"
+                  class="w-full border-0 bg-transparent px-2 py-2 text-base text-slate-900 focus:outline-none focus:ring-0"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-4">
+            <label class="mb-1 block text-sm text-slate-700">Observaciones adicionales</label>
+            <textarea
+              formControlName="notes"
+              rows="3"
+              class="w-full rounded-2xl border-0 bg-slate-50 p-3 text-base text-slate-700 focus:ring-2 focus:ring-emerald-300"
+              placeholder="Especifique requerimientos de empaque o logística..."
+            ></textarea>
+          </div>
+
+          <label class="mt-4 flex items-center gap-3 text-base text-slate-700">
+            <input
+              type="checkbox"
+              formControlName="reserveStock"
+              class="h-5 w-5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+            />
+            {{ copy.reserveLabel }}
+          </label>
+        </article>
+
+        <article class="rounded-3xl border border-slate-200 bg-white p-5 md:p-6 shadow-sm">
+          <h3 class="flex items-center gap-2 text-2xl font-semibold text-slate-900 md:text-3xl">
+            <svg lucideCalendarDays class="h-5 w-5 text-emerald-700"></svg>
+            {{ copy.paymentTitle }}
+          </h3>
+          <div class="mt-4">
+            <app-payment-method-selector
+              [methods]="paymentMethods()"
+              [selectedType]="selectedPaymentMethod"
+              (select)="selectPayment($event)"
+            />
+          </div>
+        </article>
+      </section>
+
+      <aside class="flex flex-col min-w-0 space-y-5 xl:sticky xl:top-20 xl:h-max">
+        <app-pre-order-economic-summary
+          [summary]="pricingSummary()"
+          [unitLabel]="listing()?.unit ?? 'Ton'"
+          [paymentStatus]="paymentStatus()"
+          [downloadingQuotation]="downloadingQuotation()"
+          [preOrderCreated]="!!createdPreOrder()"
+          (simulatePayment)="simulateAndSubmitWrapped()"
+          (downloadReceipt)="downloadReceipt()"
+        />
+
+        <!-- Mensajes en página removidos: se muestra solo toast -->
+
+        <article class="rounded-3xl bg-emerald-900 p-5 md:p-6 text-emerald-50 shadow-sm">
+          <h4 class="text-xl font-semibold md:text-2xl">{{ copy.impactTitle }}</h4>
+          <p class="mt-2 text-sm leading-relaxed text-emerald-100 md:text-base">
+            {{ copy.impactDescription }}
+          </p>
+        </article>
+      </aside>
+    </form>
+  }
+
+  <app-card-payment-modal
+    [open]="cardModalOpen()"
+    [mockCard]="cardMockData"
+    (closed)="onCardModalClosed()"
+    (confirmed)="onCardModalConfirmed($event)"
+  />
+</div>

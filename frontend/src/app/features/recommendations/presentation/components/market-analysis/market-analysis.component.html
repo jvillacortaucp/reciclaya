@@ -1,0 +1,43 @@
+@if (recommendation(); as recommendationData) {
+  @if (recommendationData.marketAnalysis; as market) {
+    <div class="space-y-6">
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="rounded-full bg-emerald-100 px-3 py-1 text-sm font-semibold text-emerald-700">
+          Producto terminado: {{ recommendationData.recommendedProduct }}
+        </span>
+        <span class="rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-700">
+          Residuo base: {{ recommendationData.baseResidue }}
+        </span>
+      </div>
+
+      <div class="grid min-w-0 grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_330px]">
+        <div class="flex flex-col min-w-0 space-y-6">
+          <app-finished-product-card [product]="market.finishedProduct" />
+          <app-market-kpi-cards [kpis]="market.marketKpis" />
+          <app-potential-buyers-grid
+            [buyers]="market.potentialBuyers"
+            [selectedSegment]="selectedBuyerSegment()"
+            (segmentSelected)="buyerSegmentChanged.emit($event)" />
+          <div data-tour="market-costs">
+            <app-cost-profit-analysis
+              [costStructure]="market.costStructure"
+              [grossMarginPercent]="market.estimatedGrossMarginPercent"
+              [suggestedPricePerKg]="market.suggestedPricePerKg"
+              [totalCostPerKg]="market.totalCostPerKg"
+              [chartLabels]="market.chartLabels"
+              [chartSeries]="market.chartSeries"
+              [selectedCostView]="selectedCostView()"
+              [selectedChartType]="selectedChartType()"
+              (costViewChanged)="costViewChanged.emit($event)"
+              (chartTypeChanged)="chartTypeChanged.emit($event)" />
+          </div>
+          <app-competition-insight-card [insight]="market.competitionInsight" />
+        </div>
+
+        <div class="min-w-0">
+          <app-market-opportunity-summary [summary]="market.opportunitySummary" />
+        </div>
+      </div>
+    </div>
+  }
+}

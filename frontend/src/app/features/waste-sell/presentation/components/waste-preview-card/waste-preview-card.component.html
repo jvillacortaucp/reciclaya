@@ -1,0 +1,54 @@
+<aside class="w-full min-w-0 max-w-full rounded-2xl">
+  <ng-container *ngIf="loading; else notLoading">
+    <p class="text-sm text-slate-500">Actualizando resumen...</p>
+  </ng-container>
+
+  <ng-template #notLoading>
+    <ng-container *ngIf="!summary; else showPreview">
+      <p class="text-sm text-slate-500">Complete el formulario para ver vista previa.</p>
+    </ng-container>
+
+    <ng-template #showPreview>
+      <article class="w-full min-w-0 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+        <div class="relative h-72 overflow-hidden bg-[radial-gradient(circle_at_75%_30%,rgba(255,196,0,0.46),transparent_22%),linear-gradient(145deg,#0f172a,#1f4d3c)] p-2.5">
+          <span class="inline-flex rounded-full bg-emerald-500 px-2 py-0.5 text-[9px] font-bold tracking-[0.11em] text-emerald-50">PREMIUM LIST</span>
+          <div class="absolute inset-x-2.5 bottom-2.5 flex justify-between gap-2 rounded-lg border border-slate-300 bg-white/95 px-2 py-1 backdrop-blur">
+            <div>
+              <p class="text-[9px] tracking-[0.11em] text-slate-500">PRECIO LOTE</p>
+              <strong class="mt-0.5 block text-[26px] font-black leading-none text-emerald-900">{{ summary?.estimatedValueLabel }}</strong>
+            </div>
+            <div class="text-right">
+              <p class="text-[9px] tracking-[0.11em] text-slate-500">CANTIDAD</p>
+              <strong class="mt-0.5 block text-[26px] font-black leading-none text-slate-900">{{ summary?.volumeLabel }}</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="p-3.5">
+          <div class="mb-3 flex gap-1.5">
+            <span class="rounded bg-emerald-100 px-2 py-0.5 text-[10px] font-bold tracking-[0.07em] text-emerald-900">{{ summary?.residueTypeLabel }}</span>
+            <span class="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-bold tracking-[0.07em] text-slate-700">{{ summary?.availabilityLabel }}</span>
+          </div>
+          <h3 class="line-clamp-1 text-[22px] font-medium leading-tight text-slate-800">{{ summary?.title }}</h3>
+          <p class="mt-1 flex items-center gap-1 text-xs text-slate-500"><svg lucideMapPin size="12"></svg> <span class="truncate">{{ summary?.locationLabel }}</span></p>
+
+          <div class="mt-4 grid grid-cols-2 gap-3 text-xs text-slate-600">
+            <div>
+              <p class="text-[9px] tracking-[0.1em] text-slate-400">FRECUENCIA</p>
+              <strong class="mt-0.5 block text-xs font-medium text-slate-900">Lote único</strong>
+            </div>
+            <div>
+              <p class="text-[9px] tracking-[0.1em] text-slate-400">LOGÍSTICA</p>
+              <strong class="mt-0.5 block text-xs font-medium text-slate-900">Vendedor entrega</strong>
+            </div>
+          </div>
+
+          <button type="button" class="mt-4 inline-flex h-10 w-full items-center justify-center gap-2 rounded-full border border-emerald-500 bg-emerald-50 px-3 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100 cursor-pointer">
+            <svg lucideEye size="14"></svg>
+            Ver anuncio completo
+          </button>
+        </div>
+      </article>
+    </ng-template>
+  </ng-template>
+</aside>

@@ -1,0 +1,353 @@
+<header class="mb-4 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+  <div class="min-w-0">
+    <h2 class="text-2xl font-semibold text-slate-900">{{ copy.title }}</h2>
+    <p class="text-sm text-slate-500">{{ copy.subtitle }}</p>
+  </div>
+
+  <div class="flex flex-wrap items-center gap-2 lg:justify-end">
+    <!-- <button
+      type="button"
+      class="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 text-sm font-medium text-slate-600 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-200"
+      [disabled]="previewLoading() || loading()"
+      (click)="preview()"
+    >
+      @if (previewLoading()) {
+        <svg lucideLoaderCircle size="16" class="animate-spin"></svg>
+      } @else {
+        <svg lucideEye size="16"></svg>
+      }
+      {{ copy.preview }}
+    </button> -->
+<!-- 
+    <button
+      type="button"
+      class="inline-flex h-10 items-center gap-2 rounded-xl border border-emerald-300 bg-emerald-50 px-4 text-sm font-medium text-emerald-700 transition hover:bg-emerald-100 focus:outline-none focus:ring-2 focus:ring-emerald-200 disabled:cursor-not-allowed disabled:opacity-70"
+      [disabled]="saveLoading() || loading()"
+      (click)="savePreference()"
+    >
+      <svg lucideSave size="16"></svg>
+      {{ saveLoading() ? 'Guardando...' : copy.savePreference }}
+    </button> -->
+
+    <button
+      type="button"
+      class="inline-flex h-10 items-center gap-2 rounded-xl border border-transparent bg-emerald-600 px-4 text-sm font-medium text-white transition hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-300 disabled:cursor-not-allowed disabled:opacity-70"
+      [disabled]="activateLoading() || loading()"
+      (click)="activateAlert()"
+    >
+      <svg lucideBell size="16"></svg>
+      {{ activateLoading() ? 'Activando...' : copy.activateAlert }}
+    </button>
+  </div>
+</header>
+
+@if (toastMessage()) {
+  <div
+    class="mb-4 inline-flex cursor-pointer items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700"
+    animate.enter="fade-in"
+    (click)="dismissToast()"
+  >
+    <svg lucideInfo size="16"></svg>
+    <span>{{ toastMessage() }}</span>
+  </div>
+}
+
+<section class="grid gap-4 xl:grid-cols-[minmax(0,1fr)_290px]">
+  <form class="space-y-4" [formGroup]="form">
+    <article class="card-reveal rounded-3xl border border-slate-200 bg-slate-50 p-4 shadow-sm md:p-6">
+      <header class="mb-4 flex items-start gap-3">
+        <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+          <svg lucidePackagePlus size="17"></svg>
+        </span>
+        <div class="min-w-0">
+          <h3 class="text-[22px] font-medium leading-tight text-slate-800">Características del residuo buscado</h3>
+          <p class="mt-1 text-sm text-slate-500">Define las especificaciones técnicas de la materia prima.</p>
+        </div>
+      </header>
+
+      <div class="grid gap-4 lg:grid-cols-2">
+        <fieldset class="space-y-2">
+          <legend class="text-[15px] font-medium text-slate-700">Tipo de residuo</legend>
+          <app-residue-type-toggle
+            [options]="residueTypes"
+            [value]="residueTypeValue()"
+            (valueChange)="setResidueType($event)"
+          />
+        </fieldset>
+
+        <label class="grid gap-2">
+          <span class="text-[15px] font-medium text-slate-700">Sector de origen</span>
+          <select
+            formControlName="sector"
+            class="rounded-2xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200"
+          >
+            @for (option of sectors; track option.value) {
+              <option [value]="option.value">{{ option.label }}</option>
+            }
+          </select>
+        </label>
+
+        <label class="grid gap-2">
+          <span class="text-[15px] font-medium text-slate-700">Producto fuente</span>
+          <select
+            formControlName="productType"
+            class="rounded-2xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200"
+          >
+            @for (option of products; track option.value) {
+              <option [value]="option.value">{{ option.label }}</option>
+            }
+          </select>
+        </label>
+
+        <label class="grid gap-2">
+          <span class="text-[15px] font-medium text-slate-700">Residuo específico</span>
+          <input
+            formControlName="specificResidue"
+            list="specific-residue-options"
+            class="rounded-2xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200"
+            placeholder="Ej: Cáscara, Retazos, Aserrín..."
+          />
+          <datalist id="specific-residue-options">
+            @for (residue of specificResidues; track residue) {
+              <option [value]="residue"></option>
+            }
+          </datalist>
+          @if (fieldError('specificResidue')) {
+            <span class="text-xs text-rose-600">{{ fieldError('specificResidue') }}</span>
+          }
+        </label>
+      </div>
+    </article>
+
+    <article class="card-reveal rounded-3xl border border-slate-200 bg-slate-50 p-4 shadow-sm md:p-6">
+      <header class="mb-4 flex items-start gap-3">
+        <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+          <svg lucideCircleDollarSign size="17"></svg>
+        </span>
+        <div class="min-w-0">
+          <h3 class="text-[22px] font-medium leading-tight text-slate-800">Preferencia de abastecimiento</h3>
+          <p class="mt-1 text-sm text-slate-500">Volumen, frecuencia y condiciones comerciales.</p>
+        </div>
+      </header>
+
+      <div class="grid gap-3 md:grid-cols-3">
+        <label class="grid gap-2">
+          <span class="text-[15px] font-medium text-slate-700">Volumen requerido</span>
+          <input
+            type="number"
+            formControlName="requiredVolume"
+            class="rounded-2xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200"
+            placeholder="0.00"
+          />
+        </label>
+
+        <label class="grid gap-2">
+          <span class="text-[15px] font-medium text-slate-700">Unidad</span>
+          <select
+            formControlName="unit"
+            class="rounded-2xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200"
+          >
+            @for (option of units; track option.value) {
+              <option [value]="option.value">{{ option.label }}</option>
+            }
+          </select>
+        </label>
+
+        <label class="grid gap-2">
+          <span class="text-[15px] font-medium text-slate-700">Frecuencia</span>
+          <select
+            formControlName="purchaseFrequency"
+            class="rounded-2xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200"
+          >
+            @for (option of frequencies; track option.value) {
+              <option [value]="option.value">{{ option.label }}</option>
+            }
+          </select>
+        </label>
+      </div>
+      @if (fieldError('requiredVolume', messages.positiveNumber)) {
+        <p class="mt-2 text-xs text-rose-600">{{ fieldError('requiredVolume', messages.positiveNumber) }}</p>
+      }
+
+      <div class="mt-4 grid gap-3 lg:grid-cols-[1fr,1fr]">
+        <fieldset class="grid gap-2">
+          <legend class="text-[15px] font-medium text-slate-700">Rango de precio estimado (S/)</legend>
+          <div class="grid grid-cols-2 gap-2 sm:grid-cols-[1fr_1fr]">
+            <input
+              type="number"
+              formControlName="minPriceUsd"
+              class="min-w-0 rounded-2xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200"
+              placeholder="Desde"
+            />
+            <input
+              type="number"
+              formControlName="maxPriceUsd"
+              class="min-w-0 rounded-2xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200"
+              placeholder="Hasta"
+            />
+          </div>
+          @if (hasInvalidPriceRange()) {
+            <span class="text-xs text-amber-600">{{ messages.invalidRange }}</span>
+          }
+        </fieldset>
+
+        <fieldset class="grid gap-2">
+          <legend class="text-[15px] font-medium text-slate-700">Condición del material</legend>
+          <app-condition-chip-group
+            [options]="conditions"
+            [value]="conditionValue()"
+            (valueChange)="setCondition($event)"
+          />
+        </fieldset>
+      </div>
+    </article>
+
+    <article class="card-reveal rounded-3xl border border-slate-200 bg-slate-50 p-4 shadow-sm md:p-6">
+      <header class="mb-4 flex items-start gap-3">
+        <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+          <svg lucideTruck size="17"></svg>
+        </span>
+        <div class="min-w-0">
+          <h3 class="text-[22px] font-medium leading-tight text-slate-800">Logística y operación</h3>
+          <p class="mt-1 text-sm text-slate-500">Ubicación y modalidad de transferencia.</p>
+        </div>
+      </header>
+
+      <div class="grid gap-4">
+        <label class="grid gap-2">
+          <span class="text-[15px] font-medium text-slate-700">Ubicación de recepción</span>
+          <div class="relative">
+            <span class="pointer-events-none absolute inset-y-0 left-3 inline-flex items-center text-slate-400">
+              <svg lucideMapPin size="16"></svg>
+            </span>
+            <input
+              formControlName="receivingLocation"
+              class="w-full rounded-2xl border border-slate-200 bg-slate-100 py-3 pl-10 pr-4 text-sm text-slate-700 placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200"
+              placeholder="Planta Industrial Norte, CDMX"
+            />
+          </div>
+          @if (fieldError('receivingLocation')) {
+            <span class="text-xs text-rose-600">{{ fieldError('receivingLocation') }}</span>
+          }
+        </label>
+
+        <app-range-slider-field
+          label="Radio de interés"
+          [min]="radiusRange.min"
+          [max]="radiusRange.max"
+          [value]="form.controls.radiusKm.value"
+          (valueChange)="setRadiusKm($event)"
+        />
+      </div>
+
+      <div class="mt-4 grid gap-3 md:grid-cols-2">
+        <label class="grid gap-2">
+          <span class="text-[15px] font-medium text-slate-700">Modalidad</span>
+          <select
+            formControlName="preferredMode"
+            class="rounded-2xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200"
+          >
+            @for (option of preferredModes; track option.value) {
+              <option [value]="option.value">{{ option.label }}</option>
+            }
+          </select>
+        </label>
+
+        <label class="grid gap-2">
+          <span class="text-[15px] font-medium text-slate-700">Tipo de intercambio</span>
+          <select
+            formControlName="acceptedExchangeType"
+            class="rounded-2xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-700 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200"
+          >
+            @for (option of acceptedExchanges; track option.value) {
+              <option [value]="option.value">{{ option.label }}</option>
+            }
+          </select>
+        </label>
+      </div>
+    </article>
+
+    <article class="card-reveal rounded-3xl border border-slate-200 bg-slate-50 p-4 shadow-sm md:p-6">
+      <header class="mb-4 flex items-start gap-3">
+        <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+          <svg lucideBell size="17"></svg>
+        </span>
+        <div class="min-w-0">
+          <h3 class="text-[22px] font-medium leading-tight text-slate-800">Preferencias adicionales</h3>
+          <p class="mt-1 text-sm text-slate-500">Configura alertas y prioridad de búsqueda.</p>
+        </div>
+      </header>
+
+      <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+        <label class="inline-flex w-full cursor-pointer items-center justify-between gap-3">
+          <span class="min-w-0">
+            <span class="block text-[15px] font-semibold text-slate-800">Notificar coincidencias inmediatas</span>
+            <span class="text-sm text-slate-500">Recibe alertas cuando un residuo supere 80% de match.</span>
+          </span>
+          <input type="checkbox" formControlName="alertOnMatch" class="peer sr-only" />
+          <span
+            class="relative h-6 w-11 shrink-0 rounded-full bg-slate-300 transition after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all peer-checked:bg-emerald-500 peer-checked:after:translate-x-full"
+          ></span>
+        </label>
+      </div>
+
+      <fieldset class="mt-4">
+        <legend class="mb-2 text-[15px] font-medium text-slate-700">Nivel de prioridad</legend>
+        <div class="flex flex-wrap gap-4">
+          @for (priority of priorities; track priority.value) {
+            <label class="inline-flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+              <input
+                type="radio"
+                class="h-4 w-4 border-slate-300 text-emerald-600 focus:ring-emerald-200"
+                [value]="priority.value"
+                formControlName="priority"
+              />
+              <span>{{ priority.label }}</span>
+            </label>
+          }
+        </div>
+      </fieldset>
+
+      <div class="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+        {{ state()?.smartRecommendationNote }}
+      </div>
+    </article>
+  </form>
+
+  <aside class="grid content-start gap-4 xl:sticky xl:top-20 xl:h-max">
+    <app-profile-status-card [status]="state()?.profileStatus ?? null" />
+
+    <article
+      class="rounded-3xl border border-slate-900 bg-gradient-to-br from-slate-900 to-slate-800 p-5 text-slate-100 shadow-md"
+    >
+      <p class="text-xs uppercase tracking-[0.12em] text-emerald-300">Proyección de coincidencias</p>
+      <p class="mt-2 text-5xl font-semibold leading-none">{{ state()?.projection?.suppliersCount }}</p>
+      <p class="text-base text-slate-300">proveedores</p>
+
+      <div class="mt-4 space-y-2 text-sm">
+        <div class="flex items-center justify-between border-b border-white/10 pb-2">
+          <span class="text-slate-300">Match Directo (&gt;90%)</span>
+          <strong class="text-emerald-300">{{ state()?.projection?.directMatchCount }}</strong>
+        </div>
+        <div class="flex items-center justify-between border-b border-white/10 pb-2">
+          <span class="text-slate-300">Match Potencial (&gt;70%)</span>
+          <strong class="text-slate-100">{{ state()?.projection?.potentialMatchCount }}</strong>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-slate-300">Ahorro proyectado</span>
+          <strong class="text-emerald-300">{{ state()?.projection?.projectedSavingsLabel }}</strong>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        class="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-sm font-medium text-white transition hover:bg-white/20"
+      >
+        <svg lucideEye size="16"></svg>
+        Ver pre-visualización
+      </button>
+    </article>
+
+    <app-active-summary-card [summary]="summary()" />
+  </aside>
+</section>
