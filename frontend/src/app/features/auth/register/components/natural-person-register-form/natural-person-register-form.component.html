@@ -43,7 +43,7 @@
     <div>
       <label class="grid gap-1.5 text-sm text-slate-700"><span class="font-semibold">Contraseña</span>
         <div class="relative">
-          <input class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 pr-10 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100" [type]="showPassword() ? 'text' : 'password'" formControlName="password" />
+          <input class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 pr-10 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100" [type]="showPassword() ? 'text' : 'password'" formControlName="password" placeholder="Ej. S3gur1d4d@$" />
           <button type="button" class="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700" (click)="togglePassword()">
             @if (showPassword()) { <svg lucideEyeOff size="16"></svg> } @else { <svg lucideEye size="16"></svg> }
           </button>
@@ -54,7 +54,7 @@
     <div>
       <label class="grid gap-1.5 text-sm text-slate-700"><span class="font-semibold">Confirmar contraseña</span>
         <div class="relative">
-          <input class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 pr-10 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100" [type]="showConfirmPassword() ? 'text' : 'password'" formControlName="confirmPassword" />
+          <input class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 pr-10 text-[15px] text-slate-900 outline-none transition-all focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100" [type]="showConfirmPassword() ? 'text' : 'password'" formControlName="confirmPassword" placeholder="Ej. S3gur1d4d@$" />
           <button type="button" class="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700" (click)="toggleConfirmPassword()">
             @if (showConfirmPassword()) { <svg lucideEyeOff size="16"></svg> } @else { <svg lucideEye size="16"></svg> }
           </button>

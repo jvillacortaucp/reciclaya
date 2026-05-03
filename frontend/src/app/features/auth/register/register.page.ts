@@ -54,4 +54,6 @@ export class RegisterPageComponent {
   protected submitNaturalPerson(payload: NaturalPersonRegistrationPayload): void {
     this.authFacade.registerNaturalPerson(payload);
   }
+
+  public now = new Date().getFullYear();
 }
