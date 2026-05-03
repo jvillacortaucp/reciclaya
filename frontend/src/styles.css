@@ -162,3 +162,36 @@ body {
     opacity: 0;
   }
 }
+
+/* Soundwave Voice Animations Gemini/ChatGPT-style */
+.voice-wave {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  height: 24px;
+}
+
+.voice-bar {
+  width: 3px;
+  height: 8px;
+  background-color: #10b981;
+  border-radius: 4px;
+  animation: voicePulse 1s ease-in-out infinite;
+}
+
+.voice-bar:nth-child(1) { height: 12px; animation-delay: 0.1s; }
+.voice-bar:nth-child(2) { height: 20px; animation-delay: 0.2s; }
+.voice-bar:nth-child(3) { height: 14px; animation-delay: 0.3s; }
+.voice-bar:nth-child(4) { height: 24px; animation-delay: 0.4s; }
+.voice-bar:nth-child(5) { height: 16px; animation-delay: 0.5s; }
+
+@keyframes voicePulse {
+  0%, 100% {
+    transform: scaleY(1);
+  }
+  50% {
+    transform: scaleY(1.6);
+  }
+}
+
