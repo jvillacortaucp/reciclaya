@@ -503,4 +503,6 @@ coverage/
 /sonar
 appsettings.json
 appsettings.Development.json
+/.tmp-preorder-build
+/.tmp-preorder-pdf-build
 
