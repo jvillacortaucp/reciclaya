@@ -15,12 +15,14 @@ import { ChatMessageBubbleComponent } from './components/chat-message-bubble.com
 import { ProductSuggestionCardsComponent } from './components/product-suggestion-cards.component';
 import { QuickSuggestionChipsComponent } from './components/quick-suggestion-chips.component';
 import { TypingIndicatorComponent } from './components/typing-indicator.component';
+import { LucideTrash2 } from '@lucide/angular';
 
 @Component({
   selector: 'app-assistant-chat-page',
   standalone: true,
   providers: [AssistantChatHttpService, AssistantChatFacade, DatePipe],
   imports: [
+    LucideTrash2,
     ReactiveFormsModule,
     ChatMessageBubbleComponent,
     TypingIndicatorComponent,
@@ -95,6 +97,12 @@ export class AssistantChatPageComponent {
   protected applySuggestion(value: string): void {
     this.form.controls.input.setValue(value);
     this.sendMessage();
+  }
+
+  protected clearConversation(): void {
+    this.facade.clearConversation();
+    this.facade.initializeConversation();
+    this.form.reset({ input: '' });
   }
 
   protected onProductSelected(suggestion: ProductSuggestion): void {

@@ -5,11 +5,11 @@ export const LOGIN_SCREEN_COPY: LoginScreenCopy = {
   headline: 'Transforma residuos en oportunidades de negocio confiables',
   supportingText:
     'Publica lotes, compra subproductos y descubre nuevos usos para residuos agroindustriales con trazabilidad y velocidad comercial.',
-  forgotPasswordLabel: 'Olvidaste tu contraseña?',
-  createAccountLabel: 'Aun no tienes cuenta?',
+  forgotPasswordLabel: '¿Olvidaste tu contraseña?',
+  createAccountLabel: '¿Aún no tienes cuenta?',
   createAccountCta: 'Crear cuenta',
   signInLabel: 'Iniciar sesión',
-  emailLabel: 'Email corporativo',
+  emailLabel: 'Correo electrónico',
   passwordLabel: 'Contraseña'
 };
 
@@ -37,15 +37,15 @@ export const LOGIN_FEATURE_ITEMS: readonly LoginFeatureItem[] = [
 export const SOCIAL_AUTH_OPTIONS: readonly SocialAuthOption[] = [
   {
     provider: AuthProvider.Google,
-    label: 'Continue with Google',
+    label: 'Continuar con Google',
     enabled: true
   }
 ];
 
 export const LOGIN_VALIDATION_MESSAGES = {
-  requiredEmail: 'El email es obligatorio.',
-  invalidEmail: 'Ingresa un email valido.',
-  requiredPassword: 'La contrasena es obligatoria.',
+  requiredEmail: 'El correo electrónico es obligatorio.',
+  invalidEmail: 'Ingresa un correo electrónico válido.',
+  requiredPassword: 'La contraseña es obligatoria.',
   invalidCredentials: 'Las credenciales no coinciden con una cuenta activa.',
   socialDisabled: 'El acceso social no esta disponible temporalmente.'
 } as const;
