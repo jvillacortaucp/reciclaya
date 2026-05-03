@@ -100,10 +100,22 @@ export class AssistantChatPageComponent {
   protected onProductSelected(suggestion: ProductSuggestion): void {
     // Select suggestion in the facade and navigate to recommendations 'process' tab.
     this.facade.selectSuggestion(suggestion);
+    const listingId = this.isGuid(suggestion.listingId) ? suggestion.listingId : null;
 
     const targetUrl = this.router.serializeUrl(
       this.router.createUrlTree(['/app/recommendations', suggestion.id], {
-        queryParams: { tab: 'process', recommendedProduct: suggestion.productName }
+        queryParams: {
+          tab: 'process',
+          chatbot: true,
+          listing: listingId ?? undefined,
+          selectedProductId: suggestion.id,
+          recommendedProduct: suggestion.productName,
+          residueInput: suggestion.residueInput,
+          sectorName: suggestion.sectorName,
+          description: suggestion.description,
+          complexity: suggestion.complexity,
+          marketPotential: suggestion.marketPotential
+        }
       })
     );
 
@@ -119,10 +131,22 @@ export class AssistantChatPageComponent {
   protected goToRecommendations(tab: 'process' | 'explanation' | 'market'): void {
     const selected = this.selectedSuggestion();
     if (!selected) return;
+    const listingId = this.isGuid(selected.listingId) ? selected.listingId : null;
 
     const targetUrl = this.router.serializeUrl(
       this.router.createUrlTree(['/app/recommendations', selected.id], {
-        queryParams: { tab }
+        queryParams: {
+          tab,
+          chatbot: true,
+          listing: listingId ?? undefined,
+          selectedProductId: selected.id,
+          recommendedProduct: selected.productName,
+          residueInput: selected.residueInput,
+          sectorName: selected.sectorName,
+          description: selected.description,
+          complexity: selected.complexity,
+          marketPotential: selected.marketPotential
+        }
       })
     );
 
@@ -142,5 +166,13 @@ export class AssistantChatPageComponent {
       market: this.copy.routeMarket
     };
     return actionMap[tab];
+  }
+
+  private isGuid(value?: string | null): value is string {
+    if (!value) {
+      return false;
+    }
+
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
   }
 }

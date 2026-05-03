@@ -20,4 +20,11 @@ public interface IRecommendationService
         bool useAi = true,
         bool includeExplanation = true,
         CancellationToken cancellationToken = default);
+
+    Task<ReciclaYa.Application.ValueSectors.Dtos.ValueRouteDetailDto> GetChatbotAnalysisAsync(
+        Guid userId,
+        ChatbotRecommendationAnalysisRequestDto request,
+        bool useAi = true,
+        bool includeExplanation = true,
+        CancellationToken cancellationToken = default);
 }

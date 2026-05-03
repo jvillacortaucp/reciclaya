@@ -5,6 +5,7 @@ import { ActivatedRoute, ParamMap, Router } from '@angular/router';
 import { LucideArrowLeft, LucideBookmark, LucideSparkles } from '@lucide/angular';
 import { combineLatest } from 'rxjs';
 import { RecommendationsFacade } from './application/recommendations.facade';
+import { ChatbotAnalysisRequest } from './recommendations-http.repository';
 import { MarketAnalysisComponent } from './presentation/components/market-analysis/market-analysis.component';
 import { ManufacturingProcessComponent } from './presentation/components/manufacturing-process/manufacturing-process.component';
 import { RecommendationComplexityComponent } from './presentation/components/recommendation-complexity/recommendation-complexity.component';
@@ -59,10 +60,12 @@ export class RecommendationsPageComponent implements OnInit {
         const productId = params.get('productId');
         const tab = this.parseTab(query.get('tab'));
         this.sourceListingId.set(query.get('listing'));
+        const selectedProductId = query.get('selectedProductId') ?? query.get('recommendedProduct');
+        const chatbotContext = this.readChatbotContext(params, query);
 
         if (this.loadedProductId !== productId) {
           this.loadedProductId = productId;
-          this.facade.load(productId, tab, this.sourceListingId());
+          this.facade.load(productId, tab, this.sourceListingId(), selectedProductId, chatbotContext);
           return;
         }
 
@@ -78,7 +81,7 @@ export class RecommendationsPageComponent implements OnInit {
     this.facade.setActiveTab(tab);
     void this.router.navigate([], {
       relativeTo: this.route,
-      queryParams: { tab },
+      queryParams: { tab: tab === 'explanation' ? 'complexity' : tab },
       queryParamsHandling: 'merge'
     });
   }
@@ -127,9 +130,35 @@ export class RecommendationsPageComponent implements OnInit {
   }
 
   private parseTab(tab: string | null): RecommendationTab {
+    if (tab === 'complexity') {
+      return 'explanation';
+    }
     if (tab === 'explanation' || tab === 'market' || tab === 'process') {
       return tab;
     }
     return 'process';
+  }
+
+  private readChatbotContext(params: ParamMap, query: ParamMap): ChatbotAnalysisRequest | null {
+    const chatbot = query.get('chatbot');
+    if (chatbot !== 'true' && chatbot !== '1') {
+      return null;
+    }
+
+    const productId = params.get('productId');
+    const productName = query.get('recommendedProduct');
+    if (!productId || !productName) {
+      return null;
+    }
+
+    return {
+      productId,
+      productName,
+      residueInput: query.get('residueInput') ?? '',
+      sectorName: query.get('sectorName') ?? '',
+      description: query.get('description'),
+      complexity: query.get('complexity'),
+      marketPotential: query.get('marketPotential')
+    };
   }
 }

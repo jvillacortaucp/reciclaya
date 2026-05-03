@@ -120,7 +120,7 @@ export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestro
   }
 
   protected onExplanationRequested(): void {
-    this.navigateToRecommendations('explanation');
+    this.navigateToRecommendations('complexity');
   }
 
   protected onMarketRequested(): void {
@@ -135,7 +135,7 @@ export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestro
     this.facade.initialize(this.listingId());
   }
 
-  private navigateToRecommendations(tab: 'process' | 'explanation' | 'market'): void {
+  private navigateToRecommendations(tab: 'process' | 'complexity' | 'market'): void {
     const productId = this.selectedProductId();
     if (!productId) {
       return;

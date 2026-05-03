@@ -5,6 +5,7 @@ export type MarketPotential = 'low' | 'medium' | 'high';
 
 export interface ProductSuggestion {
   id: string;
+  listingId?: string | null;
   residueInput: string;
   productName: string;
   description: string;

@@ -18,6 +18,7 @@ import { FALLBACK_IMAGE_URL } from '../../../../core/constants/media.constants';
       [class.ring-emerald-500]="isSelected"
       [class.ring-inset]="isSelected"
       [attr.data-tour]="tourTarget ? 'first-listing-card' : null"
+      [attr.data-tour-selected]="isSelected ? 'selected-listing-card' : null"
       (click)="selectCard()"
       (keydown.enter)="selectCard()"
       (keydown.space)="selectCard(); $event.preventDefault()">

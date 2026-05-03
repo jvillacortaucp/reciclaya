@@ -122,6 +122,16 @@ interface ValueRouteDetailApi {
   }[];
 }
 
+export interface ChatbotAnalysisRequest {
+  readonly productId: string;
+  readonly productName: string;
+  readonly residueInput: string;
+  readonly sectorName: string;
+  readonly description?: string | null;
+  readonly complexity?: string | null;
+  readonly marketPotential?: string | null;
+}
+
 @Injectable({ providedIn: 'root' })
 export class RecommendationsHttpRepository {
   private readonly http = inject(HttpClient);
@@ -177,6 +187,26 @@ export class RecommendationsHttpRepository {
       );
   }
 
+  getChatbotAnalysis(
+    request: ChatbotAnalysisRequest,
+    useAi = true,
+    includeExplanation = true
+  ): Observable<RecommendationProcess> {
+    return this.http
+      .post<ApiResponse<ValueRouteDetailApi>>(
+        `${environment.apiBaseUrl}/recommendations/chatbot-analysis`,
+        request,
+        { params: { useAi, includeExplanation } }
+      )
+      .pipe(
+        map(unwrapApiResponse),
+        map((detail: ValueRouteDetailApi) => this.mapToRecommendationProcess(detail)),
+        catchError((error: unknown) =>
+          throwError(() => normalizeHttpError(error, 'No se pudo generar el analisis de recomendacion desde chatbot.'))
+        )
+      );
+  }
+
   private mapToRecommendationProcess(detail: ValueRouteDetailApi): RecommendationProcess {
     const buyers: readonly BuyerSegment[] = (detail.marketAnalysis?.potentialBuyers ?? []).map((buyer) => ({
       id: buyer.id,
@@ -223,11 +253,11 @@ export class RecommendationsHttpRepository {
         iconName: this.normalizeProcessIcon(step.iconName)
       })),
       environmentalSummary: {
-        impactScore: Number(detail.environmentalSummary?.impactScore ?? 0),
-        utilizationLevelLabel: detail.environmentalSummary?.utilizationLevelLabel ?? 'Medio',
-        utilizationPercent: this.normalizeScore(Number(detail.environmentalSummary?.utilizationPercent ?? 0)),
-        environmentalRiskLabel: detail.environmentalSummary?.environmentalRiskLabel ?? 'Controlado',
-        environmentalRiskPercent: this.normalizeScore(Number(detail.environmentalSummary?.environmentalRiskPercent ?? 0)),
+        impactScore: Number(detail.environmentalSummary?.impactScore),
+        utilizationLevelLabel: detail.environmentalSummary?.utilizationLevelLabel ?? '',
+        utilizationPercent: Number(detail.environmentalSummary?.utilizationPercent),
+        environmentalRiskLabel: detail.environmentalSummary?.environmentalRiskLabel ?? '',
+        environmentalRiskPercent: Number(detail.environmentalSummary?.environmentalRiskPercent),
         keyRecommendation: detail.environmentalSummary?.keyRecommendation ?? ''
       },
       marketAnalysis: {
