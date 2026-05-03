@@ -11,10 +11,8 @@ export const WASTE_SELL_COPY = {
   title: 'Registrar residuo para venta',
   subtitle:
     'Publique residuos o subproductos disponibles para valorizacion, intercambio o recogida.',
-  saveDraft: 'Guardar',
   preview: 'Vista previa',
   publish: 'Publicar',
-  statusDraft: 'BORRADOR',
   statusReady: 'LISTO PARA PUBLICAR',
   helperAi: 'Proximamente: sugerencias de uso basadas en IA para mejorar valorizacion.'
 } as const;
@@ -81,7 +79,9 @@ export const CONDITION_OPTIONS: readonly SelectOption<'fresh' | 'dry' | 'wet' | 
 export const WASTE_FORM_MESSAGES = {
   required: 'Este campo es obligatorio.',
   positiveNumber: 'Ingrese un valor numerico mayor a cero.',
-  mediaLimit: 'Maximo 5 fotos permitidas.'
+  mediaLimit: 'Maximo 5 fotos permitidas.',
+  maxLength: 'Se superó el límite permitido para este campo.',
+  invalidText: 'El contenido ingresado contiene caracteres o formato no permitido.'
 } as const;
 
 export const EMPTY_WASTE_SELL_STATE: WasteSellPageState = {

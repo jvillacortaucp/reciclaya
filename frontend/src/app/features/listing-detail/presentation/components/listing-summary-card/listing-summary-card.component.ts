@@ -26,14 +26,14 @@ import { ListingDetailEntity } from '../../../domain/listing-detail.models';
           <div>
             <p class="text-[11px] uppercase tracking-[0.14em] text-slate-400">Costo unitario</p>
             <p class="break-words text-3xl font-semibold leading-tight text-slate-900 md:text-4xl">
-              USD {{ detail.pricing.costPerUnit }}
+              S/ {{ detail.pricing.costPerUnit }}
               <span class="text-lg text-slate-400 md:text-xl">/ {{ detail.volume.unit === 'tons' ? 'Ton' : detail.volume.unit }}</span>
             </p>
           </div>
 
           <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
             <p class="text-[11px] uppercase tracking-[0.12em] text-emerald-700">Valor estimado</p>
-            <p class="break-words text-3xl font-bold leading-tight text-emerald-700 md:text-4xl">USD {{ detail.pricing.estimatedTotal }}</p>
+            <p class="break-words text-3xl font-bold leading-tight text-emerald-700 md:text-4xl">S/ {{ detail.pricing.estimatedTotal }}</p>
           </div>
         </div>
 

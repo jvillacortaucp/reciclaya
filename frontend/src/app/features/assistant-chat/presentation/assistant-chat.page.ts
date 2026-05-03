@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, ViewChild, ElementRef, effect } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -7,7 +7,7 @@ import {
   ASSISTANT_QUICK_SUGGESTIONS
 } from '../data/assistant-chat.constants';
 import { AssistantChatFacade } from '../application/assistant-chat.facade';
-import { AssistantChatMockService } from '../infrastructure/assistant-chat.mock.service';
+import { AssistantChatHttpService } from '../infrastructure/assistant-chat.http.service';
 import { ProductSuggestion } from '../models/assistant-chat.model';
 import { ProtectedActionService } from '../../../core/services/protected-action.service';
 import { ChatInputComponent } from './components/chat-input.component';
@@ -19,7 +19,7 @@ import { TypingIndicatorComponent } from './components/typing-indicator.componen
 @Component({
   selector: 'app-assistant-chat-page',
   standalone: true,
-  providers: [AssistantChatMockService, AssistantChatFacade, DatePipe],
+  providers: [AssistantChatHttpService, AssistantChatFacade, DatePipe],
   imports: [
     ReactiveFormsModule,
     ChatMessageBubbleComponent,
@@ -36,6 +36,8 @@ export class AssistantChatPageComponent {
   private readonly router = inject(Router);
   private readonly facade = inject(AssistantChatFacade);
   private readonly protectedActionService = inject(ProtectedActionService);
+
+  @ViewChild('chatContainer') private readonly chatContainer?: ElementRef<HTMLDivElement>;
 
   protected readonly copy = ASSISTANT_CHAT_COPY;
   protected readonly quickSuggestions = ASSISTANT_QUICK_SUGGESTIONS;
@@ -60,15 +62,32 @@ export class AssistantChatPageComponent {
 
   constructor() {
     this.facade.initializeConversation();
+
+    effect(() => {
+      // Create a dependency on messages so this runs when messages change
+      const msgs = this.messages();
+      if (msgs.length) {
+        setTimeout(() => this.scrollToBottom(), 100);
+      }
+    });
+  }
+
+  private scrollToBottom(): void {
+    if (this.chatContainer?.nativeElement) {
+      const el = this.chatContainer.nativeElement;
+      el.scrollTop = el.scrollHeight;
+    }
   }
 
   protected sendMessage(): void {
-    if (this.form.invalid) {
+    const rawValue = this.form.controls.input.getRawValue();
+    const residue = rawValue.trim();
+
+    if (this.form.invalid || !residue) {
       this.form.markAllAsTouched();
       return;
     }
 
-    const residue = this.form.controls.input.getRawValue();
     this.facade.submitResidueMessage(residue);
     this.form.reset({ input: '' });
   }
@@ -79,16 +98,55 @@ export class AssistantChatPageComponent {
   }
 
   protected onProductSelected(suggestion: ProductSuggestion): void {
+    // Select suggestion in the facade and navigate to recommendations 'process' tab.
     this.facade.selectSuggestion(suggestion);
+    const listingId = this.isGuid(suggestion.listingId) ? suggestion.listingId : null;
+
+    const targetUrl = this.router.serializeUrl(
+      this.router.createUrlTree(['/app/recommendations', suggestion.id], {
+        queryParams: {
+          tab: 'process',
+          chatbot: true,
+          listing: listingId ?? undefined,
+          selectedProductId: suggestion.id,
+          recommendedProduct: suggestion.productName,
+          residueInput: suggestion.residueInput,
+          sectorName: suggestion.sectorName,
+          description: suggestion.description,
+          complexity: suggestion.complexity,
+          marketPotential: suggestion.marketPotential
+        }
+      })
+    );
+
+    this.protectedActionService.requireAuthForAction({
+      actionName: this.getProtectedActionLabel('process'),
+      returnUrl: targetUrl,
+      onAllowed: () => {
+        void this.router.navigateByUrl(targetUrl);
+      }
+    });
   }
 
   protected goToRecommendations(tab: 'process' | 'explanation' | 'market'): void {
     const selected = this.selectedSuggestion();
     if (!selected) return;
+    const listingId = this.isGuid(selected.listingId) ? selected.listingId : null;
 
     const targetUrl = this.router.serializeUrl(
       this.router.createUrlTree(['/app/recommendations', selected.id], {
-        queryParams: { tab }
+        queryParams: {
+          tab,
+          chatbot: true,
+          listing: listingId ?? undefined,
+          selectedProductId: selected.id,
+          recommendedProduct: selected.productName,
+          residueInput: selected.residueInput,
+          sectorName: selected.sectorName,
+          description: selected.description,
+          complexity: selected.complexity,
+          marketPotential: selected.marketPotential
+        }
       })
     );
 
@@ -108,5 +166,13 @@ export class AssistantChatPageComponent {
       market: this.copy.routeMarket
     };
     return actionMap[tab];
+  }
+
+  private isGuid(value?: string | null): value is string {
+    if (!value) {
+      return false;
+    }
+
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
   }
 }

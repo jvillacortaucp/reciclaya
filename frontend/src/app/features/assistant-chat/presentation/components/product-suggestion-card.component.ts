@@ -1,6 +1,5 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import {
-  LucideCheck,
   LucideFlame,
   LucideFlaskConical,
   LucideRecycle,
@@ -18,19 +17,12 @@ import { ProductSuggestion } from '../../models/assistant-chat.model';
 @Component({
   selector: 'app-product-suggestion-card',
   standalone: true,
-  imports: [LucideCheck, LucideWheat, LucideFlaskConical, LucideRecycle, LucideSprout, LucideFlame],
+  imports: [LucideWheat, LucideFlaskConical, LucideRecycle, LucideSprout, LucideFlame],
   template: `
-    <button
-      type="button"
-      class="w-full rounded-2xl border bg-white p-4 text-left shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md sm:rounded-3xl sm:p-5"
-      [class.border-emerald-500]="selected()"
-      [class.bg-emerald-50]="selected()"
-      [class.ring-2]="selected()"
-      [class.ring-emerald-100]="selected()"
-      [class.border-slate-200]="!selected()"
-      (click)="picked.emit(suggestion())">
+    <div
+      class="w-full rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md sm:rounded-3xl sm:p-5">
       <div class="mb-5 flex items-center justify-between">
-        <span class="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-500" [class.bg-emerald-100]="selected()" [class.text-emerald-700]="selected()">
+        <span class="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-500">
           @switch (suggestion().iconName) {
             @case ('flask-conical') { <svg lucideFlaskConical class="h-5 w-5"></svg> }
             @case ('recycle') { <svg lucideRecycle class="h-5 w-5"></svg> }
@@ -39,18 +31,13 @@ import { ProductSuggestion } from '../../models/assistant-chat.model';
             @default { <svg lucideWheat class="h-5 w-5"></svg> }
           }
         </span>
-        @if (selected()) {
-          <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500 text-white">
-            <svg lucideCheck class="h-4 w-4"></svg>
-          </span>
-        }
       </div>
 
       <h4 class="line-clamp-2 text-xl font-semibold leading-tight text-slate-900 sm:text-2xl">{{ suggestion().productName }}</h4>
       <p class="mt-1 text-sm text-slate-500 sm:text-base">{{ suggestion().sectorName }}</p>
       <p class="mt-3 line-clamp-3 text-sm leading-relaxed text-slate-700 sm:text-base">{{ suggestion().description }}</p>
 
-      <div class="mt-5 border-t border-slate-200 pt-4">
+      <div class="mt-5 flex flex-col justify-between gap-4 border-t border-slate-200 pt-4 sm:flex-row sm:items-center">
         <div class="flex flex-wrap gap-2">
           <span class="rounded-lg px-3 py-1 text-xs font-semibold uppercase tracking-[0.06em]" [class]="complexityStyles[suggestion().complexity]">
             {{ complexityLabels[suggestion().complexity] }}
@@ -58,9 +45,18 @@ import { ProductSuggestion } from '../../models/assistant-chat.model';
           <span class="rounded-lg px-3 py-1 text-xs font-semibold uppercase tracking-[0.06em]" [class]="potentialStyles[suggestion().marketPotential]">
             {{ potentialLabels[suggestion().marketPotential] }}
           </span>
+          <span class="rounded-lg bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.06em] text-slate-600">
+            estimado preliminar
+          </span>
         </div>
+        <button
+          type="button"
+          class="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-200 w-full sm:w-auto text-center"
+          (click)="picked.emit(suggestion())">
+          Ver proceso
+        </button>
       </div>
-    </button>
+    </div>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush
 })

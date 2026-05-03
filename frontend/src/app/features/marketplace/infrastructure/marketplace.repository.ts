@@ -50,7 +50,7 @@ export class MarketplaceRepository {
 
   getListings(query: MarketplaceListingsQuery): Observable<MarketplaceListingsPage> {
     return this.http
-      .get<ApiResponse<MarketplaceListingsPage>>(`${environment.apiBaseUrl}/marketplace/listings`, {
+      .get<ApiResponse<MarketplaceListingsPage>>(`${environment.apiBaseUrl}/public/marketplace/products`, {
         params: this.buildListingParams(query)
       })
       .pipe(
@@ -89,7 +89,7 @@ export class MarketplaceRepository {
 
   detail(id: string): Observable<ListingDetail | null> {
     return this.http
-      .get<ApiResponse<ListingDetail>>(`${environment.apiBaseUrl}/marketplace/listings/${id}`)
+      .get<ApiResponse<ListingDetail>>(`${environment.apiBaseUrl}/public/marketplace/products/${id}`)
       .pipe(
         map(unwrapApiResponse),
         catchError((error: unknown) => throwError(() => normalizeHttpError(error, 'No se pudo cargar el detalle.')))
@@ -231,7 +231,7 @@ function toWasteListing(listing: MarketplaceListing): WasteListing {
     category: listing.productType,
     description: listing.residueCondition,
     pricePerUnit: listing.pricePerUnitUsd ?? 0,
-    currency: 'USD',
+    currency: 'PEN',
     volume: {
       amount: listing.quantity,
       unit: listing.unit === 'tons' ? 'ton' : 'kg'

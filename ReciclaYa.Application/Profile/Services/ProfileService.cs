@@ -35,6 +35,12 @@ public sealed class ProfileService(IAuthDbContext dbContext) : IProfileService
             return AuthResult<ProfileDto>.Fail(401, "User not found.", "USER_NOT_FOUND");
         }
 
+        var validationErrors = ValidateUpdateRequest(user.ProfileType, request);
+        if (validationErrors.Count > 0)
+        {
+            return AuthResult<ProfileDto>.Fail(400, validationErrors[0], validationErrors.ToArray());
+        }
+
         var now = DateTimeOffset.UtcNow;
         ApplyUserUpdates(user, request, now);
 
@@ -170,6 +176,74 @@ public sealed class ProfileService(IAuthDbContext dbContext) : IProfileService
 
     private static string? TrimOrNull(string? value)
     {
-        return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+        return string.IsNullOrWhiteSpace(value) ? null : InputValidation.NormalizeText(value);
+    }
+
+    private static List<string> ValidateUpdateRequest(ProfileType profileType, UpdateProfileRequest request)
+    {
+        var errors = new List<string>();
+
+        AddIfNotNull(errors, ValidateOptionalAddress(request.Address));
+        AddIfNotNull(errors, ValidateOptionalPhone(request.MobilePhone));
+        AddIfNotNull(errors, ValidateOptionalPostalCode(request.PostalCode));
+
+        if (profileType == ProfileType.Company)
+        {
+            AddIfNotNull(errors, ValidateOptionalBusinessName(request.Company?.BusinessName));
+            AddIfNotNull(errors, ValidateOptionalAddress(request.Company?.Address));
+            AddIfNotNull(errors, ValidateOptionalPhone(request.Company?.MobilePhone));
+            AddIfNotNull(errors, ValidateOptionalPostalCode(request.Company?.PostalCode));
+            AddIfNotNull(errors, ValidateOptionalPersonName(request.Company?.LegalRepresentative, "Legal representative"));
+            AddIfNotNull(errors, ValidateOptionalPosition(request.Company?.Position));
+        }
+
+        if (profileType == ProfileType.Person)
+        {
+            AddIfNotNull(errors, ValidateOptionalPersonName(request.PersonProfile?.FirstName, "First name"));
+            AddIfNotNull(errors, ValidateOptionalPersonName(request.PersonProfile?.LastName, "Last name"));
+            AddIfNotNull(errors, ValidateOptionalPhone(request.PersonProfile?.MobilePhone));
+            AddIfNotNull(errors, ValidateOptionalAddress(request.PersonProfile?.Address));
+            AddIfNotNull(errors, ValidateOptionalPostalCode(request.PersonProfile?.PostalCode));
+        }
+
+        return errors;
+    }
+
+    private static string? ValidateOptionalBusinessName(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? null : InputValidation.ValidateBusinessName(value);
+    }
+
+    private static string? ValidateOptionalAddress(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? null : InputValidation.ValidateAddress(value);
+    }
+
+    private static string? ValidateOptionalPhone(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? null : InputValidation.ValidatePhone(value);
+    }
+
+    private static string? ValidateOptionalPostalCode(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? null : InputValidation.ValidatePostalCode(value);
+    }
+
+    private static string? ValidateOptionalPersonName(string? value, string fieldName)
+    {
+        return string.IsNullOrWhiteSpace(value) ? null : InputValidation.ValidatePersonName(value, fieldName);
+    }
+
+    private static string? ValidateOptionalPosition(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? null : InputValidation.ValidatePosition(value);
+    }
+
+    private static void AddIfNotNull(List<string> errors, string? value)
+    {
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            errors.Add(value);
+        }
     }
 }

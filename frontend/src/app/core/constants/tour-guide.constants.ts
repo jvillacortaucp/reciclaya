@@ -1,4 +1,4 @@
-export type RecommendationTourTab = 'process' | 'explanation' | 'market';
+export type RecommendationTourTab = 'process' | 'complexity' | 'market';
 export type TourFlowStep =
     | 'idle'
     | 'my_listings_focus_first_card'
@@ -16,12 +16,12 @@ export const RECOMMENDATION_TOUR_ORDER_BY_INITIAL_TAB: Record<
     RecommendationTourTab,
     RecommendationTourTab[]
 > = {
-    process: ['process', 'explanation', 'market'],
-    explanation: ['explanation', 'process', 'market'],
-    market: ['market', 'process', 'explanation'],
+    process: ['process', 'complexity', 'market'],
+    complexity: ['complexity', 'process', 'market'],
+    market: ['market', 'process', 'complexity'],
 };
 
-export const TOUR_TOTAL_STEPS = 22;
+export const TOUR_TOTAL_STEPS = 23;
 
 export const TOUR_STEP_LABELS = {
     SELECT_LISTING: 1,
@@ -45,7 +45,8 @@ export const TOUR_STEP_LABELS = {
     MARKET_PRODUCT: 19,
     MARKET_BUYERS: 20,
     MARKET_COSTS: 21,
-    TOUR_COMPLETE: 22,
+    SAVE_RECOMMENDATION: 22,
+    TOUR_COMPLETE: 23,
 } as const;
 
 export const TOUR_GUIDE_STORAGE_KEYS = {
@@ -58,6 +59,11 @@ export const TOUR_GUIDE_STORAGE_KEYS = {
     RECOMMENDATION_TOUR_ORDER: 'ecovalor_recommendation_tour_order',
     RECOMMENDATION_TOUR_INDEX: 'ecovalor_recommendation_tour_index',
     RECOMMENDATION_PRODUCT_ID: 'ecovalor_recommendation_product_id',
+    SELECTED_LISTING_ID: 'ecovalor_tour_selected_listing_id',
+    SELECTED_VALUE_SECTOR_ID: 'ecovalor_tour_selected_value_sector_id',
+    SELECTED_SUGGESTED_PRODUCT_ID: 'ecovalor_tour_selected_suggested_product_id',
+    IS_ACTIVE: 'ecovalor_tour_is_active',
+    STARTED_BY_USER: 'ecovalor_tour_started_by_user',
 } as const;
 
 export const TOUR_GUIDE_TEST_CONFIG = {
@@ -75,25 +81,34 @@ export const TOUR_GUIDE_SELECTORS = {
     botButton: '[data-tour="bot-guide-button"]',
     recommendationsButton: '[data-tour="recommendations-button"]',
     firstListingCard: '[data-tour="first-listing-card"]',
-    selectedListingCard: '[data-tour="selected-listing-card"]',
+    selectedListingCard: '[data-tour-selected="selected-listing-card"]',
     firstValueSector: '[data-tour="first-value-sector"]',
     firstValueSectorToggle: '[data-tour="first-value-sector-toggle"]',
     firstValueProduct: '[data-tour="first-value-product"]',
     processButton: '[data-tour="go-process-button"]',
     explanationButton: '[data-tour="go-explanation-button"]',
+    complexityButton: '[data-tour="go-complexity-button"]',
     marketButton: '[data-tour="go-market-button"]',
     valueSectorActions: '[data-tour="value-sector-actions"]',
     recommendationsHeader: '[data-tour="recommendations-header"]',
     processProductCard: '[data-tour="process-product-card"]',
     processTimeline: '[data-tour="process-timeline"]',
+    processSteps: '[data-tour="process-timeline"]',
     processSummaryCard: '[data-tour="process-summary-card"]',
-    explanationStepSelector: '[data-tour="explanation-step-selector"]',
-    explanationDetailCard: '[data-tour="explanation-detail-card"]',
-    explanationFactors: '[data-tour="explanation-factors"]',
-    explanationBenefits: '[data-tour="explanation-benefits"]',
+    environmentalSummary: '[data-tour="process-summary-card"]',
+    complexityOverview: '[data-tour="complexity-overview"]',
+    complexityCriteria: '[data-tour="complexity-criteria"]',
+    complexitySummary: '[data-tour="complexity-summary"]',
+    complexityOutcome: '[data-tour="complexity-outcome"]',
+    explanationStepSelector: '[data-tour="complexity-overview"]',
+    explanationDetailCard: '[data-tour="complexity-criteria"]',
+    explanationFactors: '[data-tour="complexity-summary"]',
+    explanationBenefits: '[data-tour="complexity-outcome"]',
     explanationEnvironmentSummary: '[data-tour="explanation-environment-summary"]',
     marketFinishedProduct: '[data-tour="market-finished-product"]',
     marketBuyersGrid: '[data-tour="market-buyers-grid"]',
+    marketScopeTabs: '[data-tour="market-scope-tabs"]',
     marketCosts: '[data-tour="market-costs"]',
     marketOpportunitySummary: '[data-tour="market-opportunity-summary"]',
+    saveRecommendationButton: '[data-tour="save-recommendation-button"]',
 } as const;

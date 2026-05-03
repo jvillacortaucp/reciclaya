@@ -13,6 +13,10 @@
 
   @if (screenLoading()) {
     <div class="rounded-3xl border border-slate-200 bg-white p-10 text-center text-slate-500">Cargando pre-orden...</div>
+  } @else if (screenError()) {
+    <div class="rounded-3xl border border-rose-200 bg-rose-50 p-10 text-center text-rose-700">
+      {{ screenError() }}
+    </div>
   } @else if (!listing()) {
     <div class="rounded-3xl border border-slate-200 bg-white p-10 text-center text-slate-500">
       No encontramos el residuo solicitado para generar la pre-orden.
@@ -95,18 +99,13 @@
           [summary]="pricingSummary()"
           [unitLabel]="listing()?.unit ?? 'Ton'"
           [paymentStatus]="paymentStatus()"
-          (simulatePayment)="simulateAndSubmit()"
-          (downloadQuote)="downloadQuote()"
+          [downloadingQuotation]="downloadingQuotation()"
+          [preOrderCreated]="!!createdPreOrder()"
+          (simulatePayment)="simulateAndSubmitWrapped()"
+          (downloadReceipt)="downloadReceipt()"
         />
 
-        <app-simulated-payment-status
-          [status]="paymentStatus()"
-          [processingMessage]="copy.processingMessage"
-          [successMessage]="copy.successMessage"
-          [failedMessage]="copy.failureMessage"
-        />
-
-        <app-pre-order-confirmation-card [preOrder]="createdPreOrder()" />
+        <!-- Mensajes en página removidos: se muestra solo toast -->
 
         <article class="rounded-3xl bg-emerald-900 p-5 md:p-6 text-emerald-50 shadow-sm">
           <h4 class="text-xl font-semibold md:text-2xl">{{ copy.impactTitle }}</h4>

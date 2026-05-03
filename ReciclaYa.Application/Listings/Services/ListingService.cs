@@ -52,13 +52,21 @@ public sealed class ListingService(IAuthDbContext dbContext) : IListingService
     public async Task PublishAsync(
         Guid sellerId,
         WasteSellRequestDto request,
+        Guid? listingId = null,
         CancellationToken cancellationToken = default)
     {
         var now = DateTime.UtcNow;
-        var listing = await GetCurrentDraftAsync(sellerId, cancellationToken);
+        var listing = listingId.HasValue
+            ? await GetOwnedListingAsync(sellerId, listingId.Value, cancellationToken)
+            : await GetCurrentDraftAsync(sellerId, cancellationToken);
 
         if (listing is null)
         {
+            if (listingId.HasValue)
+            {
+                throw new InvalidOperationException("No se encontró la publicación a editar.");
+            }
+
             listing = new Listing
             {
                 Id = Guid.NewGuid(),
@@ -95,24 +103,47 @@ public sealed class ListingService(IAuthDbContext dbContext) : IListingService
     public async Task<MarketplaceListingsPageDto> GetMarketplaceListingsAsync(
         int page,
         int pageSize,
+        string? queryText,
+        string? sortBy,
         string? wasteType,
         string? sector,
         string? productType,
+        string? specificResidue,
+        string? exchangeType,
+        string? location,
+        decimal? minPrice,
+        decimal? maxPrice,
+        string? deliveryMode,
+        bool? immediateOnly,
+        string? residueCondition,
         CancellationToken cancellationToken = default)
     {
         var normalizedPage = page < 1 ? DefaultPage : page;
         var normalizedPageSize = pageSize < 1 ? DefaultPageSize : Math.Min(pageSize, MaxPageSize);
 
-        var query = dbContext.Listings
+        var listingsQuery = dbContext.Listings
             .AsNoTracking()
             .Include(listing => listing.Media)
             .Where(listing => listing.Status == ListingStatus.Published && listing.DeletedAt == null);
 
-        query = ApplyFilters(query, wasteType, sector, productType);
+        listingsQuery = ApplyFilters(
+            listingsQuery,
+            queryText,
+            wasteType,
+            sector,
+            productType,
+            specificResidue,
+            exchangeType,
+            location,
+            minPrice,
+            maxPrice,
+            deliveryMode,
+            immediateOnly,
+            residueCondition);
+        listingsQuery = ApplySorting(listingsQuery, sortBy);
 
-        var total = await query.CountAsync(cancellationToken);
-        var items = await query
-            .OrderByDescending(listing => listing.PublishedAt ?? listing.CreatedAt)
+        var total = await listingsQuery.CountAsync(cancellationToken);
+        var items = await listingsQuery
             .Skip((normalizedPage - 1) * normalizedPageSize)
             .Take(normalizedPageSize)
             .ToListAsync(cancellationToken);
@@ -177,6 +208,47 @@ public sealed class ListingService(IAuthDbContext dbContext) : IListingService
         return listings
             .Select(listing => ListingMapper.ToMarketplaceListingDto(ToListingModel(listing)))
             .ToArray();
+    }
+
+    public async Task<WasteSellResponseDto?> GetMyListingForEditAsync(
+        Guid sellerId,
+        Guid listingId,
+        CancellationToken cancellationToken = default)
+    {
+        var listing = await GetOwnedListingAsync(sellerId, listingId, cancellationToken);
+        if (listing is null || listing.DeletedAt is not null)
+        {
+            return null;
+        }
+
+        return ListingMapper.ToWasteSellResponse(ToListingModel(listing));
+    }
+
+    public async Task<bool> CancelMyListingAsync(
+        Guid sellerId,
+        Guid listingId,
+        CancellationToken cancellationToken = default)
+    {
+        var listing = await dbContext.Listings
+            .FirstOrDefaultAsync(
+                item => item.Id == listingId
+                    && item.SellerId == sellerId
+                    && item.DeletedAt == null,
+                cancellationToken);
+
+        if (listing is null)
+        {
+            return false;
+        }
+
+        listing.Status = ListingStatus.Archived;
+        listing.MatchScore = null;
+        listing.PublishedAt = null;
+        listing.UpdatedAt = DateTime.UtcNow;
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return true;
     }
 
     private async Task<Listing?> GetCurrentDraftAsync(Guid sellerId, CancellationToken cancellationToken)
@@ -247,10 +319,29 @@ public sealed class ListingService(IAuthDbContext dbContext) : IListingService
 
     private static IQueryable<Listing> ApplyFilters(
         IQueryable<Listing> query,
+        string? queryText,
         string? wasteType,
         string? sector,
-        string? productType)
+        string? productType,
+        string? specificResidue,
+        string? exchangeType,
+        string? location,
+        decimal? minPrice,
+        decimal? maxPrice,
+        string? deliveryMode,
+        bool? immediateOnly,
+        string? residueCondition)
     {
+        if (!string.IsNullOrWhiteSpace(queryText))
+        {
+            var normalizedQuery = queryText.Trim().ToLower();
+            query = query.Where(listing =>
+                listing.SpecificResidue.ToLower().Contains(normalizedQuery)
+                || listing.Location.ToLower().Contains(normalizedQuery)
+                || listing.Sector.ToLower().Contains(normalizedQuery)
+                || listing.ProductType.ToLower().Contains(normalizedQuery));
+        }
+
         if (!IsAllOrEmpty(wasteType))
         {
             query = query.Where(listing => listing.WasteType == wasteType);
@@ -266,7 +357,63 @@ public sealed class ListingService(IAuthDbContext dbContext) : IListingService
             query = query.Where(listing => listing.ProductType == productType);
         }
 
+        if (!string.IsNullOrWhiteSpace(specificResidue))
+        {
+            var normalizedSpecificResidue = specificResidue.Trim().ToLower();
+            query = query.Where(listing => listing.SpecificResidue.ToLower().Contains(normalizedSpecificResidue));
+        }
+
+        if (!IsAllOrEmpty(exchangeType))
+        {
+            query = query.Where(listing => listing.ExchangeType == exchangeType);
+        }
+
+        if (!string.IsNullOrWhiteSpace(location))
+        {
+            var normalizedLocation = location.Trim().ToLower();
+            query = query.Where(listing => listing.Location.ToLower().Contains(normalizedLocation));
+        }
+
+        if (minPrice.HasValue)
+        {
+            query = query.Where(listing => listing.PricePerUnitUsd.HasValue && listing.PricePerUnitUsd.Value >= minPrice.Value);
+        }
+
+        if (maxPrice.HasValue)
+        {
+            query = query.Where(listing => listing.PricePerUnitUsd.HasValue && listing.PricePerUnitUsd.Value <= maxPrice.Value);
+        }
+
+        if (!IsAllOrEmpty(deliveryMode))
+        {
+            query = query.Where(listing => listing.DeliveryMode == deliveryMode);
+        }
+
+        if (immediateOnly == true)
+        {
+            query = query.Where(listing => listing.ImmediateAvailability);
+        }
+
+        if (!IsAllOrEmpty(residueCondition))
+        {
+            query = query.Where(listing => listing.Condition == residueCondition);
+        }
+
         return query;
+    }
+
+    private static IQueryable<Listing> ApplySorting(IQueryable<Listing> query, string? sortBy)
+    {
+        return sortBy?.Trim().ToLowerInvariant() switch
+        {
+            "best_match" => query.OrderByDescending(listing => listing.MatchScore ?? 0)
+                .ThenByDescending(listing => listing.PublishedAt ?? listing.CreatedAt),
+            "lowest_price" => query.OrderBy(listing => listing.PricePerUnitUsd ?? decimal.MaxValue)
+                .ThenByDescending(listing => listing.PublishedAt ?? listing.CreatedAt),
+            "highest_volume" => query.OrderByDescending(listing => listing.Quantity)
+                .ThenByDescending(listing => listing.PublishedAt ?? listing.CreatedAt),
+            _ => query.OrderByDescending(listing => listing.PublishedAt ?? listing.CreatedAt)
+        };
     }
 
     private static ListingModel ToListingModel(Listing listing)
@@ -341,6 +488,11 @@ public sealed class ListingService(IAuthDbContext dbContext) : IListingService
 
     private static string ToApplicationStatus(Listing listing)
     {
+        if (listing.Status is ListingStatus.Archived or ListingStatus.Paused or ListingStatus.Sold or ListingStatus.Expired)
+        {
+            return "inactive";
+        }
+
         if (listing.Status == ListingStatus.Published
             && (listing.PublishedAt ?? listing.CreatedAt) >= DateTime.UtcNow.AddDays(-3))
         {
@@ -348,6 +500,22 @@ public sealed class ListingService(IAuthDbContext dbContext) : IListingService
         }
 
         return listing.Status == ListingStatus.Published ? "available" : "draft";
+    }
+
+    private async Task<Listing?> GetOwnedListingAsync(
+        Guid sellerId,
+        Guid listingId,
+        CancellationToken cancellationToken)
+    {
+        return await dbContext.Listings
+            .AsSplitQuery()
+            .Include(listing => listing.Media)
+            .Include(listing => listing.TechnicalSpecs)
+            .FirstOrDefaultAsync(
+                listing => listing.Id == listingId
+                    && listing.SellerId == sellerId
+                    && listing.DeletedAt == null,
+                cancellationToken);
     }
 
     private static string ToSellerVerificationLabel(User? seller)

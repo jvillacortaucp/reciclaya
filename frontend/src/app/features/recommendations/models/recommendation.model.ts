@@ -1,6 +1,7 @@
 export type RecommendationTab = 'process' | 'explanation' | 'market';
 export type CostView = 'percent' | 'usd';
 export type ChartType = 'donut' | 'bar';
+export type BuyerScope = 'nacional' | 'internacional';
 
 export type ComplexityLevel = 'low' | 'medium' | 'high';
 export type MarketPotentialLevel = 'low' | 'medium' | 'high';
@@ -59,8 +60,19 @@ export interface EnvironmentalSummary {
   readonly keyRecommendation: string;
 }
 
+export interface ComplexityOverview {
+  readonly processingRequired?: string | null;
+  readonly equipmentNeeded?: string | null;
+  readonly technicalKnowledge?: string | null;
+  readonly transformationTime?: string | null;
+  readonly estimatedCost?: string | null;
+  readonly operationalRisk?: string | null;
+  readonly positiveEnvironmentalImpact?: string | null;
+}
+
 export interface RecommendationProcess {
   readonly recommendationId: string;
+  readonly source?: string | null;
   readonly recommendedProduct: string;
   readonly baseResidue: string;
   readonly complexity: ComplexityLevel;
@@ -70,6 +82,8 @@ export interface RecommendationProcess {
   readonly principalEquipment: readonly string[];
   readonly expectedOutcome: string;
   readonly explanation: string;
+  readonly manufacturingProcess?: string | null;
+  readonly complexityOverview?: ComplexityOverview | null;
   readonly explanationSteps: readonly ExplanationStep[];
   readonly environmentalSummary: EnvironmentalSummary;
   readonly marketAnalysis: RecommendationMarketAnalysis;
@@ -83,7 +97,9 @@ export interface BuyerSegment {
   readonly monthlyVolume: string;
   readonly probability: number;
   readonly channel: string;
-  readonly type: 'enterprise' | 'retail' | 'consumer';
+  readonly scope: BuyerScope;
+  readonly region?: string;
+  readonly country?: string;
   readonly iconName: 'building' | 'store' | 'leaf';
 }
 

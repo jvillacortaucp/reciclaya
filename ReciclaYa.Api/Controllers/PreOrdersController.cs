@@ -10,7 +10,10 @@ namespace ReciclaYa.Api.Controllers;
 [ApiController]
 [Authorize]
 [Route("api/pre-orders")]
-public sealed class PreOrdersController(IPreOrderService preOrderService) : ControllerBase
+public sealed class PreOrdersController(
+    IPreOrderService preOrderService,
+    IQuotationPdfService quotationPdfService,
+    ILogger<PreOrdersController> logger) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> GetPreOrders(CancellationToken cancellationToken)
@@ -140,6 +143,58 @@ public sealed class PreOrdersController(IPreOrderService preOrderService) : Cont
         }
     }
 
+    [HttpGet("{preOrderId:guid}/quotation/pdf")]
+    public async Task<IActionResult> DownloadQuotationPdf(
+        Guid preOrderId,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetUserContext(out var userId, out var role))
+        {
+            return Unauthorized(ApiResponse<object>.Fail("Unauthorized.", ["INVALID_TOKEN_SUBJECT"]));
+        }
+
+        if (!CanUsePreOrders(role))
+        {
+            return StatusCode(
+                StatusCodes.Status403Forbidden,
+                ApiResponse<object>.Fail("Forbidden.", ["FORBIDDEN"]));
+        }
+
+        try
+        {
+            var pdfBytes = await quotationPdfService.GeneratePreOrderQuotationPdfAsync(
+                preOrderId,
+                userId,
+                IsAdmin(role),
+                cancellationToken);
+
+            var fileName = $"orden-compra-{preOrderId}.pdf";
+            return File(pdfBytes, "application/pdf", fileName);
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound(ApiResponse<object>.Fail("Pre-order not found.", ["PRE_ORDER_NOT_FOUND"]));
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return StatusCode(
+                StatusCodes.Status403Forbidden,
+                ApiResponse<object>.Fail("Forbidden.", ["FORBIDDEN"]));
+        }
+        catch (Exception exception)
+        {
+            logger.LogError(
+                exception,
+                "Could not generate pre-order quotation PDF. PreOrderId={PreOrderId} UserId={UserId}",
+                preOrderId,
+                userId);
+
+            return StatusCode(
+                StatusCodes.Status500InternalServerError,
+                ApiResponse<object>.Fail("Could not generate quotation PDF.", ["PDF_GENERATION_ERROR"]));
+        }
+    }
+
     private IActionResult MapInvalidOperation(InvalidOperationException exception)
     {
         if (exception.Message.Contains("own listing", StringComparison.OrdinalIgnoreCase))
@@ -155,6 +210,7 @@ public sealed class PreOrdersController(IPreOrderService preOrderService) : Cont
     private static bool CanUsePreOrders(string role)
     {
         return string.Equals(role, "buyer", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(role, "seller", StringComparison.OrdinalIgnoreCase)
             || string.Equals(role, "admin", StringComparison.OrdinalIgnoreCase);
     }
 

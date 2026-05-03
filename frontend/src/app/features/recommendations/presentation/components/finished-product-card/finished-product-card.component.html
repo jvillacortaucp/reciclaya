@@ -3,7 +3,7 @@
     <div class="grid min-w-0 grid-cols-1 overflow-hidden rounded-3xl md:grid-cols-[240px_minmax(0,1fr)]">
       <div class="relative h-52 md:h-full">
         <img
-          [src]="item.productImageUrl"
+          [src]="item.productImageUrl || fallbackImage"
           [alt]="item.name"
           class="h-full w-full object-cover"
           loading="lazy" />
@@ -35,7 +35,7 @@
             <span class="text-sm">Precio sugerido</span>
           </div>
           <p class="text-3xl font-semibold text-slate-900">
-            ${{ item.suggestedPricePerKg | number: '1.2-2' }}
+            S/ {{ item.suggestedPricePerKg | number: '1.2-2' }}
             <span class="text-xl font-medium text-slate-500">/kg</span>
           </p>
         </div>

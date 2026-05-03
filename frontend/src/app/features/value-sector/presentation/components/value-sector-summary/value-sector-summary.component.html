@@ -3,8 +3,8 @@
     <h2 class="text-2xl font-semibold text-slate-900">{{ texts.summaryTitle }}</h2>
 
     @if (summary(); as selected) {
-      <div class="mt-4 overflow-hidden rounded-2xl">
-        <img class="h-44 w-full object-cover" [src]="selected.imageUrl" [alt]="selected.productName" />
+        <div class="mt-4 overflow-hidden rounded-2xl">
+        <img class="h-44 w-full object-cover" [src]="selected.imageUrl || fallbackImage" [alt]="selected.productName" />
       </div>
       <p class="mt-4 text-xl font-semibold leading-tight text-slate-900">{{ selected.productName }}</p>
       <p class="mt-1 text-sm text-slate-600">{{ selected.routeName }}</p>
@@ -39,6 +39,17 @@
         <p class="mb-1 text-sm font-semibold text-emerald-800">{{ texts.insightTitle }}</p>
         <p class="text-sm leading-relaxed text-emerald-900">{{ selected.insight }}</p>
         <p class="mt-2 text-xs font-medium text-emerald-700">Uso sugerido: {{ selected.potentialUse }}</p>
+        @if (selected.buyerBenefit) {
+          <p class="mt-2 text-xs text-emerald-800"><span class="font-semibold">Beneficio:</span> {{ selected.buyerBenefit }}</p>
+        }
+        @if (selected.suggestedAction) {
+          <p class="mt-2 text-xs text-emerald-800"><span class="font-semibold">Siguiente acción:</span> {{ selected.suggestedAction }}</p>
+        }
+        @if (selected.confidenceScore !== undefined) {
+          <p class="mt-2 text-xs font-semibold uppercase tracking-[0.12em] text-emerald-700">
+            Confianza IA: {{ selected.confidenceScore }}%
+          </p>
+        }
       </div>
     } @else {
       <div class="mt-4 rounded-2xl border border-dashed border-slate-200 p-6 text-center text-sm text-slate-500">
@@ -68,7 +79,7 @@
     </button>
     <button
       type="button"
-      data-tour="go-explanation-button"
+      data-tour="go-complexity-button"
       [disabled]="!actionsEnabled()"
       class="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-200 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400 cursor-pointer"
       (click)="onExplanationRequested()">

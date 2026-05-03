@@ -9,6 +9,7 @@ import {
   signal
 } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
 import {
   LucideCircleDollarSign,
@@ -17,12 +18,17 @@ import {
   LucideInfo,
   LucideLoaderCircle,
   LucideMapPin,
-  LucideSave,
   LucideSendHorizontal,
   LucideTruck,
   LucideWandSparkles
 } from '@lucide/angular';
 import { PendingChangesAware } from '../../core/models/pending-changes.model';
+import {
+  longTextValidator,
+  safeAddressValidator,
+  safeBusinessNameValidator,
+  sanitizeInputValue
+} from '../../shared/helpers/validators';
 import { SectionHeaderComponent } from '../../shared/ui/section-header/section-header.component';
 import { WasteSellFacade } from './application/waste-sell.facade';
 import {
@@ -49,7 +55,6 @@ import { WasteUploadZoneComponent } from './presentation/components/waste-upload
     SectionHeaderComponent,
     WasteUploadZoneComponent,
     WastePreviewCardComponent,
-    LucideSave,
     LucideSendHorizontal,
     LucideInfo,
     LucideCircleDollarSign,
@@ -66,6 +71,7 @@ import { WasteUploadZoneComponent } from './presentation/components/waste-upload
 export class WasteSellPageComponent implements OnInit, OnDestroy, PendingChangesAware {
   private readonly fb = inject(FormBuilder);
   private readonly facade = inject(WasteSellFacade);
+  private readonly route = inject(ActivatedRoute);
 
   private readonly patching = signal(false);
   private readonly createdObjectUrls = new Set<string>();
@@ -85,7 +91,6 @@ export class WasteSellPageComponent implements OnInit, OnDestroy, PendingChanges
   protected readonly conditionOptions = CONDITION_OPTIONS;
 
   protected readonly loading = this.facade.loading;
-  protected readonly draftLoading = this.facade.draftLoading;
   protected readonly publishLoading = this.facade.publishLoading;
   protected readonly previewLoading = this.facade.previewLoading;
   protected readonly mediaSyncLoading = this.facade.mediaSyncLoading;
@@ -102,20 +107,20 @@ export class WasteSellPageComponent implements OnInit, OnDestroy, PendingChanges
   protected readonly form = this.fb.nonNullable.group({
     residueType: ['organic'],
     sector: ['agriculture'],
-    productType: ['mango'],
-    specificResidue: ['', [Validators.required]],
-    shortDescription: ['', [Validators.required, Validators.minLength(10)]],
+    productType: ['mango', [Validators.required, Validators.maxLength(80), safeBusinessNameValidator]],
+    specificResidue: ['', [Validators.required, Validators.maxLength(120), safeBusinessNameValidator]],
+    shortDescription: ['', [Validators.required, Validators.minLength(10), Validators.maxLength(500), longTextValidator(500)]],
     quantity: [10, [Validators.required, Validators.min(1)]],
     unit: ['tons'],
     generationFrequency: ['single'],
     estimatedCostPerUnit: [45, [Validators.required, Validators.min(0.01)]],
-    warehouseAddress: ['', [Validators.required]],
+    warehouseAddress: ['', [Validators.required, Validators.maxLength(180), safeAddressValidator]],
     maxStorageTime: ['48h'],
     exchangeType: ['sale'],
     deliveryMode: ['warehouse_pickup'],
     immediateAvailability: [true],
     condition: ['fresh'],
-    restrictionsNotes: [''],
+    restrictionsNotes: ['', [Validators.maxLength(300), longTextValidator(300)]],
     nextAvailabilityDate: ['', [Validators.required]]
   });
 
@@ -166,7 +171,11 @@ export class WasteSellPageComponent implements OnInit, OnDestroy, PendingChanges
   }
 
   ngOnInit(): void {
-    this.facade.loadInitialState();
+    this.subscriptions.add(
+      this.route.queryParamMap.subscribe((params) => {
+        this.facade.loadInitialState(params.get('edit'));
+      })
+    );
 
     this.subscriptions.add(
       this.form.valueChanges.subscribe(() => {
@@ -189,16 +198,6 @@ export class WasteSellPageComponent implements OnInit, OnDestroy, PendingChanges
 
   hasPendingChanges(): boolean {
     return this.form.dirty;
-  }
-
-  protected saveDraft(): void {
-    const nextState = this.state();
-    if (!nextState) {
-      return;
-    }
-
-    this.facade.saveDraft(nextState);
-    this.form.markAsPristine();
   }
 
   protected publish(): void {
@@ -327,7 +326,30 @@ export class WasteSellPageComponent implements OnInit, OnDestroy, PendingChanges
       return this.messages.positiveNumber;
     }
 
+    if (control.hasError('maxlength')) {
+      return this.messages.maxLength;
+    }
+
+    if (
+      control.hasError('suspiciousContent') ||
+      control.hasError('meaninglessValue') ||
+      control.hasError('invalidFormat')
+    ) {
+      return this.messages.invalidText;
+    }
+
     return this.messages.required;
+  }
+
+  protected sanitizeTextField(
+    fieldName: 'productType' | 'specificResidue' | 'shortDescription' | 'warehouseAddress' | 'restrictionsNotes',
+    mode: 'businessName' | 'address' | 'text'
+  ): void {
+    const control = this.form.controls[fieldName];
+    const sanitized = sanitizeInputValue(control.getRawValue(), mode);
+    if (sanitized !== control.getRawValue()) {
+      control.setValue(sanitized);
+    }
   }
 
   protected sourceBadge(source: string): string {

@@ -6,6 +6,8 @@ using Microsoft.Extensions.Options;
 using ReciclaYa.Application.Abstractions.Persistence;
 using ReciclaYa.Application.Media.Options;
 using ReciclaYa.Application.Media.Services;
+using ReciclaYa.Application.Recommendations.Services;
+using ReciclaYa.Application.ValueSectors.Services;
 using ReciclaYa.Application.ValorizationIdeas.Services;
 using ReciclaYa.Infrastructure.AI;
 using ReciclaYa.Infrastructure.Options;
@@ -52,7 +54,8 @@ public static class DependencyInjection
             {
                 ApiKey = section["ApiKey"] ?? string.Empty,
                 BaseUrl = section["BaseUrl"] ?? "https://api.deepseek.com",
-                Model = section["Model"] ?? "deepseek-chat"
+                Model = section["Model"] ?? "deepseek-chat",
+                TimeoutSeconds = ParseTimeoutSeconds(section["TimeoutSeconds"])
             };
 
             return Microsoft.Extensions.Options.Options.Create(deepSeekOptions);
@@ -85,7 +88,7 @@ public static class DependencyInjection
             var client = new HttpClient
             {
                 BaseAddress = new Uri($"{baseUrl.TrimEnd('/')}/"),
-                Timeout = TimeSpan.FromSeconds(25)
+                Timeout = TimeSpan.FromSeconds(NormalizeTimeoutSeconds(deepSeekOptions.Value.TimeoutSeconds))
             };
 
             return new DeepSeekValorizationIdeaGenerator(
@@ -93,7 +96,56 @@ public static class DependencyInjection
                 deepSeekOptions,
                 provider.GetRequiredService<ILogger<DeepSeekValorizationIdeaGenerator>>());
         });
+        services.AddScoped<IRecommendationAiGenerator>(provider =>
+        {
+            var deepSeekOptions = provider.GetRequiredService<IOptions<DeepSeekOptions>>();
+            var baseUrl = string.IsNullOrWhiteSpace(deepSeekOptions.Value.BaseUrl)
+                ? "https://api.deepseek.com"
+                : deepSeekOptions.Value.BaseUrl;
+
+            var client = new HttpClient
+            {
+                BaseAddress = new Uri($"{baseUrl.TrimEnd('/')}/"),
+                Timeout = TimeSpan.FromSeconds(NormalizeTimeoutSeconds(deepSeekOptions.Value.TimeoutSeconds))
+            };
+
+            return new DeepSeekRecommendationGenerator(
+                client,
+                deepSeekOptions,
+                provider.GetRequiredService<ILogger<DeepSeekRecommendationGenerator>>());
+        });
+        services.AddScoped<IValueSectorAiGenerator>(provider =>
+        {
+            var deepSeekOptions = provider.GetRequiredService<IOptions<DeepSeekOptions>>();
+            var baseUrl = string.IsNullOrWhiteSpace(deepSeekOptions.Value.BaseUrl)
+                ? "https://api.deepseek.com"
+                : deepSeekOptions.Value.BaseUrl;
+
+            var client = new HttpClient
+            {
+                BaseAddress = new Uri($"{baseUrl.TrimEnd('/')}/"),
+                Timeout = TimeSpan.FromSeconds(NormalizeTimeoutSeconds(deepSeekOptions.Value.TimeoutSeconds))
+            };
+
+            return new DeepSeekValueSectorGenerator(
+                client,
+                deepSeekOptions,
+                provider.GetRequiredService<ILogger<DeepSeekValueSectorGenerator>>());
+        });
 
         return services;
     }
+
+    private static int ParseTimeoutSeconds(string? raw)
+    {
+        return int.TryParse(raw, out var parsed)
+            ? NormalizeTimeoutSeconds(parsed)
+            : 60;
+    }
+
+    private static int NormalizeTimeoutSeconds(int seconds)
+    {
+        return Math.Clamp(seconds, 10, 180);
+    }
 }
+

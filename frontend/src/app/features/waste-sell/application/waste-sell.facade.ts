@@ -1,4 +1,5 @@
 import { computed, effect, inject, Injectable, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import { catchError, EMPTY, finalize, firstValueFrom } from 'rxjs';
 import { getErrorMessage } from '../../../core/http/api-response.helpers';
 import { MediaHttpRepository } from '../../../core/media/media-http.repository';
@@ -14,6 +15,7 @@ import { WasteSellHttpRepository } from '../infrastructure/waste-sell.http.repos
 @Injectable({ providedIn: 'root' })
 export class WasteSellFacade {
   private readonly repository = inject(WasteSellHttpRepository);
+  private readonly router = inject(Router);
   private readonly valorizationIdeasRepository = inject(ValorizationIdeasHttpRepository);
   private readonly mediaRepository = inject(MediaHttpRepository);
   private readonly myListingsRepository = inject(MyListingsRepository);
@@ -23,7 +25,6 @@ export class WasteSellFacade {
   private currentListingId: string | null = null;
 
   readonly loading = signal(false);
-  readonly draftLoading = signal(false);
   readonly publishLoading = signal(false);
   readonly previewLoading = signal(false);
   readonly valorizationIdeasLoading = signal(false);
@@ -38,7 +39,7 @@ export class WasteSellFacade {
   readonly valorizationIdeasSignature = signal<string | null>(null);
 
   readonly completion = computed(() => this.preview()?.completionPercentage ?? 0);
-  readonly statusLabel = computed(() => this.preview()?.statusLabel ?? WASTE_SELL_COPY.statusDraft);
+  readonly statusLabel = computed(() => this.preview()?.statusLabel ?? WASTE_SELL_COPY.statusReady);
 
   constructor() {
     effect(() => {
@@ -56,11 +57,16 @@ export class WasteSellFacade {
     });
   }
 
-  loadInitialState(): void {
+  loadInitialState(listingId?: string | null): void {
+    if (this.state() && this.currentListingId === (listingId ?? null)) {
+      return;
+    }
+
+    this.currentListingId = listingId ?? null;
     this.resetValorizationIdeas();
     this.loading.set(true);
     this.repository
-      .getInitialState()
+      .getInitialState(listingId)
       .pipe(finalize(() => this.loading.set(false)))
       .subscribe((state) => {
         this.state.set(state);
@@ -94,30 +100,10 @@ export class WasteSellFacade {
     this.pendingFiles.set(id, file);
   }
 
-  saveDraft(state: WasteSellPageState): void {
-    this.draftLoading.set(true);
-    this.repository
-      .saveDraft(state)
-      .pipe(
-        catchError((error: unknown) => {
-          this.toastMessage.set(getErrorMessage(error, 'No se pudo guardar el borrador.'));
-          return EMPTY;
-        }),
-        finalize(() => this.draftLoading.set(false))
-      )
-      .subscribe((nextState) => {
-        const mergedState = this.mergeServerStateWithVisualMedia(nextState, this.state()?.formValue.mediaUploads ?? []);
-        this.state.set(mergedState);
-        this.toastMessage.set('Borrador guardado correctamente.');
-        this.refreshPreview();
-        void this.syncListingMediaForCurrentState();
-      });
-  }
-
   publish(state: WasteSellPageState): void {
     this.publishLoading.set(true);
     this.repository
-      .publish(state)
+      .publish(state, this.currentListingId)
       .pipe(
         catchError((error: unknown) => {
           this.toastMessage.set(getErrorMessage(error, 'No se pudo publicar el listado.'));
@@ -131,6 +117,7 @@ export class WasteSellFacade {
         this.toastMessage.set('Listado publicado correctamente.');
         this.refreshPreview();
         void this.syncListingMediaForCurrentState();
+        void this.router.navigateByUrl('/app/my-listings');
       });
   }
 
@@ -245,7 +232,6 @@ export class WasteSellFacade {
     this.preview.set(null);
     this.toastMessage.set(null);
     this.loading.set(false);
-    this.draftLoading.set(false);
     this.publishLoading.set(false);
     this.previewLoading.set(false);
     this.valorizationIdeasLoading.set(false);

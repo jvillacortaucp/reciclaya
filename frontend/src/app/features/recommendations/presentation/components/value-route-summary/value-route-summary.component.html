@@ -4,7 +4,7 @@
 
     @if (summary(); as selected) {
       <div class="mt-4 overflow-hidden rounded-2xl">
-        <img class="h-44 w-full object-cover" [src]="selected.imageUrl" [alt]="selected.productName" />
+        <img class="h-44 w-full object-cover" [src]="selected.imageUrl || fallbackImage" [alt]="selected.productName" />
       </div>
       <p class="mt-4 text-xl font-semibold leading-tight text-slate-900">{{ selected.productName }}</p>
       <p class="mt-1 text-sm text-slate-600">{{ selected.routeName }}</p>

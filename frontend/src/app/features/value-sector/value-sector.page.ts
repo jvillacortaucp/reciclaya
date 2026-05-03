@@ -2,14 +2,16 @@ import {
   AfterViewInit,
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   ElementRef,
   OnDestroy,
   OnInit,
   ViewChild,
   inject
 } from '@angular/core';
-import { Router } from '@angular/router';
-import { LucideLeaf } from '@lucide/angular';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { LucideLeaf, LucideLoaderCircle, LucideWandSparkles } from '@lucide/angular';
 import { ValueSectorFacade } from './application/value-sector.facade';
 import { VALUE_SECTOR_TEXT } from './data/value-sector.constants';
 import { TourGuideService } from '../../core/services/tour-guide.service';
@@ -18,17 +20,20 @@ import { ValueSectorFloatingActionsComponent } from './presentation/components/v
 import { ValueSectorSummaryComponent } from './presentation/components/value-sector-summary/value-sector-summary.component';
 
 import { SectionHeaderComponent } from '../../shared/ui/section-header/section-header.component';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-value-sector-page',
   standalone: true,
-  providers: [ValueSectorFacade],
   imports: [
     LucideLeaf,
+    LucideLoaderCircle,
+    LucideWandSparkles,
     ValueSectorAccordionComponent,
     ValueSectorSummaryComponent,
     ValueSectorFloatingActionsComponent,
-    SectionHeaderComponent
+    SectionHeaderComponent,
+    RouterLink
   ],
   templateUrl: './value-sector.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -36,15 +41,23 @@ import { SectionHeaderComponent } from '../../shared/ui/section-header/section-h
 export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly facade = inject(ValueSectorFacade);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly tourGuide = inject(TourGuideService);
+  private readonly subscriptions = new Subscription();
   private observer: IntersectionObserver | null = null;
 
   @ViewChild('infiniteScrollSentinel') private sentinelRef?: ElementRef<HTMLDivElement>;
 
   protected readonly isInitialLoading = this.facade.isInitialLoading;
+  protected readonly listingId = this.facade.listingId;
   protected readonly items = this.facade.items;
   protected readonly hasMore = this.facade.hasMore;
   protected readonly isLoadingMore = this.facade.isLoadingMore;
+  protected readonly isGenerating = this.facade.isGenerating;
+  protected readonly loadError = this.facade.loadError;
+  protected readonly fromListingMode = this.facade.fromListingMode;
+  protected readonly listingResidueLabel = this.facade.listingResidueLabel;
   protected readonly selectedRouteId = this.facade.selectedRouteId;
   protected readonly selectedProductId = this.facade.selectedProductId;
   protected readonly expandedRouteId = this.facade.expandedRouteId;
@@ -54,7 +67,21 @@ export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestro
 
   ngOnInit(): void {
     this.tourGuide.init();
-    this.facade.loadInitial();
+    this.route.queryParamMap
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((params) => {
+        const listingId = params.get('listing');
+        const shouldRestoreScroll = this.facade.hasLoadedListing(listingId);
+        this.facade.initialize(listingId);
+        if (shouldRestoreScroll) {
+          queueMicrotask(() => {
+            window.scrollTo({
+              top: this.facade.getRememberedScrollPosition(),
+              behavior: 'auto'
+            });
+          });
+        }
+      });
   }
 
   ngAfterViewInit(): void {
@@ -75,6 +102,7 @@ export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestro
 
   ngOnDestroy(): void {
     this.observer?.disconnect();
+    this.subscriptions.unsubscribe();
   }
 
   protected onRouteToggled(routeId: string): void {
@@ -92,23 +120,35 @@ export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestro
   }
 
   protected onExplanationRequested(): void {
-    this.navigateToRecommendations('explanation');
+    this.navigateToRecommendations('complexity');
   }
 
   protected onMarketRequested(): void {
     this.navigateToRecommendations('market');
   }
 
-  private navigateToRecommendations(tab: 'process' | 'explanation' | 'market'): void {
+  protected onGenerateRequested(): void {
+    this.facade.generateForSelectedListing();
+  }
+
+  protected retryLoad(): void {
+    this.facade.initialize(this.listingId());
+  }
+
+  private navigateToRecommendations(tab: 'process' | 'complexity' | 'market'): void {
     const productId = this.selectedProductId();
     if (!productId) {
       return;
     }
+    this.facade.rememberScrollPosition(window.scrollY);
 
     this.tourGuide.notifyRecommendationRouteChosen(tab, productId);
 
     void this.router.navigate(['/app/recommendations', productId], {
-      queryParams: { tab }
+      queryParams: {
+        tab,
+        listing: this.listingId() ?? undefined
+      }
     });
   }
 }

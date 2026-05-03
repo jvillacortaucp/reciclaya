@@ -1,12 +1,13 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { LucideBan, LucideEye, LucidePencil, LucideRotateCcw } from '@lucide/angular';
+import { LucideEye, LucidePencil, LucideXCircle } from '@lucide/angular';
 import { MyListing } from '../../domain/my-listing.model';
+import { FALLBACK_IMAGE_URL } from '../../../../core/constants/media.constants';
 
 @Component({
   selector: 'app-my-listing-card',
   standalone: true,
-  imports: [RouterLink, LucideBan, LucideEye, LucidePencil, LucideRotateCcw],
+  imports: [RouterLink, LucideEye, LucidePencil, LucideXCircle],
   template: `
     <article
       role="button"
@@ -17,27 +18,15 @@ import { MyListing } from '../../domain/my-listing.model';
       [class.ring-emerald-500]="isSelected"
       [class.ring-inset]="isSelected"
       [attr.data-tour]="tourTarget ? 'first-listing-card' : null"
+      [attr.data-tour-selected]="isSelected ? 'selected-listing-card' : null"
       (click)="selectCard()"
       (keydown.enter)="selectCard()"
       (keydown.space)="selectCard(); $event.preventDefault()">
       <div class="relative h-52 overflow-hidden rounded-t-3xl bg-slate-200">
-        @if (listing.imageUrl) {
-          <img [src]="listing.imageUrl" [alt]="listing.specificResidue" class="h-full w-full object-cover" />
-        } @else {
-          <div class="grid h-full w-full place-items-center bg-linear-to-br from-slate-200 to-slate-300 text-slate-500">
-            <span class="text-xs font-semibold uppercase tracking-[0.1em]">Sin imagen</span>
-          </div>
-        }
-        <span
-          class="absolute left-3 top-3 rounded-lg px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em]"
-          [class.bg-emerald-100]="listing.status === 'active'"
-          [class.text-emerald-700]="listing.status === 'active'"
-          [class.bg-slate-200]="listing.status === 'draft'"
-          [class.text-slate-700]="listing.status === 'draft'"
-          [class.bg-rose-100]="listing.status === 'inactive'"
-          [class.text-rose-700]="listing.status === 'inactive'"
-        >
-          {{ listing.status === 'active' ? 'Activo' : listing.status === 'draft' ? 'Borrador' : 'Desactivado' }}
+        <img [src]="listing.imageUrl || fallbackImage" [alt]="listing.specificResidue" class="h-full w-full object-cover" />
+        
+        <span class="absolute left-3 top-3 rounded-lg bg-emerald-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] text-emerald-700">
+          Activo
         </span>
       </div>
 
@@ -70,8 +59,8 @@ import { MyListing } from '../../domain/my-listing.model';
           <p class="text-xs text-slate-400">Publicado: {{ listing.publishedAt }}</p>
         </div>
 
-        <div class="mt-auto border-t border-slate-200 pt-3">
-          <div class="flex items-center justify-between gap-2">
+        <div class="mt-2 border-t border-slate-200 pt-3">
+          <div class="flex flex-wrap items-center justify-between gap-2">
             <a
               [routerLink]="['/marketplace', listing.id]"
               class="inline-flex items-center gap-1 text-base font-semibold text-emerald-700 transition hover:text-emerald-800"
@@ -81,35 +70,24 @@ import { MyListing } from '../../domain/my-listing.model';
               Ver detalle
             </a>
 
-            @if (listing.status !== 'inactive') {
-              <div class="flex items-center gap-2">
-                <button
-                  type="button"
-                  class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
-                  aria-label="Editar publicación"
-                  (click)="$event.stopPropagation(); edit.emit(listing.id)"
-                >
-                  <svg lucidePencil size="16"></svg>
-                </button>
-                <button
-                  type="button"
-                  class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-rose-50 hover:text-rose-700"
-                  aria-label="Desactivar publicación"
-                  (click)="$event.stopPropagation(); deactivate.emit(listing.id)"
-                >
-                  <svg lucideBan size="16"></svg>
-                </button>
-              </div>
-            } @else {
+            <div class="inline-flex items-center gap-3 text-slate-500">
               <button
                 type="button"
-                class="inline-flex items-center gap-1 rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-sm font-medium text-emerald-700 transition hover:bg-emerald-100"
-                (click)="$event.stopPropagation(); restore.emit(listing.id)"
+                class="inline-flex items-center justify-center rounded-lg p-2 transition hover:bg-slate-100 hover:text-slate-700"
+                aria-label="Editar publicación"
+                (click)="editListing($event)"
               >
-                <svg lucideRotateCcw size="14"></svg>
-                Restaurar
+                <svg lucidePencil size="16"></svg>
               </button>
-            }
+              <button
+                type="button"
+                class="inline-flex items-center justify-center rounded-lg p-2 transition hover:bg-rose-50 hover:text-rose-600"
+                aria-label="Cancelar publicación"
+                (click)="cancelListing($event)"
+              >
+                <svg lucideXCircle size="16"></svg>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -122,11 +100,23 @@ export class MyListingCardComponent {
   @Input() tourTarget = false;
   @Input() isSelected = false;
   @Output() readonly selected = new EventEmitter<string>();
+  @Output() readonly recommendations = new EventEmitter<string>();
   @Output() readonly edit = new EventEmitter<string>();
-  @Output() readonly deactivate = new EventEmitter<string>();
-  @Output() readonly restore = new EventEmitter<string>();
+  @Output() readonly cancel = new EventEmitter<string>();
 
   protected selectCard(): void {
     this.selected.emit(this.listing.id);
+  }
+
+  protected readonly fallbackImage = FALLBACK_IMAGE_URL;
+
+  protected editListing(event: Event): void {
+    event.stopPropagation();
+    this.edit.emit(this.listing.id);
+  }
+
+  protected cancelListing(event: Event): void {
+    event.stopPropagation();
+    this.cancel.emit(this.listing.id);
   }
 }

@@ -3,7 +3,7 @@ import { ComplexityLevel, MarketPotential } from '../models/value-sector.model';
 export const VALUE_SECTOR_TEXT = {
   title: 'Sector de valor',
   subtitle: 'Explora posibles productos y oportunidades generadas a partir de este residuo.',
-  baseResidueLabel: 'Residuo base: Cáscara de mango',
+  baseResidueFallback: 'Residuo seleccionado',
   helperLabel: 'Selecciona una ruta y un producto',
   secondaryHint: 'Selecciona una ruta y un producto para continuar con el análisis.',
   suggestedProductsTitle: 'Productos sugeridos',
@@ -11,8 +11,15 @@ export const VALUE_SECTOR_TEXT = {
   targetIndustriesTitle: 'Industrias objetivo',
   insightTitle: 'Recomendación rápida',
   continueButton: 'Ver proceso',
-  processButton: 'Ver explicación',
+  processButton: 'Ver nivel de complejidad',
   marketAnalysisLink: 'Ver análisis de mercado',
+  loadingMessage: 'Generando rutas de valor para este residuo...',
+  retryButton: 'Reintentar',
+  missingListingTitle: 'Selecciona una publicación para generar rutas de valor.',
+  missingListingDescription: 'Ingresa desde Mis publicaciones y elige el residuo que deseas valorizar.',
+  goToListingsButton: 'Ir a mis publicaciones',
+  emptyTitle: 'No se encontraron rutas de valor para este residuo.',
+  emptyDescription: 'Prueba con otra publicación o actualiza la información del residuo.',
   loadMoreMessage: 'Cargando más sectores...',
   noMoreMessage: 'No hay más sectores por mostrar.'
 } as const;

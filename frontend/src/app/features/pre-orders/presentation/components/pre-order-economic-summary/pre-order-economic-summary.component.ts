@@ -45,15 +45,18 @@ import { PreOrderPricingSummary, SimulatedPaymentStatus } from '../../../models/
           (click)="simulatePayment.emit()"
         >
           <svg lucideWalletCards size="18"></svg>
-          {{ paymentStatus === 'processing' ? 'Procesando pago...' : 'Pagar y generar pre-orden' }}
+          {{ paymentStatus === 'processing' ? 'Procesando pago...' : 'Realizar pago' }}
         </button>
+
+
         <button
           type="button"
-          class="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-3 text-base font-semibold text-slate-700 transition hover:bg-slate-50"
-          (click)="downloadQuote.emit()"
+          [disabled]="!preOrderCreated"
+          class="mt-3 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-3 text-base font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
+          (click)="downloadReceipt.emit()"
         >
           <svg lucideDownload size="16"></svg>
-          Descargar cotización (PDF)
+          Descargar constancia
         </button>
 
         <p class="mt-4 text-center text-sm text-slate-500">
@@ -68,10 +71,12 @@ export class PreOrderEconomicSummaryComponent {
   @Input() summary: PreOrderPricingSummary | null = null;
   @Input() unitLabel = 'Ton';
   @Input() paymentStatus: SimulatedPaymentStatus = 'idle';
+  @Input() preOrderCreated = false;
+  @Input() downloadingQuotation = false;
   @Output() readonly simulatePayment = new EventEmitter<void>();
-  @Output() readonly downloadQuote = new EventEmitter<void>();
+  @Output() readonly downloadReceipt = new EventEmitter<void>();
 
   protected get currencySymbol(): string {
-    return this.summary?.currency === 'PEN' ? 'S/' : '$';
+    return 'S/';
   }
 }

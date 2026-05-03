@@ -1,4 +1,4 @@
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { catchError, map, Observable, throwError } from 'rxjs';
 import { normalizeHttpError, unwrapApiResponse } from '../../core/http/api-response.helpers';
@@ -11,23 +11,17 @@ import {
   MessageThreadDetail,
   MessageThreadListItem
 } from './domain/messages.models';
-import { MessagesMockRepository } from './messages.repository';
 
 @Injectable({ providedIn: 'root' })
 export class MessagesHttpRepository {
   private readonly http = inject(HttpClient);
-  private readonly fallback = inject(MessagesMockRepository);
 
   listThreads(): Observable<readonly MessageThreadListItem[]> {
     return this.http
       .get<ApiResponse<readonly MessageThreadListItem[]>>(`${environment.apiBaseUrl}/messages/threads`)
       .pipe(
         map(unwrapApiResponse),
-        catchError((error: unknown) =>
-          this.fallbackOnNetworkError(error, 'No se pudieron cargar las conversaciones.', () =>
-            this.fallback.listThreads()
-          )
-        )
+        catchError((error: unknown) => this.handleHttpError(error, 'No se pudieron cargar las conversaciones.'))
       );
   }
 
@@ -36,11 +30,7 @@ export class MessagesHttpRepository {
       .get<ApiResponse<MessageThreadDetail>>(`${environment.apiBaseUrl}/messages/threads/${threadId}`)
       .pipe(
         map(unwrapApiResponse),
-        catchError((error: unknown) =>
-          this.fallbackOnNetworkError(error, 'No se pudo cargar la conversación.', () =>
-            this.fallback.getThread(threadId)
-          )
-        )
+        catchError((error: unknown) => this.handleHttpError(error, 'No se pudo cargar la conversación.'))
       );
   }
 
@@ -49,11 +39,7 @@ export class MessagesHttpRepository {
       .post<ApiResponse<MessageThreadDetail>>(`${environment.apiBaseUrl}/messages/from-request/${requestId}`, null)
       .pipe(
         map(unwrapApiResponse),
-        catchError((error: unknown) =>
-          this.fallbackOnNetworkError(error, 'No se pudo abrir la conversación.', () =>
-            this.fallback.getOrCreateFromRequest(requestId)
-          )
-        )
+        catchError((error: unknown) => this.handleHttpError(error, 'No se pudo abrir la conversación.'))
       );
   }
 
@@ -62,11 +48,7 @@ export class MessagesHttpRepository {
       .post<ApiResponse<MessageItem>>(`${environment.apiBaseUrl}/messages/threads/${threadId}/messages`, payload)
       .pipe(
         map(unwrapApiResponse),
-        catchError((error: unknown) =>
-          this.fallbackOnNetworkError(error, 'No se pudo enviar el mensaje.', () =>
-            this.fallback.sendMessage(threadId, payload)
-          )
-        )
+        catchError((error: unknown) => this.handleHttpError(error, 'No se pudo enviar el mensaje.'))
       );
   }
 
@@ -75,23 +57,11 @@ export class MessagesHttpRepository {
       .patch<ApiResponse<MarkThreadReadResult>>(`${environment.apiBaseUrl}/messages/threads/${threadId}/read`, null)
       .pipe(
         map(unwrapApiResponse),
-        catchError((error: unknown) =>
-          this.fallbackOnNetworkError(error, 'No se pudo marcar la conversación como leída.', () =>
-            this.fallback.markAsRead(threadId)
-          )
-        )
+        catchError((error: unknown) => this.handleHttpError(error, 'No se pudo marcar la conversación como leída.'))
       );
   }
 
-  private fallbackOnNetworkError<T>(
-    error: unknown,
-    fallbackMessage: string,
-    fallbackFactory: () => Observable<T>
-  ): Observable<T> {
-    if (error instanceof HttpErrorResponse && error.status === 0) {
-      return fallbackFactory();
-    }
-
+  private handleHttpError(error: unknown, fallbackMessage: string): Observable<never> {
     return throwError(() => normalizeHttpError(error, fallbackMessage));
   }
 }

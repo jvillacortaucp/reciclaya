@@ -11,7 +11,6 @@ import { ProductSuggestionCardComponent } from './product-suggestion-card.compon
       @for (item of suggestions(); track item.id) {
         <app-product-suggestion-card
           [suggestion]="item"
-          [selected]="selectedSuggestionId() === item.id"
           (picked)="selected.emit($event)" />
       }
     </div>
@@ -20,6 +19,5 @@ import { ProductSuggestionCardComponent } from './product-suggestion-card.compon
 })
 export class ProductSuggestionCardsComponent {
   suggestions = input.required<readonly ProductSuggestion[]>();
-  selectedSuggestionId = input<string | null>(null);
   selected = output<ProductSuggestion>();
 }

@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { FALLBACK_IMAGE_URL } from '../../../../../core/constants/media.constants';
 import { LucideExternalLink, LucideEye } from '@lucide/angular';
 import {
   VALUE_SECTOR_COMPLEXITY_LABEL,
@@ -40,6 +41,8 @@ export class ValueSectorSummaryComponent {
     if (!selected) return '-';
     return VALUE_SECTOR_COMPLEXITY_LABEL[selected.complexity];
   });
+
+  protected readonly fallbackImage = FALLBACK_IMAGE_URL;
 
   protected onProcessRequested(): void {
     if (!this.actionsEnabled()) return;

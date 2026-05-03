@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, effect, HostListener, inject, signal } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { Router, RouterOutlet } from '@angular/router';
 import { AuthFacade } from '../../../features/auth/services/auth.facade';
 import { SidebarComponent } from './sidebar/sidebar.component';
 import { TopbarComponent } from './topbar/topbar.component';
@@ -18,9 +18,13 @@ import { TopbarComponent } from './topbar/topbar.component';
 export class AppShellLayoutComponent {
   protected readonly isSidebarOpen = signal(false);
   private readonly authFacade = inject(AuthFacade);
+  private readonly router = inject(Router);
 
   constructor() {
-    this.authFacade.syncSession();
+    if (this.router.url.startsWith('/app')) {
+      this.authFacade.syncSession();
+    }
+
     effect(() => {
       if (this.isSidebarOpen()) {
         document.body.classList.add('overflow-hidden');

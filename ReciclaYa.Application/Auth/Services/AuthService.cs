@@ -44,13 +44,25 @@ public sealed class AuthService(
         RegisterCompanyRequest request,
         CancellationToken cancellationToken = default)
     {
+        var companyValidationErrors = ValidateCompanyRequest(request);
+        if (companyValidationErrors.Count > 0)
+        {
+            return AuthResult<AuthSessionDto>.Fail(400, companyValidationErrors[0], companyValidationErrors.ToArray());
+        }
+
         if (!PasswordsMatch(request.Password, request.ConfirmPassword))
         {
             return AuthResult<AuthSessionDto>.Fail(400, "Passwords do not match.", "PASSWORD_MISMATCH");
         }
 
         var email = Normalize(request.Email);
-        var ruc = request.Company.Ruc.Trim();
+        var ruc = InputValidation.NormalizeText(request.Company.Ruc);
+        var businessName = InputValidation.NormalizeText(request.Company.BusinessName);
+        var mobilePhone = InputValidation.NormalizeText(request.Company.MobilePhone);
+        var address = InputValidation.NormalizeText(request.Company.Address);
+        var postalCode = InputValidation.NormalizeText(request.Company.PostalCode);
+        var legalRepresentative = InputValidation.NormalizeText(request.Company.LegalRepresentative);
+        var position = InputValidation.NormalizeText(request.Company.Position);
 
         if (await dbContext.Users.AnyAsync(user => user.Email == email, cancellationToken))
         {
@@ -62,6 +74,18 @@ public sealed class AuthService(
             return AuthResult<AuthSessionDto>.Fail(409, "RUC is already registered.", "RUC_ALREADY_EXISTS");
         }
 
+        if (await dbContext.Companies.AnyAsync(
+                company => company.BusinessName == businessName
+                    && company.LegalRepresentative == legalRepresentative
+                    && company.MobilePhone == mobilePhone,
+                cancellationToken))
+        {
+            return AuthResult<AuthSessionDto>.Fail(
+                409,
+                "A company with the same identity details is already registered.",
+                "COMPANY_IDENTITY_ALREADY_EXISTS");
+        }
+
         var now = DateTimeOffset.UtcNow;
         var userId = Guid.NewGuid();
         var user = new User
@@ -69,7 +93,7 @@ public sealed class AuthService(
             Id = userId,
             Email = email,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
-            FullName = request.Company.LegalRepresentative.Trim(),
+            FullName = legalRepresentative,
             Role = ResolveRole(request.Intent),
             ProfileType = ProfileType.Company,
             Status = UserStatus.Active,
@@ -80,12 +104,12 @@ public sealed class AuthService(
                 Id = Guid.NewGuid(),
                 UserId = userId,
                 Ruc = ruc,
-                BusinessName = request.Company.BusinessName.Trim(),
-                MobilePhone = request.Company.MobilePhone.Trim(),
-                Address = request.Company.Address.Trim(),
-                PostalCode = request.Company.PostalCode.Trim(),
-                LegalRepresentative = request.Company.LegalRepresentative.Trim(),
-                Position = request.Company.Position.Trim(),
+                BusinessName = businessName,
+                MobilePhone = mobilePhone,
+                Address = address,
+                PostalCode = postalCode,
+                LegalRepresentative = legalRepresentative,
+                Position = position,
                 VerificationStatus = VerificationStatus.Pending,
                 CreatedAt = now,
                 UpdatedAt = now
@@ -102,13 +126,22 @@ public sealed class AuthService(
         RegisterPersonRequest request,
         CancellationToken cancellationToken = default)
     {
+        var personValidationErrors = ValidatePersonRequest(request);
+        if (personValidationErrors.Count > 0)
+        {
+            return AuthResult<AuthSessionDto>.Fail(400, personValidationErrors[0], personValidationErrors.ToArray());
+        }
+
         if (!PasswordsMatch(request.Password, request.ConfirmPassword))
         {
             return AuthResult<AuthSessionDto>.Fail(400, "Passwords do not match.", "PASSWORD_MISMATCH");
         }
 
         var email = Normalize(request.Email);
-        var documentNumber = request.DocumentNumber.Trim();
+        var documentNumber = InputValidation.NormalizeText(request.DocumentNumber);
+        var mobilePhone = InputValidation.NormalizeText(request.MobilePhone);
+        var address = InputValidation.NormalizeText(request.Address);
+        var postalCode = InputValidation.NormalizeText(request.PostalCode);
 
         if (await dbContext.Users.AnyAsync(user => user.Email == email, cancellationToken))
         {
@@ -122,8 +155,21 @@ public sealed class AuthService(
 
         var now = DateTimeOffset.UtcNow;
         var userId = Guid.NewGuid();
-        var firstName = request.FirstName.Trim();
-        var lastName = request.LastName.Trim();
+        var firstName = InputValidation.NormalizeText(request.FirstName);
+        var lastName = InputValidation.NormalizeText(request.LastName);
+
+        if (await dbContext.PersonProfiles.AnyAsync(
+                profile => profile.FirstName == firstName
+                    && profile.LastName == lastName
+                    && profile.MobilePhone == mobilePhone,
+                cancellationToken))
+        {
+            return AuthResult<AuthSessionDto>.Fail(
+                409,
+                "A user with the same identity details is already registered.",
+                "PERSON_IDENTITY_ALREADY_EXISTS");
+        }
+
         var user = new User
         {
             Id = userId,
@@ -142,9 +188,9 @@ public sealed class AuthService(
                 FirstName = firstName,
                 LastName = lastName,
                 DocumentNumber = documentNumber,
-                MobilePhone = request.MobilePhone.Trim(),
-                Address = request.Address.Trim(),
-                PostalCode = request.PostalCode.Trim(),
+                MobilePhone = mobilePhone,
+                Address = address,
+                PostalCode = postalCode,
                 VerificationStatus = VerificationStatus.Pending,
                 CreatedAt = now,
                 UpdatedAt = now
@@ -253,7 +299,7 @@ public sealed class AuthService(
 
     private static string Normalize(string value)
     {
-        return value.Trim().ToLowerInvariant();
+        return InputValidation.NormalizeText(value).ToLowerInvariant();
     }
 
     private static bool PasswordsMatch(string password, string confirmPassword)
@@ -266,5 +312,54 @@ public sealed class AuthService(
         var normalizedIntent = Normalize(intent);
 
         return normalizedIntent is "sell" or "seller" or "both" ? UserRole.Seller : UserRole.Buyer;
+    }
+
+    private static List<string> ValidateCompanyRequest(RegisterCompanyRequest request)
+    {
+        var errors = new List<string>();
+
+        AddIfNotNull(errors, InputValidation.ValidateEmail(request.Email));
+        AddIfNotNull(errors, InputValidation.ValidateRuc(request.Company.Ruc));
+        AddIfNotNull(errors, InputValidation.ValidateBusinessName(request.Company.BusinessName));
+        AddIfNotNull(errors, InputValidation.ValidatePhone(request.Company.MobilePhone));
+        AddIfNotNull(errors, InputValidation.ValidateAddress(request.Company.Address));
+        AddIfNotNull(errors, InputValidation.ValidatePostalCode(request.Company.PostalCode));
+        AddIfNotNull(errors, InputValidation.ValidatePersonName(request.Company.LegalRepresentative, "Legal representative"));
+        AddIfNotNull(errors, InputValidation.ValidatePosition(request.Company.Position));
+
+        if (string.IsNullOrWhiteSpace(request.Password) || request.Password.Length < 8)
+        {
+            errors.Add("Password must contain at least 8 characters.");
+        }
+
+        return errors;
+    }
+
+    private static List<string> ValidatePersonRequest(RegisterPersonRequest request)
+    {
+        var errors = new List<string>();
+
+        AddIfNotNull(errors, InputValidation.ValidateEmail(request.Email));
+        AddIfNotNull(errors, InputValidation.ValidatePersonName(request.FirstName, "First name"));
+        AddIfNotNull(errors, InputValidation.ValidatePersonName(request.LastName, "Last name"));
+        AddIfNotNull(errors, InputValidation.ValidateDocumentNumber(request.DocumentNumber));
+        AddIfNotNull(errors, InputValidation.ValidatePhone(request.MobilePhone));
+        AddIfNotNull(errors, InputValidation.ValidateAddress(request.Address));
+        AddIfNotNull(errors, InputValidation.ValidatePostalCode(request.PostalCode));
+
+        if (string.IsNullOrWhiteSpace(request.Password) || request.Password.Length < 8)
+        {
+            errors.Add("Password must contain at least 8 characters.");
+        }
+
+        return errors;
+    }
+
+    private static void AddIfNotNull(List<string> errors, string? value)
+    {
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            errors.Add(value);
+        }
     }
 }

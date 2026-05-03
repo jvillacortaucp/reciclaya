@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
+import { FALLBACK_IMAGE_URL } from '../../../../../core/constants/media.constants';
 import { RouterLink } from '@angular/router';
 import { LucidePackage } from '@lucide/angular';
 import { MarketplaceListing } from '../../../domain/marketplace.models';
@@ -11,7 +12,7 @@ import { MarketplaceListing } from '../../../domain/marketplace.models';
     <article class="flex h-full min-h-490px min-w-0 flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
       <div class="relative h-62 overflow-hidden bg-slate-200">
         @if (primaryMedia(); as media) {
-          <img [src]="media.url" [alt]="media.alt" class="h-full w-full object-cover" />
+          <img [src]="media.url || fallbackImage" [alt]="media.alt" class="h-full w-full object-cover" />
         } @else {
           <div class="grid h-full w-full place-items-center bg-linear-to-br from-slate-200 to-slate-300 text-slate-500">
             <span class="text-xs font-semibold uppercase tracking-0.1em">Sin imagen</span>
@@ -30,7 +31,7 @@ import { MarketplaceListing } from '../../../domain/marketplace.models';
             {{ listing.wasteType === 'organic' ? 'Orgánico' : 'Inorgánico' }}
           </span>
           <span class="shrink-0 text-sm font-semibold text-slate-800">
-            @if (listing.pricePerUnitUsd === null) { Negociable } @else { USD {{ listing.pricePerUnitUsd }}/t }
+            @if (listing.pricePerUnitUsd === null) { Negociable } @else { S/ {{ listing.pricePerUnitUsd }}/t }
           </span>
         </div>
         <h3 class="mt-2 line-clamp-2 text-lg font-semibold leading-snug text-slate-900">{{ listing.specificResidue }}</h3>
@@ -57,4 +58,6 @@ export class MarketplaceProductCardComponent {
   protected primaryMedia(): MarketplaceListing['media'][number] | null {
     return this.listing.media[0] ?? null;
   }
+
+  protected readonly fallbackImage = FALLBACK_IMAGE_URL;
 }

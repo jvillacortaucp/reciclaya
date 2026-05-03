@@ -7,7 +7,7 @@ export interface MyListingsSelectOption<TValue extends string> {
 }
 
 export interface MyListingsTabOption {
-  readonly value: 'active' | 'draft' | 'inactive';
+  readonly value: 'active';
   readonly label: string;
 }
 
@@ -28,9 +28,7 @@ export const MY_LISTINGS_COPY = {
 } as const;
 
 export const MY_LISTINGS_TAB_OPTIONS: readonly MyListingsTabOption[] = [
-  { value: 'active', label: 'Activas' },
-  { value: 'draft', label: 'Borradores' },
-  { value: 'inactive', label: 'Desactivadas' }
+  { value: 'active', label: 'Activas' }
 ];
 
 export const MY_LISTINGS_RESIDUE_TYPE_OPTIONS: readonly MyListingsSelectOption<
@@ -63,10 +61,7 @@ export const MY_LISTINGS_PRODUCT_OPTIONS: readonly MyListingsSelectOption<
 export const MY_LISTINGS_STATUS_OPTIONS: readonly MyListingsSelectOption<
   MyListingsFilterState['status']
 >[] = [
-  { value: 'all', label: 'Todos los estados' },
-  { value: 'active', label: 'Activas' },
-  { value: 'draft', label: 'Borradores' },
-  { value: 'inactive', label: 'Desactivadas' }
+  { value: 'active', label: 'Activas' }
 ];
 
 export const MY_LISTINGS_EXCHANGE_OPTIONS: readonly MyListingsSelectOption<
@@ -84,7 +79,7 @@ export const MY_LISTINGS_DEFAULT_FILTERS: MyListingsFilterState = {
   sector: 'all',
   productType: 'all',
   specificResidue: '',
-  status: 'all',
+  status: 'active',
   exchangeType: 'all',
   publishedDate: ''
 };

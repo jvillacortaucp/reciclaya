@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, HostListener, Input, Output } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { LucideShieldCheck, LucideX } from '@lucide/angular';
-import { MockPaymentCard } from '../../data/payment-card.mock';
+import { SimulatedPaymentCard } from '../../models/pre-order.model';
 
 export interface CardPaymentConfirmation {
   readonly holderName: string;
@@ -64,14 +64,13 @@ export interface CardPaymentConfirmation {
             </div>
             <div class="grid grid-cols-2 gap-3">
               <div class="space-y-1.5">
-                <label class="text-sm text-slate-700">Vencimiento</label>
-                <input
-                  type="text"
-                  formControlName="expiryDate"
-                  placeholder="MM/AA"
-                  class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-base text-slate-900 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200"
-                />
-              </div>
+                  <label class="text-sm text-slate-700">Vencimiento</label>
+                  <input
+                    type="month"
+                    formControlName="expiryDate"
+                    class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-base text-slate-900 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200"
+                  />
+                </div>
               <div class="space-y-1.5">
                 <label class="text-sm text-slate-700">CVV / CCV</label>
                 <input
@@ -122,7 +121,7 @@ export class CardPaymentModalComponent {
   private readonly fb = new FormBuilder();
 
   @Input() open = false;
-  @Input() mockCard: MockPaymentCard | null = null;
+  @Input() mockCard: SimulatedPaymentCard | null = null;
 
   @Output() readonly confirmed = new EventEmitter<CardPaymentConfirmation>();
   @Output() readonly closed = new EventEmitter<void>();
@@ -130,7 +129,7 @@ export class CardPaymentModalComponent {
   protected readonly form = this.fb.nonNullable.group({
     cardNumber: ['', [Validators.required, Validators.minLength(19)]],
     holderName: ['', [Validators.required, Validators.minLength(3)]],
-    expiryDate: ['', [Validators.required, Validators.pattern(/^\d{2}\/\d{2}$/)]],
+    expiryDate: ['', [Validators.required]],
     cvv: ['', [Validators.required, Validators.pattern(/^\d{3,4}$/)]],
     useForSimulation: [true]
   });
@@ -140,7 +139,7 @@ export class CardPaymentModalComponent {
       this.form.patchValue({
         cardNumber: this.mockCard.cardNumber,
         holderName: this.mockCard.holderName,
-        expiryDate: this.mockCard.expiryDate,
+        expiryDate: this.normalizeMockExpiryToMonthInput(this.mockCard.expiryDate),
         cvv: this.mockCard.cvv,
         useForSimulation: true
       });
@@ -170,6 +169,49 @@ export class CardPaymentModalComponent {
       return;
     }
 
-    this.confirmed.emit(this.form.getRawValue());
+    const raw = this.form.getRawValue();
+    const normalizedExpiry = this.normalizeExpiryForEmit(raw.expiryDate);
+
+    this.confirmed.emit({
+      holderName: raw.holderName,
+      cardNumber: raw.cardNumber,
+      expiryDate: normalizedExpiry,
+      cvv: raw.cvv,
+      useForSimulation: raw.useForSimulation
+    });
+  }
+
+  private normalizeMockExpiryToMonthInput(expiry: string): string {
+    // Accept either MM/YY or YYYY-MM; convert MM/YY -> YYYY-MM
+    if (!expiry) return '';
+    const mmyy = expiry.match(/^(\d{2})\/(\d{2})$/);
+    if (mmyy) {
+      const mm = mmyy[1];
+      const yy = mmyy[2];
+      const yyyy = Number(yy) > 50 ? `19${yy}` : `20${yy}`;
+      return `${yyyy}-${mm}`;
+    }
+    // if already YYYY-MM, return as is
+    const ymmm = expiry.match(/^(\d{4})-(\d{2})$/);
+    if (ymmm) {
+      return expiry;
+    }
+    return '';
+  }
+
+  private normalizeExpiryForEmit(value: string): string {
+    // value expected from input type=month as YYYY-MM
+    const m = value?.match(/^(\d{4})-(\d{2})$/);
+    if (m) {
+      const yyyy = m[1];
+      const mm = m[2];
+      const yy = yyyy.slice(-2);
+      return `${mm}/${yy}`;
+    }
+    // fallback: if already MM/YY, return
+    if (value?.match(/^\d{2}\/\d{2}$/)) {
+      return value;
+    }
+    return value ?? '';
   }
 }

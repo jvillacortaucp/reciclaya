@@ -3,6 +3,13 @@
     @for (tab of tabs; track tab.key) {
       <button
         type="button"
+        [attr.data-tour]="
+          tab.key === 'process'
+            ? 'tab-process'
+            : tab.key === 'explanation'
+              ? 'tab-complexity'
+              : 'tab-market'
+        "
         class="relative h-10 px-2 text-sm font-medium transition sm:text-base focus:outline-none cursor-pointer"
         [class.text-emerald-700]="activeTab() === tab.key"
         [class.text-slate-600]="activeTab() !== tab.key"

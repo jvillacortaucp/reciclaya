@@ -125,10 +125,40 @@ export interface PreOrder {
 
 export interface Recommendation {
   readonly id: string;
+  readonly listingId: string;
   readonly title: string;
-  readonly confidenceScore: number;
+  readonly confidenceScore: number; // 0..100
   readonly reason: string;
-  readonly listingId?: string;
+  readonly source?: 'deepseek' | 'fallback' | string;
+  readonly wasteType?: string | null;
+  readonly sector?: string | null;
+  readonly productType?: string | null;
+  readonly pricePerUnitUsd?: number | null;
+  readonly location?: string | null;
+  readonly suggestedAction?: string | null;
+  readonly buyerBenefit?: string | null;
+  readonly recommendedUse?: string | null;
+  readonly potentialProducts?: readonly string[];
+  readonly requiredConditions?: readonly string[];
+  readonly risks?: readonly string[];
+  readonly nextStep?: string | null;
+  readonly viabilityLevel?: 'low' | 'medium' | 'high' | string | null;
+}
+
+export interface RecommendationDetail {
+  readonly listingId: string;
+  readonly listingTitle: string;
+  readonly aiExplanation: string;
+  readonly recommendedUse: string;
+  readonly buyerBenefit: string;
+  readonly suggestedAction: string;
+  readonly potentialProducts: readonly string[];
+  readonly requiredConditions: readonly string[];
+  readonly risks: readonly string[];
+  readonly nextStep: string;
+  readonly confidenceScore: number;
+  readonly viabilityLevel: 'low' | 'medium' | 'high' | string;
+  readonly source: 'deepseek' | 'fallback' | string;
 }
 
 export enum UserRole {

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, OnDestroy, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { Subscription } from 'rxjs';
@@ -23,6 +23,7 @@ import {
   MY_LISTINGS_TAB_OPTIONS
 } from '../data/my-listings.constants';
 import { ListingTab } from '../domain/my-listing.model';
+import { MyListing } from '../domain/my-listing.model';
 import { FloatingActionsComponent } from './components/floating-actions.component';
 import { MyListingCardComponent } from './components/my-listing-card.component';
 import { MyListingsFiltersComponent } from './components/my-listings-filters.component';
@@ -71,7 +72,12 @@ export class MyListingsPageComponent implements OnInit, OnDestroy {
 
   protected readonly filtersOpen = signal(false);
   protected readonly selectedListingId = signal<string | null>(null);
-  protected readonly hasSelectedListing = signal(false);
+  protected readonly selectedListing = computed<MyListing | null>(() => {
+    const id = this.selectedListingId();
+    if (!id) return null;
+    return this.listings().find((item) => item.id === id) ?? null;
+  });
+  protected readonly hasSelectedListing = computed(() => this.selectedListing() !== null);
 
   protected readonly filtersForm = this.fb.nonNullable.group({
     searchQuery: [MY_LISTINGS_DEFAULT_FILTERS.searchQuery],
@@ -79,7 +85,7 @@ export class MyListingsPageComponent implements OnInit, OnDestroy {
     sector: [MY_LISTINGS_DEFAULT_FILTERS.sector],
     productType: [MY_LISTINGS_DEFAULT_FILTERS.productType],
     specificResidue: [MY_LISTINGS_DEFAULT_FILTERS.specificResidue],
-    status: [MY_LISTINGS_DEFAULT_FILTERS.status],
+    status: [{ value: MY_LISTINGS_DEFAULT_FILTERS.status, disabled: true }],
     exchangeType: [MY_LISTINGS_DEFAULT_FILTERS.exchangeType],
     publishedDate: [MY_LISTINGS_DEFAULT_FILTERS.publishedDate]
   });
@@ -117,9 +123,8 @@ export class MyListingsPageComponent implements OnInit, OnDestroy {
   }
 
   protected setTab(tab: ListingTab): void {
-    this.facade.setTab(tab);
+    this.facade.setTab('active');
     this.selectedListingId.set(null);
-    this.hasSelectedListing.set(false);
   }
 
   protected editListing(id: string): void {
@@ -144,13 +149,17 @@ export class MyListingsPageComponent implements OnInit, OnDestroy {
 
   protected selectListing(listingId: string): void {
     this.selectedListingId.set(listingId);
-    this.hasSelectedListing.set(true);
     this.tourGuide.notifyListingSelected(listingId);
   }
 
   protected goToValueSector(): void {
-    const listingId = this.selectedListingId();
-    if (!listingId) return;
+    const listingId = this.selectedListing()?.id;
+    if (!listingId) {
+      this.facade.showMissingListingToast();
+      return;
+    }
+    this.tourGuide.notifyRecommendationsClicked(listingId);
+    this.facade.showGeneratingRoutesToast();
     this.router.navigate(['/app/value-sector'], { queryParams: { listing: listingId } });
   }
 }

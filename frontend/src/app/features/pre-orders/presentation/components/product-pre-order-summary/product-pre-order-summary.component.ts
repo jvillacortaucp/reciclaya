@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
+import { FALLBACK_IMAGE_URL } from '../../../../../core/constants/media.constants';
 import { PreOrderListing } from '../../../models/pre-order.model';
 
 @Component({
@@ -46,10 +47,9 @@ import { PreOrderListing } from '../../../models/pre-order.model';
 export class ProductPreOrderSummaryComponent {
   @Input({ required: true }) listing: PreOrderListing | null = null;
 
-  protected readonly fallbackImage =
-    'https://images.unsplash.com/photo-1514996937319-344454492b37?auto=format&fit=crop&w=1200&q=80';
+  protected readonly fallbackImage = FALLBACK_IMAGE_URL;
 
   protected get currencySymbol(): string {
-    return this.listing?.currency === 'PEN' ? 'S/' : '$';
+    return 'S/';
   }
 }
