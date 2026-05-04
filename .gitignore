@@ -489,6 +489,11 @@ appsettings.Development.json
 
 .tpm-preorder-build
 .tpm-preorder-pdf-build
+oko.txt
+oño.txt
+oño.sjon
+*.sjon
+appsettingsDevelopment.json
 
 # Testing reports and analysis files
 .scannerwork/
@@ -505,4 +510,3 @@ appsettings.json
 appsettings.Development.json
 /.tmp-preorder-build
 /.tmp-preorder-pdf-build
-

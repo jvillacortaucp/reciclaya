@@ -1,53 +1,87 @@
 <section class="mx-auto flex h-[calc(100vh-4rem)] w-full max-w-[1720px] flex-col overflow-hidden px-3 pb-3 pt-4 sm:px-6 lg:px-8">
   <header class="mb-3 flex flex-wrap items-end justify-between gap-2">
     <div>
-      <div class="flex items-center gap-3">
-        <h1 class="text-3xl font-bold tracking-tight bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent sm:text-4xl">
-          ReciclaIA
-        </h1>
-        <div class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 border border-emerald-100 shadow-sm animate-fade-in">
-          <span class="relative flex h-2 w-2">
-            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-          </span>
-          <span class="text-xs font-medium text-emerald-700">En línea</span>
-        </div>
-      </div>
-      <p class="mt-1.5 max-w-3xl text-sm leading-relaxed text-slate-500 sm:text-base">{{ copy.subtitle }}</p>
+      <h1 class="text-2xl font-semibold tracking-tight text-emerald-700 sm:text-3xl">EcoInnovador</h1>
+      <p class="mt-1 max-w-3xl text-sm leading-relaxed text-slate-500 sm:text-base">{{ copy.subtitle }}</p>
     </div>
-    <button
-      type="button"
-      class="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-      (click)="clearConversation()">
-      <svg lucideTrash2 class="h-4 w-4"></svg>
-      Limpiar conversación
-    </button>
+    <div class="flex items-center gap-2">
+      <!-- TTS Toggle -->
+      <button
+        type="button"
+        class="inline-flex h-10 items-center gap-2 rounded-xl border px-3 text-sm font-medium transition"
+        [class]="ttsEnabled() ? 'border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'"
+        (click)="toggleTts()"
+        [title]="ttsEnabled() ? 'Desactivar voz del asistente' : 'Activar voz del asistente'">
+        @if (ttsEnabled()) {
+          <svg lucideVolume2 class="h-4 w-4"></svg>
+          @if (isSpeaking()) {
+            <span class="flex items-center gap-1">
+              Hablando
+              <span class="inline-flex gap-0.5">
+                <span class="h-1.5 w-1.5 animate-bounce rounded-full bg-emerald-500 [animation-delay:-0.2s]"></span>
+                <span class="h-1.5 w-1.5 animate-bounce rounded-full bg-emerald-500 [animation-delay:-0.1s]"></span>
+                <span class="h-1.5 w-1.5 animate-bounce rounded-full bg-emerald-500"></span>
+              </span>
+            </span>
+          } @else {
+            Voz activa
+          }
+        } @else {
+          <svg lucideVolumeOff class="h-4 w-4"></svg>
+          Voz
+        }
+      </button>
+      <!-- Clear Conversation -->
+      <button
+        type="button"
+        class="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+        (click)="clearConversation()">
+        <svg lucideTrash2 class="h-4 w-4"></svg>
+        Limpiar conversación
+      </button>
+    </div>
   </header>
 
-  <div #chatContainer class="flex-1 overflow-y-auto rounded-3xl border border-slate-200/80 bg-slate-50/40 backdrop-blur-sm p-3 md:p-5 shadow-inner scroll-smooth">
-    <div class="mx-auto min-h-[180px] w-full max-w-[1380px] space-y-3 md:min-h-[220px] md:space-y-4">
+  <div #chatContainer class="flex-1 overflow-y-auto rounded-3xl border border-slate-200 bg-slate-50 p-4 md:p-6 lg:p-8 scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+    <div class="mx-auto min-h-[180px] w-full max-w-[1380px] space-y-4 md:space-y-6 lg:space-y-8">
       @for (message of messages(); track message.id) {
-        @if (message.type === 'text') {
-          <app-chat-message-bubble [message]="message" />
-        } @else {
-          <div class="pl-0 sm:pl-12">
-            <app-product-suggestion-cards
-              [suggestions]="message.suggestions ?? []"
-              (selected)="onProductSelected($event)" />
-          </div>
+        @switch (message.type) {
+          @case ('text') {
+            <app-chat-message-bubble [message]="message" />
+          }
+          @case ('product_suggestions') {
+            <div class="pl-0 sm:pl-12 space-y-3">
+              @if (message.urgencia && message.urgencia !== 'media') {
+                <div class="inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-xs font-semibold"
+                     [class]="urgenciaStyles[message.urgencia!]">
+                  {{ urgenciaIcons[message.urgencia!] }} {{ urgenciaLabels[message.urgencia!] }}
+                </div>
+              }
+              <app-product-suggestion-cards
+                [suggestions]="message.suggestions ?? []"
+                (selected)="onProductSelected($event)" />
+            </div>
+          }
+          @case ('quick_links') {
+            @if (message.quickLinks) {
+              <app-quick-links-card [quickLinks]="message.quickLinks" />
+            }
+          }
         }
       }
 
       @if (typing()) {
         <app-typing-indicator />
       }
+
+
     </div>
   </div>
 
-  <footer class="mt-3 rounded-3xl border border-slate-200/80 bg-white/80 backdrop-blur-sm px-4 py-4 shadow-sm">
+  <footer class="mt-4 rounded-3xl border border-slate-200 bg-white p-5 sm:p-6 lg:p-7">
     <div class="mx-auto w-full max-w-[1380px]">
       <div class="mb-3 flex flex-wrap items-center gap-3">
-        <p class="text-xs font-bold uppercase tracking-wider text-slate-400">{{ copy.suggestionsLabel }}</p>
+        <p class="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">{{ copy.suggestionsLabel }}</p>
         <app-quick-suggestion-chips
           [suggestions]="quickSuggestions"
           (selected)="applySuggestion($event)" />
@@ -61,4 +95,3 @@
     </div>
   </footer>
 </section>
-
