@@ -1,12 +1,12 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { DatePipe, NgClass } from '@angular/common';
-import { LucideBot, LucideUserCircle2 } from '@lucide/angular';
+import { LucideBot, LucideCircleUserRound } from '@lucide/angular';
 import { ChatMessage } from '../../models/assistant-chat.model';
 
 @Component({
   selector: 'app-chat-message-bubble',
   standalone: true,
-  imports: [NgClass, DatePipe, LucideBot, LucideUserCircle2],
+  imports: [NgClass, DatePipe, LucideBot, LucideCircleUserRound],
   template: `
     <div class="flex w-full gap-2" [class.justify-end]="message().role === 'user'">
       @if (message().role === 'assistant') {
@@ -38,7 +38,7 @@ import { ChatMessage } from '../../models/assistant-chat.model';
 
       @if (message().role === 'user') {
         <span class="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-slate-200 text-slate-600">
-          <svg lucideUserCircle2 class="h-4 w-4"></svg>
+          <svg lucideCircleUserRound class="h-4 w-4"></svg>
         </span>
       }
     </div>

@@ -1,11 +1,15 @@
-import { ChangeDetectionStrategy, Component, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, output, signal, OnDestroy, inject } from '@angular/core';
 import { ReactiveFormsModule, FormControl } from '@angular/forms';
-import { LucideMic, LucideSendHorizontal, LucideSquare } from '@lucide/angular';
+import { LucideMic, LucideSendHorizontal, LucideSquare, LucideX } from '@lucide/angular';
+import { ToastService } from '../../../../core/services/toast.service';
+
+/** How long to wait (ms) after the last speech before auto-submitting. */
+const SILENCE_TIMEOUT_MS = 2000;
 
 @Component({
   selector: 'app-chat-input',
   standalone: true,
-  imports: [ReactiveFormsModule, LucideMic, LucideSendHorizontal, LucideSquare],
+  imports: [ReactiveFormsModule, LucideMic, LucideSendHorizontal, LucideSquare, LucideX],
   template: `
     <form class="flex items-center gap-3" (submit)="$event.preventDefault(); !disabled() && submitMessage()">
       <div class="relative flex-1">
@@ -15,7 +19,10 @@ import { LucideMic, LucideSendHorizontal, LucideSquare } from '@lucide/angular';
           class="h-14 w-full rounded-2xl border border-slate-200 bg-white pl-5 pr-24 text-base text-slate-700 placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100 sm:h-16 sm:rounded-3xl sm:text-lg"
           [placeholder]="isRecording() ? 'Escuchando tu voz...' : placeholder()"
           [readOnly]="disabled() || isRecording()"
-          [class.opacity-60]="disabled()" />
+          [class.opacity-60]="disabled()"
+          [class.border-emerald-400]="isRecording()"
+          [class.ring-2]="isRecording()"
+          [class.ring-emerald-100]="isRecording()" />
 
         <div class="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
           <!-- Voice Soundwave Animation when recording -->
@@ -27,6 +34,15 @@ import { LucideMic, LucideSendHorizontal, LucideSquare } from '@lucide/angular';
               <span class="voice-bar"></span>
               <span class="voice-bar"></span>
             </div>
+
+            <!-- Cancel Recording button -->
+            <button
+              type="button"
+              (click)="cancelRecording()"
+              class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-red-50 border border-red-200 text-red-500 transition hover:bg-red-100 hover:text-red-600 focus:outline-none"
+              title="Cancelar grabación">
+              <svg lucideX class="h-4 w-4 fill-red-600 text-red-600"></svg>
+            </button>
           }
 
           <!-- Microphone / Recording toggle button -->
@@ -58,7 +74,7 @@ import { LucideMic, LucideSendHorizontal, LucideSquare } from '@lucide/angular';
   `,
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class ChatInputComponent {
+export class ChatInputComponent implements OnDestroy {
   control = input.required<FormControl<string>>();
   placeholder = input.required<string>();
   disabled = input<boolean>(false);
@@ -66,62 +82,234 @@ export class ChatInputComponent {
 
   protected readonly isRecording = signal<boolean>(false);
   private recognition: any = null;
+  private isCancelled = false;
+
+  /** Timer that triggers auto-submit after silence. */
+  private silenceTimer: ReturnType<typeof setTimeout> | null = null;
+
+  /** Tracks the confirmed (final) transcript built across continuous results. */
+  private confirmedTranscript = '';
+
+  private readonly toastService = inject(ToastService);
 
   constructor() {
     this.initSpeechRecognition();
   }
 
-  private initSpeechRecognition(): void {
-    if (typeof window === 'undefined') return;
-
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (SpeechRecognition) {
-      this.recognition = new SpeechRecognition();
-      this.recognition.continuous = false;
-      this.recognition.interimResults = false;
-      this.recognition.lang = 'es-ES';
-
-      this.recognition.onstart = () => {
-        this.isRecording.set(true);
-      };
-
-      this.recognition.onend = () => {
-        this.isRecording.set(false);
-      };
-
-      this.recognition.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript;
-        if (transcript) {
-          const currentText = this.control().value || '';
-          this.control().setValue(currentText ? `${currentText.trim()} ${transcript}` : transcript);
-          
-          // Submit instantly like Gemini/ChatGPT!
-          setTimeout(() => {
-            this.submitted.emit();
-          }, 300);
-        }
-      };
-
-      this.recognition.onerror = (event: any) => {
-        this.isRecording.set(false);
-      };
+  ngOnDestroy(): void {
+    this.clearSilenceTimer();
+    if (this.recognition) {
+      try {
+        this.recognition.abort();
+      } catch (e) {
+        console.warn('[Voice] Error aborting recognition on destroy:', e);
+      }
     }
   }
 
+  private initSpeechRecognition(): void {
+    if (globalThis.window === undefined) {
+      console.warn('[Voice] No window — SSR context, skipping');
+      return;
+    }
+
+    const SpeechRecognition = (globalThis as any).SpeechRecognition || (globalThis as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      console.warn('[Voice] SpeechRecognition API not available in this browser');
+      return;
+    }
+
+    console.log('[Voice] Initializing SpeechRecognition...');
+    this.recognition = new SpeechRecognition();
+    this.recognition.continuous = true;
+    this.recognition.interimResults = true;
+    this.recognition.lang = 'es-ES';
+    console.log('[Voice] Config: continuous=true, interimResults=true, lang=es-ES');
+
+    this.recognition.onstart = () => {
+      console.log('[Voice] ✅ onstart — recognition started successfully');
+      this.isRecording.set(true);
+      this.isCancelled = false;
+      this.confirmedTranscript = '';
+    };
+
+    this.recognition.onend = () => {
+      console.log('[Voice] onend — recognition ended. isCancelled:', this.isCancelled, 'confirmedTranscript:', this.confirmedTranscript);
+      this.isRecording.set(false);
+      this.clearSilenceTimer();
+
+      // If not cancelled and we have text, auto-submit on natural end
+      if (!this.isCancelled && this.confirmedTranscript.trim()) {
+        console.log('[Voice] Auto-submitting after natural end');
+        this.finalizeAndSubmit();
+      }
+    };
+
+    this.recognition.onresult = (event: any) => {
+      if (this.isCancelled) return;
+
+      // Build full transcript from all results
+      let finalPart = '';
+      let interimPart = '';
+
+      for (const result of event.results) {
+        if (result.isFinal) {
+          finalPart += result[0].transcript;
+        } else {
+          interimPart += result[0].transcript;
+        }
+      }
+
+      // Update confirmed transcript with final parts
+      if (finalPart) {
+        this.confirmedTranscript = finalPart;
+      }
+
+      // Show live text: confirmed + interim (in real time, like Gemini)
+      const liveText = (this.confirmedTranscript + ' ' + interimPart).trim();
+      console.log('[Voice] onresult — final:', JSON.stringify(finalPart), 'interim:', JSON.stringify(interimPart), 'live:', liveText);
+      this.control().setValue(liveText.substring(0, 120));
+
+      // Reset the silence timer every time we get speech
+      this.resetSilenceTimer();
+    };
+
+    this.recognition.onerror = (event: any) => {
+      console.error('[Voice]  onerror — error:', event.error, 'message:', event.message, 'full event:', event);
+      this.isRecording.set(false);
+      this.clearSilenceTimer();
+      if (this.isCancelled) {
+        console.log('[Voice] Error ignored — recording was cancelled');
+        return;
+      }
+
+      // 'no-speech' is expected when silence detection kicks in — don't show error
+      if (event.error === 'no-speech') {
+        console.log('[Voice] no-speech error — expected, ignoring');
+        return;
+      }
+
+      let errorMsg = 'Error al grabar voz.';
+      if (event.error === 'not-allowed') {
+        errorMsg = 'No se puede acceder al micrófono. Por favor, habilita los permisos en tu navegador.';
+      } else if (event.error === 'network') {
+        console.warn('[Voice] Network error — Chrome requires internet for speech recognition (cloud-based)');
+        errorMsg = 'Error de red: el reconocimiento de voz necesita conexión a internet. Verifica tu conexión y que accedas desde localhost.';
+      } else if (event.error === 'aborted') {
+        console.log('[Voice] aborted error — expected from abort(), ignoring');
+        return; // Expected when we call abort()
+      } else if (event.error === 'service-not-allowed') {
+        errorMsg = 'El servicio de voz no está disponible. Asegúrate de usar Chrome/Edge y acceder desde localhost o HTTPS.';
+      }
+      this.toastService.error(errorMsg);
+    };
+  }
+
+  /**
+   * After SILENCE_TIMEOUT_MS of no new speech, stop recognition and submit.
+   * This mimics Gemini's behavior: speak naturally, pause, it auto-sends.
+   */
+  private resetSilenceTimer(): void {
+    this.clearSilenceTimer();
+    this.silenceTimer = setTimeout(() => {
+      if (this.isRecording() && !this.isCancelled) {
+        // Stop listening — onend will trigger finalizeAndSubmit
+        try {
+          this.recognition.stop();
+        } catch (e) {
+          console.warn('[Voice] Error stopping in silence timer:', e);
+        }
+      }
+    }, SILENCE_TIMEOUT_MS);
+  }
+
+  private clearSilenceTimer(): void {
+    if (this.silenceTimer) {
+      clearTimeout(this.silenceTimer);
+      this.silenceTimer = null;
+    }
+  }
+
+  /**
+   * Finalize the transcript and submit the message.
+   */
+  private finalizeAndSubmit(): void {
+    const text = this.control().value?.trim();
+    if (!text) return;
+
+    if (text.length > 120) {
+      this.toastService.error('El mensaje de voz excede el límite máximo de 120 caracteres. Por favor acórtalo.');
+      this.control().setValue(text.substring(0, 120));
+      return;
+    }
+
+    // Small delay to let the user see the final text before it sends
+    setTimeout(() => {
+      if (!this.isCancelled) {
+        this.submitted.emit();
+      }
+    }, 300);
+  }
+
   protected toggleRecording(): void {
+    console.log('[Voice] toggleRecording called. recognition:', !!this.recognition, 'isRecording:', this.isRecording());
+
     if (!this.recognition) {
-      alert('Tu navegador no soporta el reconocimiento de voz. Intenta usar Chrome o Edge.');
+      console.warn('[Voice] No recognition object — browser not supported');
+      this.toastService.info('Tu navegador no soporta el reconocimiento de voz. Intenta usar Chrome o Edge.');
       return;
     }
 
     if (this.isRecording()) {
-      this.recognition.stop();
-    } else {
+      console.log('[Voice] Stopping recording...');
+      // Manual stop — will trigger onend → finalizeAndSubmit
       try {
-        this.recognition.start();
+        this.recognition.stop();
       } catch (e) {
-        // Recognition already started or error
+        console.error('[Voice] Error stopping:', e);
       }
+    } else {
+      console.log('[Voice] Starting recording...');
+      try {
+        this.isCancelled = false;
+        this.confirmedTranscript = '';
+        this.recognition.start();
+        console.log('[Voice] recognition.start() called successfully');
+      } catch (e) {
+        console.error('[Voice] ❌ Error starting recognition:', e);
+        // If recognition is stuck, try aborting and restarting
+        try {
+          console.log('[Voice] Attempting abort + restart...');
+          this.recognition.abort();
+          setTimeout(() => {
+            try {
+              this.recognition.start();
+              console.log('[Voice] Restart after abort succeeded');
+            } catch (error_) {
+              console.error('[Voice] ❌ Restart after abort also failed:', error_);
+              this.toastService.error('Error al iniciar el micrófono. Recarga la página e intenta de nuevo.');
+            }
+          }, 200);
+        } catch (abortError) {
+          console.error('[Voice] Abort also failed:', abortError);
+        }
+      }
+    }
+  }
+
+  protected cancelRecording(): void {
+    if (this.recognition && this.isRecording()) {
+      this.isCancelled = true;
+      this.clearSilenceTimer();
+      this.confirmedTranscript = '';
+      // Restore input to empty (discard voice input)
+      this.control().setValue('');
+      try {
+        this.recognition.abort();
+      } catch (e) {
+        console.warn('[Voice] Error aborting on cancel:', e);
+      }
+      this.isRecording.set(false);
     }
   }
 
@@ -130,3 +318,6 @@ export class ChatInputComponent {
     this.submitted.emit();
   }
 }
+
+
+
