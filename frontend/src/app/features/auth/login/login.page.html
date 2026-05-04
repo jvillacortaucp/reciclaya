@@ -1,11 +1,18 @@
 <section
   class="grid grid-cols-1 lg:grid-cols-[minmax(340px,1.05fr)_minmax(420px,0.95fr)] min-h-screen animate-in fade-in duration-500">
   <div
-    class="relative overflow-hidden p-12 bg-gradient-to-br from-[#0f2a38] via-[#102a43] to-[#113247] text-slate-200 hidden lg:flex flex-col justify-center">
+    class="relative overflow-hidden p-12 bg-linear-to-br from-[#0f2a38] via-[#102a43] to-[#113247] text-slate-200 hidden lg:flex flex-col justify-center">
+    <div class="flex items-center mb-2 gap-2">
+      <div class="flex items-center justify-center bg-green-300/10 rounded-full w-16">
+        <img src="/logo-revaloraIA.png" alt="revalora-IA" class="w-full h-full">
+      </div>
+      <h1 class="text-2xl font-extrabold tracking-tight text-white">Revalora <span
+          class="font-normal text-emerald-200">IA</span></h1>
+    </div>
     <span
       class="inline-flex w-fit rounded-full border border-green-500/35 bg-green-500/12 px-3.5 py-1.5 text-xs font-semibold tracking-wide">{{
       copy.badge }}</span>
-    <h1 class="mt-5 max-w-[18ch] text-5xl leading-tight font-bold text-slate-50">{{ copy.headline }}</h1>
+    <h1 class="mt-5 max-w-[30ch] text-3xl leading-tight font-bold text-slate-50">{{ copy.headline }}</h1>
     <p class="mt-4 max-w-[55ch] text-slate-300">{{ copy.supportingText }}</p>
 
     <ul class="mt-10 grid gap-6" aria-label="Beneficios principales">
@@ -37,9 +44,9 @@
     </div>
   </div>
 
-  <div class="grid items-center p-6 md:p-12 bg-gradient-to-b from-white to-slate-50">
+  <div class="grid items-center p-6 md:p-12 bg-linear-to-b from-white to-slate-50">
     <article class="w-full max-w-[28rem] mx-auto animate-in slide-in-from-bottom-8 duration-700">
-      <div class="mb-8 flex items-center gap-3 text-sm text-slate-500 font-medium">
+      <div class="mb-2 flex items-center gap-3 text-sm text-slate-500 font-medium">
         <span class="p-2 bg-green-50 text-green-600 rounded-lg">
           <svg lucideShieldCheck size="18"></svg>
         </span>
@@ -47,7 +54,7 @@
       </div>
 
       <h2 class="text-3xl font-black text-slate-900 tracking-tight">{{ copy.signInLabel }}</h2>
-      <p class="mt-2.5 text-sm text-slate-500 font-medium">Ingresa para gestionar tu impacto circular en EcoValor.</p>
+      <p class="mt-2.5 text-sm text-slate-500 font-medium">Ingresa para gestionar tu impacto circular en RevaloraIA.</p>
 
       @if (authError()) {
       <div
@@ -167,7 +174,7 @@
         </div>
       </form>
 
-      <div class="mt-10 pt-8 border-t border-slate-100 text-center">
+      <div class="mt-4 pt-4 border-t border-slate-200 text-center">
         <p class="text-sm text-slate-500 font-medium">
           {{ copy.createAccountLabel }}
           <a routerLink="/auth/register"
