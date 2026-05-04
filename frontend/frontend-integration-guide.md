@@ -1,4 +1,4 @@
-# ReciclaYa Frontend Integration Guide
+# RevaloraIA Frontend Integration Guide
 
 ## Where to plug your final screens
 - Auth login UI: `src/app/features/auth/login/login.page.html`
