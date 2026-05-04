@@ -30,19 +30,19 @@ import { ProtectedActionService } from '../../services/protected-action.service'
             <div class="mt-6 grid grid-cols-1 gap-2 sm:grid-cols-3">
               <button
                 type="button"
-                class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 cursor-pointer"
                 (click)="protectedActions.cancel()">
                 Cancelar
               </button>
               <button
                 type="button"
-                class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
+                class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 transition hover:bg-slate-50 cursor-pointer"
                 (click)="protectedActions.confirmRegister()">
                 Crear cuenta
               </button>
               <button
                 type="button"
-                class="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700"
+                class="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 cursor-pointer"
                 (click)="protectedActions.confirmLogin()">
                 Iniciar sesión
               </button>

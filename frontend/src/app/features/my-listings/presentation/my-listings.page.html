@@ -104,11 +104,8 @@
   </div>
 
   @if (loading()) {
-    <div class="py-10 text-sm text-slate-500">
-      <span class="inline-flex items-center gap-2">
-        <svg lucideLoaderCircle size="16" class="animate-spin"></svg>
-        Cargando publicaciones...
-      </span>
+    <div class="flex items-center justify-center mt-36">
+      <app-loader message="Cargando publicaciones..." size="lg" />
     </div>
   } @else if (isEmpty()) {
     <ui-empty-state title="Sin resultados" [description]="copy.noResults" />
