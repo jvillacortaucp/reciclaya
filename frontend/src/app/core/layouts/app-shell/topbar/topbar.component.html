@@ -6,7 +6,7 @@
         <svg lucideMenu class="w-6 h-6"></svg>
         <span class="sr-only">Toggle sidebar</span>
       </button>
-      <a href="/" class="flex items-center gap-1">
+      <a href="/marketplace" class="flex items-center gap-1">
         <div class="flex items-center justify-center w-12">
           <img src="/logo-revaloraIA.png" alt="revalora-IA" class="w-full h-full">
         </div>
@@ -36,7 +36,14 @@
         <div
           class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-700 font-bold text-xs border border-slate-200 overflow-hidden group-hover:bg-slate-200 transition-colors">
           @if (avatarUrl()) {
-          <img [src]="avatarUrl()! || fallbackImage" [alt]="displayName()" class="h-full w-full object-cover" />
+          <div class="relative h-full w-full">
+            @if (!avatarLoaded) {
+              <div class="absolute inset-0 z-10 grid place-items-center bg-white/60">
+                <img src="/loader.gif" alt="Cargando avatar" class="w-8 h-8" />
+              </div>
+            }
+            <img [src]="avatarUrl()! || fallbackImage" [alt]="displayName()" class="h-full w-full object-cover" loading="lazy" (load)="onAvatarLoad()" (error)="onAvatarError($event)" />
+          </div>
           } @else {
           {{ initials() }}
           }

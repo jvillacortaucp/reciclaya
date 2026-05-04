@@ -2,16 +2,7 @@ import { APP_ROUTES, PERMISSIONS } from '../../../constants/app.constants';
 import { SidebarNavItem } from '../models/sidebar-nav-item.model';
 
 export const SIDEBAR_NAV_ITEMS: readonly SidebarNavItem[] = [
-  {
-    label: 'Dashboard',
-    group: 'General',
-    icon: 'layout-dashboard',
-    route: APP_ROUTES.dashboard,
-    exact: true,
-    permissions: [PERMISSIONS.VIEW_DASHBOARD],
-    roles: ['seller', 'buyer', 'admin']
-  },
-  {
+    {
     label: 'Marketplace',
     group: 'Marketplace',
     icon: 'store',
@@ -27,6 +18,15 @@ export const SIDEBAR_NAV_ITEMS: readonly SidebarNavItem[] = [
     route: APP_ROUTES.assistantChat,
     exact: true,
     publicAccess: true
+  },
+  {
+    label: 'Dashboard',
+    group: 'General',
+    icon: 'layout-dashboard',
+    route: APP_ROUTES.dashboard,
+    exact: true,
+    permissions: [PERMISSIONS.VIEW_DASHBOARD],
+    roles: ['seller', 'buyer', 'admin']
   },
   // {
   //   label: 'Publicar residuo',
@@ -58,7 +58,7 @@ export const SIDEBAR_NAV_ITEMS: readonly SidebarNavItem[] = [
   {
     label: 'Mis compras',
     group: 'Marketplace',
-    icon: 'clipboard-list',
+    icon: 'shopping-cart',
     route: APP_ROUTES.preOrders,
     exact: false,
     permissions: [PERMISSIONS.CREATE_PRE_ORDER],
@@ -67,7 +67,7 @@ export const SIDEBAR_NAV_ITEMS: readonly SidebarNavItem[] = [
   {
     label: 'Mis ventas',
     group: 'Marketplace',
-    icon: 'clipboard-list',
+    icon: 'wallet',
     route: APP_ROUTES.orders,
     exact: false,
     roles: ['seller']
