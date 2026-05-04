@@ -81,7 +81,23 @@ public sealed class ListingConfiguration : IEntityTypeConfiguration<Listing>
             .HasMaxLength(2000);
 
         builder.Property(listing => listing.Status)
-            .HasConversion<string>()
+            .HasConversion(
+                status => status.ToString(),
+                dbValue =>
+                {
+                    if (string.IsNullOrWhiteSpace(dbValue)) return ReciclaYa.Domain.Enums.ListingStatus.Draft;
+                    // Intenta parsear ignorando mayúsculas/minúsculas
+                    if (Enum.TryParse<ReciclaYa.Domain.Enums.ListingStatus>(dbValue, true, out var parsed))
+                    {
+                        return parsed;
+                    }
+
+                    // Compatibilidad con valores legacy en la BD
+                    var lower = dbValue.Trim().ToLowerInvariant();
+                    if (lower == "active") return ReciclaYa.Domain.Enums.ListingStatus.Published;
+
+                    return ReciclaYa.Domain.Enums.ListingStatus.Draft;
+                })
             .HasMaxLength(30)
             .IsRequired();
 

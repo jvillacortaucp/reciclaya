@@ -46,4 +46,18 @@ export class TopbarComponent {
       queryParams: query ? { q: query } : {}
     });
   }
+
+  protected avatarLoaded = false;
+
+  protected onAvatarLoad(): void {
+    this.avatarLoaded = true;
+  }
+
+  protected onAvatarError(event: Event): void {
+    const img = event.target as HTMLImageElement | null;
+    if (!img) return;
+    if (img.src === this.fallbackImage) return;
+    img.src = this.fallbackImage;
+    this.avatarLoaded = true;
+  }
 }

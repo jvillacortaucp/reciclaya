@@ -21,7 +21,9 @@ import {
   LucideSlidersHorizontal,
   LucideSparkles,
   LucideStore,
-  LucideBotMessageSquare
+  LucideBotMessageSquare,
+  LucideShoppingCart,
+  LucideWallet
 } from '@lucide/angular';
 import { SIDEBAR_NAV_ITEMS } from '../constants/sidebar-nav.constants';
 import { SidebarNavItem } from '../models/sidebar-nav-item.model';
@@ -42,7 +44,9 @@ import { AuthFacade } from '../../../../features/auth/services/auth.facade';
     LucideSparkles,
     LucideSettings,
     LucideLogOut,
-    LucideBotMessageSquare
+    LucideBotMessageSquare,
+    LucideShoppingCart,
+    LucideWallet
   ],
   templateUrl: './sidebar.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush

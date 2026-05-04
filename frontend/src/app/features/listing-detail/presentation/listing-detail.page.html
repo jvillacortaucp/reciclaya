@@ -1,7 +1,9 @@
 @if (loading()) {
-  <div class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
-    <svg lucideLoaderCircle size="16" class="animate-spin"></svg>
-    {{ messages.loading }}
+  <div class="flex items-center justify-center min-h-[56vh]">
+    <div class="inline-flex flex-col items-center gap-3 rounded-2xl bg-white/80 px-6 py-6 shadow">
+      <img src="/loader.gif" alt="Cargando detalle" class="w-40 h-40" />
+      <p class="text-sm text-slate-600">{{ messages.loading }}</p>
+    </div>
   </div>
 } @else if (!detail()) {
   <ui-empty-state title="Listado no encontrado" [description]="messages.notFound" />
