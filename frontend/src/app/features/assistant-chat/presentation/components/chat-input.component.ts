@@ -12,11 +12,11 @@ const SILENCE_TIMEOUT_MS = 2000;
   imports: [ReactiveFormsModule, LucideMic, LucideSendHorizontal, LucideSquare, LucideX],
   template: `
     <form class="flex items-center gap-3" (submit)="$event.preventDefault(); !disabled() && submitMessage()">
-      <div class="relative flex-1">
+      <div class="relative flex-1 group">
         <input
           [formControl]="control()"
           type="text"
-          class="h-14 w-full rounded-2xl border border-slate-200 bg-white pl-5 pr-24 text-base text-slate-700 placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100 sm:h-16 sm:rounded-3xl sm:text-lg"
+          class="h-14 w-full rounded-2xl border border-slate-200/80 bg-slate-50/50 pl-5 pr-36 text-base text-slate-800 placeholder:text-slate-400/80 focus:border-emerald-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-emerald-50 transition-all duration-300 sm:h-16 sm:rounded-3xl sm:text-base"
           [placeholder]="isRecording() ? 'Escuchando tu voz...' : placeholder()"
           [readOnly]="disabled() || isRecording()"
           [class.opacity-60]="disabled()"
@@ -24,7 +24,8 @@ const SILENCE_TIMEOUT_MS = 2000;
           [class.ring-2]="isRecording()"
           [class.ring-emerald-100]="isRecording()" />
 
-        <div class="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+        <!-- Floating action area for voice, paperclip and char count -->
+        <div class="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2.5 select-none">
           <!-- Voice Soundwave Animation when recording -->
           @if (isRecording()) {
             <div class="voice-wave animate-fade-in pr-1">
@@ -45,12 +46,20 @@ const SILENCE_TIMEOUT_MS = 2000;
             </button>
           }
 
+          <span class="text-[11px] font-bold tracking-wider text-slate-400/70 bg-slate-100/50 px-2 py-0.5 rounded-full border border-slate-200/40 backdrop-blur-sm">
+            {{ control().value.length }}/120
+          </span>
+
+          <span class="text-slate-300 hover:text-emerald-500 transition-colors cursor-pointer">
+            <svg lucidePaperclip class="h-4.5 w-4.5"></svg>
+          </span>
+
           <!-- Microphone / Recording toggle button -->
           <button
             type="button"
             (click)="toggleRecording()"
             [disabled]="disabled()"
-            class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-slate-50 border border-slate-200 text-slate-500 transition hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-100 focus:outline-none disabled:opacity-50"
+            class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-slate-50 border border-slate-100 text-slate-400 transition hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-100 focus:outline-none disabled:opacity-50"
             [class.bg-emerald-100]="isRecording()"
             [class.border-emerald-200]="isRecording()"
             [class.text-emerald-600]="isRecording()"
@@ -64,10 +73,11 @@ const SILENCE_TIMEOUT_MS = 2000;
           </button>
         </div>
       </div>
+
       <button
         type="submit"
-        [disabled]="disabled() || isRecording()"
-        class="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-md transition hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-200 sm:h-14 sm:w-14 sm:rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed">
+        [disabled]="disabled() || isRecording() || !control().value.trim()"
+        class="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-md transition-all duration-300 hover:bg-emerald-700 hover:scale-105 active:scale-95 hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-emerald-100 sm:h-14 sm:w-14 sm:rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100 disabled:shadow-none">
         <svg lucideSendHorizontal class="h-5 w-5"></svg>
       </button>
     </form>
@@ -318,6 +328,3 @@ export class ChatInputComponent implements OnDestroy {
     this.submitted.emit();
   }
 }
-
-
-
