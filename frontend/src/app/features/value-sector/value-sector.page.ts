@@ -16,7 +16,6 @@ import { ValueSectorFacade } from './application/value-sector.facade';
 import { VALUE_SECTOR_TEXT } from './data/value-sector.constants';
 import { TourGuideService } from '../../core/services/tour-guide.service';
 import { ValueSectorAccordionComponent } from './presentation/components/value-sector-accordion/value-sector-accordion.component';
-import { ValueSectorFloatingActionsComponent } from './presentation/components/value-sector-floating-actions/value-sector-floating-actions.component';
 import { ValueSectorSummaryComponent } from './presentation/components/value-sector-summary/value-sector-summary.component';
 
 import { SectionHeaderComponent } from '../../shared/ui/section-header/section-header.component';
@@ -31,7 +30,6 @@ import { Subscription } from 'rxjs';
     LucideWandSparkles,
     ValueSectorAccordionComponent,
     ValueSectorSummaryComponent,
-    ValueSectorFloatingActionsComponent,
     SectionHeaderComponent,
     RouterLink
   ],
@@ -120,7 +118,7 @@ export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestro
   }
 
   protected onExplanationRequested(): void {
-    this.navigateToRecommendations('explanation');
+    this.navigateToRecommendations('complexity');
   }
 
   protected onMarketRequested(): void {
@@ -135,7 +133,7 @@ export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestro
     this.facade.initialize(this.listingId());
   }
 
-  private navigateToRecommendations(tab: 'process' | 'explanation' | 'market'): void {
+  private navigateToRecommendations(tab: 'process' | 'complexity' | 'market'): void {
     const productId = this.selectedProductId();
     if (!productId) {
       return;

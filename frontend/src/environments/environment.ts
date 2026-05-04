@@ -1,4 +1,5 @@
 export const environment = {
   production: false,
-  apiBaseUrl: 'http://127.0.0.1:5021/api'
+    apiBaseUrl: 'http://localhost:5021/api'
+  // apiBaseUrl: 'https://reciclaya-1.onrender.com/api'
 } as const;

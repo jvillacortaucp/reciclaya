@@ -81,7 +81,7 @@ export class RecommendationsPageComponent implements OnInit {
     this.facade.setActiveTab(tab);
     void this.router.navigate([], {
       relativeTo: this.route,
-      queryParams: { tab },
+      queryParams: { tab: tab === 'explanation' ? 'complexity' : tab },
       queryParamsHandling: 'merge'
     });
   }
@@ -130,6 +130,9 @@ export class RecommendationsPageComponent implements OnInit {
   }
 
   private parseTab(tab: string | null): RecommendationTab {
+    if (tab === 'complexity') {
+      return 'explanation';
+    }
     if (tab === 'explanation' || tab === 'market' || tab === 'process') {
       return tab;
     }

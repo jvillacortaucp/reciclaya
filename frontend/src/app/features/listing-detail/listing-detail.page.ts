@@ -2,10 +2,8 @@ import { ChangeDetectionStrategy, Component, computed, inject, OnDestroy, OnInit
 import { ActivatedRoute, Router } from '@angular/router';
 import {
   LucideBadgeInfo,
-  LucideBookmark,
   LucideCircleAlert,
   LucideInfo,
-  LucideLoaderCircle,
   LucideMapPin,
   LucideTruck
 } from '@lucide/angular';
@@ -29,9 +27,7 @@ import { RelatedListingCardComponent } from './presentation/components/related-l
     ListingImageGalleryComponent,
     ListingSummaryCardComponent,
     RelatedListingCardComponent,
-    LucideLoaderCircle,
     LucideInfo,
-    LucideBookmark,
     LucideBadgeInfo,
     LucideMapPin,
     LucideTruck,
