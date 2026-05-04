@@ -94,12 +94,20 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
+var allowedOrigins = builder.Configuration
+    .GetSection("Cors:AllowedOrigins")
+    .Get<string[]>();
+if (allowedOrigins is null || allowedOrigins.Length == 0)
+{
+    allowedOrigins = ["http://localhost:4200"];
+}
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(AngularCorsPolicy, policy =>
     {
         policy
-            .WithOrigins("http://localhost:4200")
+            .WithOrigins(allowedOrigins)
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
