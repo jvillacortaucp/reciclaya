@@ -2,14 +2,14 @@ import { ChangeDetectionStrategy, Component, computed, inject, output } from '@a
 import { FALLBACK_IMAGE_URL } from '../../../constants/media.constants';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { LucideMenu, LucideSearch, LucideBell, LucideLeaf } from '@lucide/angular';
+import { LucideMenu, LucideSearch, LucideBell } from '@lucide/angular';
 import { APP_ROUTES } from '../../../../core/constants/app.constants';
 import { AuthFacade } from '../../../../features/auth/services/auth.facade';
 
 @Component({
   selector: 'app-topbar',
   standalone: true,
-  imports: [ReactiveFormsModule, LucideMenu, LucideSearch, LucideBell, LucideLeaf],
+  imports: [ReactiveFormsModule, LucideMenu, LucideSearch, LucideBell],
   templateUrl: './topbar.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })

@@ -10,7 +10,7 @@ export const ASSISTANT_CHAT_COPY = {
   subtitle:
     'Descubre oportunidades de valorización en una conversación guiada y accionable.',
   greeting:
-    'Hola, soy tu asistente de valorización. Te ayudaré a descubrir oportunidades a partir de tus residuos.',
+    'Hola, soy Eco. Te ayudaré a descubrir oportunidades a partir de tus residuos.',
   firstQuestion: '¿Qué residuo piensas convertir hoy?',
   loadingMessage: 'Analizando residuo...',
   resultsPrefix: 'Encontré estas posibles rutas de valorización para',
