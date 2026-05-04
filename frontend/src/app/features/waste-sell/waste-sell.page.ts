@@ -9,7 +9,7 @@ import {
   signal
 } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
 import {
   LucideCircleDollarSign,
@@ -21,8 +21,6 @@ import {
   LucideSendHorizontal,
   LucideTruck,
   LucideWandSparkles
-  ,
-  LucideArrowLeft
 } from '@lucide/angular';
 import { PendingChangesAware } from '../../core/models/pending-changes.model';
 import {
@@ -65,8 +63,7 @@ import { WasteUploadZoneComponent } from './presentation/components/waste-upload
     LucideEllipsis,
     LucideMapPin,
     LucideWandSparkles,
-    LucideLoaderCircle,
-    LucideArrowLeft
+    LucideLoaderCircle
   ],
   templateUrl: './presentation/waste-sell.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -75,12 +72,10 @@ export class WasteSellPageComponent implements OnInit, OnDestroy, PendingChanges
   private readonly fb = inject(FormBuilder);
   private readonly facade = inject(WasteSellFacade);
   private readonly route = inject(ActivatedRoute);
-  private readonly router = inject(Router);
 
   private readonly patching = signal(false);
   private readonly createdObjectUrls = new Set<string>();
   private readonly subscriptions = new Subscription();
-  protected readonly isEditing = signal(false);
 
   protected readonly copy = WASTE_SELL_COPY;
   protected readonly messages = WASTE_FORM_MESSAGES;
@@ -175,16 +170,10 @@ export class WasteSellPageComponent implements OnInit, OnDestroy, PendingChanges
     });
   }
 
-  protected goBack(): void {
-    void this.router.navigateByUrl('/app/my-listings');
-  }
-
   ngOnInit(): void {
     this.subscriptions.add(
       this.route.queryParamMap.subscribe((params) => {
-        const editId = params.get('edit');
-        this.isEditing.set(!!editId);
-        this.facade.loadInitialState(editId);
+        this.facade.loadInitialState(params.get('edit'));
       })
     );
 

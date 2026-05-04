@@ -11,15 +11,12 @@ import { MarketplaceListing } from '../../../domain/marketplace.models';
   template: `
     <article class="flex h-full min-h-490px min-w-0 flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
       <div class="relative h-62 overflow-hidden bg-slate-200">
-        @if (!imageLoaded) {
-          <div class="absolute inset-0 z-10 grid place-items-center bg-white/60">
-            <img src="/loader.gif" alt="Cargando" class="w-12 h-12" />
-          </div>
-        }
         @if (primaryMedia(); as media) {
-          <img [src]="media.url || fallbackImage" [alt]="media.alt" class="h-full w-full object-cover" loading="lazy" (load)="onImageLoad()" (error)="onImageError($event)" />
+          <img [src]="media.url || fallbackImage" [alt]="media.alt" class="h-full w-full object-cover" />
         } @else {
-          <img [src]="fallbackImage" alt="Sin imagen" class="h-full w-full object-cover" loading="lazy" (load)="onImageLoad()" (error)="onImageError($event)" />
+          <div class="grid h-full w-full place-items-center bg-linear-to-br from-slate-200 to-slate-300 text-slate-500">
+            <span class="text-xs font-semibold uppercase tracking-0.1em">Sin imagen</span>
+          </div>
         }
         @if (listing.matchScore > 80) {
           <span class="absolute left-3 top-3 rounded-full bg-emerald-600 px-3 py-1 text-xs font-semibold text-white">
@@ -63,18 +60,4 @@ export class MarketplaceProductCardComponent {
   }
 
   protected readonly fallbackImage = FALLBACK_IMAGE_URL;
-
-  protected imageLoaded = false;
-
-  protected onImageLoad(): void {
-    this.imageLoaded = true;
-  }
-
-  protected onImageError(event: Event): void {
-    const img = event.target as HTMLImageElement | null;
-    if (!img) return;
-    if (img.src === this.fallbackImage) return;
-    img.src = this.fallbackImage;
-    this.imageLoaded = true;
-  }
 }

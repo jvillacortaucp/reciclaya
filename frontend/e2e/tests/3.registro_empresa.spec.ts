@@ -9,7 +9,7 @@ import { TEST_USERS } from '../fixtures/test-data';
 // Datos base de la empresa para reutilizar en varios tests
 const companyData = {
   ruc: '206012345677654',
-  businessName: 'RevaloraIA S.A.C.',
+  businessName: 'ReciclaYa S.A.C.',
   mobilePhone: '987654321',
   address: 'Av. Industriales 1234, Lima',
   postalCode: '15001',

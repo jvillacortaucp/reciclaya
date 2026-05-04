@@ -8,13 +8,8 @@ import { ListingMedia } from '../../../domain/listing-detail.models';
   template: `
     @if (activeMedia) {
       <div class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_120px] xl:grid-cols-[minmax(0,1fr)_140px]">
-        <div class="overflow-hidden rounded-2xl border border-slate-200 bg-slate-100 sm:rounded-3xl relative">
-          @if (!activeImageLoaded) {
-            <div class="absolute inset-0 z-10 grid place-items-center bg-white/60">
-              <img src="/loader.gif" alt="Cargando" class="w-14 h-14" />
-            </div>
-          }
-          <img [src]="activeMedia.url || fallbackImage" [alt]="activeMedia.alt" class="h-64 w-full object-cover md:h-80 xl:h-[420px]" loading="lazy" (load)="onActiveImageLoad()" (error)="onImageError($event)" />
+        <div class="overflow-hidden rounded-2xl border border-slate-200 bg-slate-100 sm:rounded-3xl">
+          <img [src]="activeMedia.url || fallbackImage" [alt]="activeMedia.alt" class="h-64 w-full object-cover md:h-80 xl:h-[420px]" />
         </div>
         <div class="grid grid-cols-3 gap-3 lg:grid-cols-1">
           @for (item of media; track item.id) {
@@ -25,7 +20,7 @@ import { ListingMedia } from '../../../domain/listing-detail.models';
               [class.border-slate-200]="item.id !== activeMedia.id"
               (click)="select.emit(item.id)"
             >
-              <img [src]="item.url || fallbackImage" [alt]="item.alt" class="h-20 w-full object-cover md:h-24 lg:h-[104px] xl:h-[132px]" loading="lazy" (error)="onImageError($event)" />
+              <img [src]="item.url || fallbackImage" [alt]="item.alt" class="h-20 w-full object-cover md:h-24 lg:h-[104px] xl:h-[132px]" />
             </button>
           }
         </div>
@@ -40,18 +35,4 @@ export class ListingImageGalleryComponent {
   @Output() readonly select = new EventEmitter<string>();
 
   protected readonly fallbackImage = FALLBACK_IMAGE_URL;
-
-  protected activeImageLoaded = false;
-
-  protected onActiveImageLoad(): void {
-    this.activeImageLoaded = true;
-  }
-
-  protected onImageError(event: Event): void {
-    const img = event.target as HTMLImageElement | null;
-    if (!img) return;
-    if (img.src === this.fallbackImage) return;
-    img.src = this.fallbackImage;
-    this.activeImageLoaded = true;
-  }
 }

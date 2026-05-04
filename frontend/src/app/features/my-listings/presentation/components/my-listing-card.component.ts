@@ -23,13 +23,8 @@ import { FALLBACK_IMAGE_URL } from '../../../../core/constants/media.constants';
       (keydown.enter)="selectCard()"
       (keydown.space)="selectCard(); $event.preventDefault()">
       <div class="relative h-52 overflow-hidden rounded-t-3xl bg-slate-200">
-        @if (!imageLoaded) {
-          <div class="absolute inset-0 z-10 grid place-items-center bg-white/60">
-            <img src="/loader.gif" alt="Cargando" class="w-12 h-12" />
-          </div>
-        }
-        <img [src]="listing.imageUrl || fallbackImage" [alt]="listing.specificResidue" class="h-full w-full object-cover" loading="lazy" (load)="onImageLoad()" (error)="onImageError($event)" />
-
+        <img [src]="listing.imageUrl || fallbackImage" [alt]="listing.specificResidue" class="h-full w-full object-cover" />
+        
         <span class="absolute left-3 top-3 rounded-lg bg-emerald-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] text-emerald-700">
           Activo
         </span>
@@ -114,20 +109,6 @@ export class MyListingCardComponent {
   }
 
   protected readonly fallbackImage = FALLBACK_IMAGE_URL;
-
-  protected imageLoaded = false;
-
-  protected onImageLoad(): void {
-    this.imageLoaded = true;
-  }
-
-  protected onImageError(event: Event): void {
-    const img = event.target as HTMLImageElement | null;
-    if (!img) return;
-    if (img.src === this.fallbackImage) return;
-    img.src = this.fallbackImage;
-    this.imageLoaded = true;
-  }
 
   protected editListing(event: Event): void {
     event.stopPropagation();

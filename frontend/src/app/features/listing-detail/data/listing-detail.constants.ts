@@ -4,7 +4,7 @@ export const LISTING_DETAIL_COPY = {
   breadcrumbParent: 'Marketplace',
   breadcrumbCurrent: 'Detalle del residuo',
   save: 'Guardar',
-  primaryAction: 'Generar Orden',
+  primaryAction: 'Generar pre-orden',
   secondaryAction: 'Solicitar información',
   back: 'Volver',
   technicalSectionTitle: 'Especificaciones Técnicas',

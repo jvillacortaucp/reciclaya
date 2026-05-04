@@ -2,14 +2,14 @@ import { ChangeDetectionStrategy, Component, computed, inject, output } from '@a
 import { FALLBACK_IMAGE_URL } from '../../../constants/media.constants';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { LucideMenu, LucideBell } from '@lucide/angular';
+import { LucideMenu, LucideSearch, LucideBell, LucideLeaf } from '@lucide/angular';
 import { APP_ROUTES } from '../../../../core/constants/app.constants';
 import { AuthFacade } from '../../../../features/auth/services/auth.facade';
 
 @Component({
   selector: 'app-topbar',
   standalone: true,
-  imports: [ReactiveFormsModule, LucideMenu, LucideBell],
+  imports: [ReactiveFormsModule, LucideMenu, LucideSearch, LucideBell, LucideLeaf],
   templateUrl: './topbar.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -45,19 +45,5 @@ export class TopbarComponent {
     void this.router.navigate([APP_ROUTES.marketplace], {
       queryParams: query ? { q: query } : {}
     });
-  }
-
-  protected avatarLoaded = false;
-
-  protected onAvatarLoad(): void {
-    this.avatarLoaded = true;
-  }
-
-  protected onAvatarError(event: Event): void {
-    const img = event.target as HTMLImageElement | null;
-    if (!img) return;
-    if (img.src === this.fallbackImage) return;
-    img.src = this.fallbackImage;
-    this.avatarLoaded = true;
   }
 }

@@ -1,19 +1,17 @@
 <ui-section-header [title]="copy.title" [subtitle]="copy.subtitle">
   <div class="flex flex-wrap items-center gap-3">
-    @if (isEditing()) {
-      <button
-        type="button"
-        class="inline-flex items-center px-4 py-2 text-sm font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm cursor-pointer"
-        (click)="goBack()"
-      >
-        <svg lucideArrowLeft size="16" class="mr-2"></svg>
-        Volver
-      </button>
-    }
-
+    <!-- <button
+      type="button"
+      class="inline-flex items-center px-4 py-2 text-sm font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm disabled:opacity-50"
+      (click)="previewNow()"
+      [disabled]="previewLoading() || loading()"
+    >
+      @if (previewLoading()) { <svg lucideLoaderCircle size="16" class="animate-spin mr-2"></svg> }
+      Vista previa
+    </button> -->
     <button
       type="button"
-      class="inline-flex items-center px-6 py-2 text-sm font-bold text-white bg-green-700 rounded-xl hover:bg-green-800 transition-all shadow-md shadow-green-200 disabled:opacity-50 cursor-pointer"
+      class="inline-flex items-center px-6 py-2 text-sm font-bold text-white bg-green-700 rounded-xl hover:bg-green-800 transition-all shadow-md shadow-green-200 disabled:opacity-50"
       (click)="publish()"
       [disabled]="publishLoading() || loading()"
     >
@@ -357,7 +355,7 @@
     </div>
 
     <article class="overflow-hidden rounded-3xl bg-linear-to-br from-emerald-600 via-emerald-600 to-emerald-700 p-6 text-white shadow-lg shadow-emerald-100">
-      <h4 class="mb-4 text-3xl font-bold leading-tight">Consejo<br />RevaloraIA</h4>
+      <h4 class="mb-4 text-3xl font-bold leading-tight">Consejo<br />EcoValor</h4>
       <p class="mb-5 text-base font-semibold leading-snug text-emerald-50">
         Los anuncios con más de 3 fotos claras y una descripción de proceso químico/físico tienen 3x más conversión.
       </p>

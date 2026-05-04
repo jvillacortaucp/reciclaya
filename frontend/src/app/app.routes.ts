@@ -47,8 +47,6 @@ export const appRoutes: AppRoute[] = [
         loadChildren: () =>
           import('./features/assistant-chat/assistant-chat.routes').then((m) => m.ASSISTANT_CHAT_ROUTES)
       }
-      ,
-      { path: '', pathMatch: 'full', redirectTo: 'marketplace' }
     ]
   },
   {
@@ -130,8 +128,8 @@ export const appRoutes: AppRoute[] = [
         path: 'admin',
         loadChildren: () => import('./features/admin/admin.routes').then((m) => m.ADMIN_ROUTES)
       },
-      { path: '', pathMatch: 'full', redirectTo: 'marketplace' },
-      { path: '**', redirectTo: 'marketplace' }
+      { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
+      { path: '**', redirectTo: 'dashboard' }
     ]
   },
   { path: '', pathMatch: 'full', redirectTo: 'marketplace' },

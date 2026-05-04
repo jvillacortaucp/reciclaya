@@ -1,31 +1,24 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { LucideChevronRight, LucideMoveLeft } from '@lucide/angular';
 
 @Component({
   selector: 'app-detail-breadcrumb',
   standalone: true,
-  imports: [RouterLink],
+  imports: [LucideChevronRight, LucideMoveLeft],
   template: `
-    <nav class="flex" aria-label="Breadcrumb">
-      <ol class="inline-flex items-center space-x-1 md:space-x-2">
-        <li class="inline-flex items-center">
-          <a [routerLink]="['/marketplace']" class="inline-flex items-center text-sm font-medium text-slate-600 hover:text-emerald-700">
-            <svg class="w-4 h-4 mr-1.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
-              <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m4 12 8-8 8 8M6 10.5V19a1 1 0 0 0 1 1h3v-3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v3h3a1 1 0 0 0 1-1v-8.5"/>
-            </svg>
-            {{ parent }}
-          </a>
-        </li>
-        <li>
-          <div class="flex items-center space-x-1.5">
-            <svg class="w-3.5 h-3.5 text-slate-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
-              <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m9 5 7 7-7 7"/>
-            </svg>
-            <span class="inline-flex items-center text-sm font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">{{ current }}</span>
-          </div>
-        </li>
-      </ol>
-    </nav>
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <div class="inline-flex min-w-0 items-center gap-1.5 text-xs text-slate-500 md:text-sm">
+        <button type="button" class="inline-flex items-center gap-1 text-slate-600 hover:text-slate-800" (click)="back.emit()">
+          <svg lucideMoveLeft size="14"></svg>
+          Volver
+        </button>
+        <svg lucideChevronRight size="14"></svg>
+        <span>{{ parent }}</span>
+        <svg lucideChevronRight size="14"></svg>
+        <span class="font-medium text-slate-700">{{ current }}</span>
+      </div>
+      <span class="max-w-[220px] truncate text-xs text-slate-400 md:max-w-xs">{{ reference }}</span>
+    </div>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush
 })

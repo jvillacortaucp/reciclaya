@@ -1,9 +1,7 @@
 @if (loading()) {
-  <div class="flex items-center justify-center min-h-[56vh]">
-    <div class="inline-flex flex-col items-center gap-3 rounded-2xl bg-white/80 px-6 py-6 shadow">
-      <img src="/loader.gif" alt="Cargando detalle" class="w-40 h-40" />
-      <p class="text-sm text-slate-600">{{ messages.loading }}</p>
-    </div>
+  <div class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
+    <svg lucideLoaderCircle size="16" class="animate-spin"></svg>
+    {{ messages.loading }}
   </div>
 } @else if (!detail()) {
   <ui-empty-state title="Listado no encontrado" [description]="messages.notFound" />
@@ -16,7 +14,7 @@
       (back)="goBack()"
     />
 
-    <div class="flex flex-wrap items-center justify-between gap-3 border-t border-slate-300 mt-4 pt-2">
+    <div class="flex flex-wrap items-center justify-between gap-3">
       <div class="inline-flex items-center gap-2">
         <span class="rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-emerald-700">
           {{ detail()!.wasteType === 'organic' ? 'Orgánico' : 'Inorgánico' }}
@@ -25,7 +23,16 @@
           {{ detail()!.status === 'available' ? 'Disponible' : 'Reciente' }}
         </span>
       </div>
-      <!-- <div class="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
+      <div class="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
+        <button
+          type="button"
+          class="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          [disabled]="saving()"
+          (click)="save()"
+        >
+          <svg lucideBookmark size="15"></svg>
+          {{ saving() ? 'Guardando...' : copy.save }}
+        </button>
         <button
           type="button"
           class="inline-flex h-10 items-center gap-2 rounded-xl border border-transparent bg-emerald-600 px-4 text-sm font-semibold text-white hover:bg-emerald-700"
@@ -34,14 +41,14 @@
         >
           {{ contacting() ? 'Enviando...' : copy.primaryAction }}
         </button>
-      </div> -->
+      </div>
     </div>
 
     <div class="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_320px] 2xl:grid-cols-[minmax(0,1fr)_360px]">
       <section class="min-w-0 space-y-5">
         <header class="space-y-3">
-          <h1 class="max-w-4xl wrap-break-words text-2xl font-extrabold leading-tight text-slate-950 md:text-3xl xl:text-4xl">{{ detail()!.title }}</h1>
-          <p class="max-w-3xl wrap-break-words text-base leading-relaxed text-slate-600 md:text-lg">{{ detail()!.description }}</p>
+          <h1 class="max-w-4xl break-words text-2xl font-extrabold leading-tight text-slate-950 md:text-3xl xl:text-4xl">{{ detail()!.title }}</h1>
+          <p class="max-w-3xl break-words text-base leading-relaxed text-slate-600 md:text-lg">{{ detail()!.description }}</p>
         </header>
 
         <app-listing-image-gallery
@@ -59,7 +66,7 @@
             @for (spec of detail()!.technicalSpecs; track spec.key) {
               <div class="min-w-0 border-b border-r border-slate-100 p-4 md:p-5 last:border-r-0">
                 <p class="text-[11px] uppercase tracking-[0.14em] text-slate-400">{{ spec.label }}</p>
-                <p class="mt-1 wrap-break-words text-xl font-semibold leading-tight text-slate-900 md:text-2xl">{{ spec.value }}</p>
+                <p class="mt-1 break-words text-xl font-semibold leading-tight text-slate-900 md:text-2xl">{{ spec.value }}</p>
               </div>
             }
           </div>
@@ -70,22 +77,22 @@
             <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
               <svg lucideMapPin class="h-4 w-4"></svg>
             </span>
-            <h4 class="mt-3 wrap-break-words text-xl font-bold leading-tight text-slate-950 md:text-2xl">Ubicación</h4>
-            <p class="mt-2 wrap-break-words text-sm leading-relaxed text-slate-600 md:text-base">{{ detail()!.logistics.location }}</p>
+            <h4 class="mt-3 break-words text-xl font-bold leading-tight text-slate-950 md:text-2xl">Ubicación</h4>
+            <p class="mt-2 break-words text-sm leading-relaxed text-slate-600 md:text-base">{{ detail()!.logistics.location }}</p>
           </div>
           <div class="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
             <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
               <svg lucideTruck class="h-4 w-4"></svg>
             </span>
-            <h4 class="mt-3 wrap-break-words text-xl font-bold leading-tight text-slate-950 md:text-2xl">Modalidad de recojo</h4>
-            <p class="mt-2 wrap-break-words text-sm leading-relaxed text-slate-600 md:text-base">{{ deliveryModeLabel() }}</p>
+            <h4 class="mt-3 break-words text-xl font-bold leading-tight text-slate-950 md:text-2xl">Modalidad de recojo</h4>
+            <p class="mt-2 break-words text-sm leading-relaxed text-slate-600 md:text-base">{{ deliveryModeLabel() }}</p>
           </div>
           <div class="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
             <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
               <svg lucideBadgeInfo class="h-4 w-4"></svg>
             </span>
-            <h4 class="mt-3 wrap-break-words text-xl font-bold leading-tight text-slate-950 md:text-2xl">Tiempo de almacenamiento</h4>
-            <p class="mt-2 wrap-break-words text-sm leading-relaxed text-slate-600 md:text-base">Máximo {{ detail()!.logistics.maxStorageTime }}</p>
+            <h4 class="mt-3 break-words text-xl font-bold leading-tight text-slate-950 md:text-2xl">Tiempo de almacenamiento</h4>
+            <p class="mt-2 break-words text-sm leading-relaxed text-slate-600 md:text-base">Máximo {{ detail()!.logistics.maxStorageTime }}</p>
           </div>
         </article>
 
@@ -95,8 +102,8 @@
               <svg lucideCircleAlert class="h-4 w-4"></svg>
             </span>
             <div>
-              <h4 class="wrap-break-words text-xl font-semibold text-amber-800 md:text-2xl">Restricciones y manejo</h4>
-              <p class="mt-1 wrap-break-words text-base leading-relaxed text-amber-800 md:text-lg">{{ detail()!.restrictions }}</p>
+              <h4 class="break-words text-xl font-semibold text-amber-800 md:text-2xl">Restricciones y manejo</h4>
+              <p class="mt-1 break-words text-base leading-relaxed text-amber-800 md:text-lg">{{ detail()!.restrictions }}</p>
             </div>
           </div>
         </article>
@@ -119,6 +126,14 @@
           (contact)="generatePreOrder()"
           (requestInfo)="requestInfo()"
         />
+
+        <article class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
+          <h4 class="text-xl font-semibold text-slate-900 md:text-2xl">Market insight</h4>
+          <p class="mt-2 text-base leading-relaxed text-slate-600 md:text-lg">
+            El precio para cítricos ha subido un <span class="font-semibold text-emerald-700">12%</span> este trimestre.
+          </p>
+          <div class="mt-3 h-16 rounded-2xl bg-slate-100 md:h-20"></div>
+        </article>
       </section>
     </div>
 

@@ -104,7 +104,7 @@ body {
 }
 
 .ecovalor-driver-popover .driver-popover-next-btn {
-  background-color: #059669;
+  background-color: #047857;
   color: white;
   border: 0;
 }
@@ -162,3 +162,40 @@ body {
     opacity: 0;
   }
 }
+
+/* Soundwave Voice Animations — Gemini/ChatGPT-style */
+.voice-wave {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2.5px;
+  height: 24px;
+  animation: fadeIn 200ms ease-out;
+}
+
+.voice-bar {
+  width: 3px;
+  background: linear-gradient(180deg, #10b981 0%, #059669 100%);
+  border-radius: 4px;
+  animation: voicePulse 0.8s ease-in-out infinite;
+  box-shadow: 0 0 4px rgba(16, 185, 129, 0.3);
+}
+
+.voice-bar:nth-child(1) { height: 10px; animation-delay: 0.00s; animation-duration: 0.7s; }
+.voice-bar:nth-child(2) { height: 18px; animation-delay: 0.12s; animation-duration: 0.85s; }
+.voice-bar:nth-child(3) { height: 12px; animation-delay: 0.06s; animation-duration: 0.65s; }
+.voice-bar:nth-child(4) { height: 22px; animation-delay: 0.18s; animation-duration: 0.9s; }
+.voice-bar:nth-child(5) { height: 14px; animation-delay: 0.10s; animation-duration: 0.75s; }
+
+@keyframes voicePulse {
+  0%, 100% {
+    transform: scaleY(0.4);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scaleY(1.5);
+    opacity: 1;
+  }
+}
+
+

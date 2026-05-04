@@ -1,4 +1,4 @@
-export const APP_NAME = 'RevaloraIA';
+export const APP_NAME = 'ReciclaYa';
 
 export const PERMISSIONS = {
   VIEW_DASHBOARD: 'view:dashboard',

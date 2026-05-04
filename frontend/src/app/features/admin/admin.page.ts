@@ -13,7 +13,7 @@ import { AdminCompaniesRepository, AdminCompany } from './admin-companies.reposi
   template: `
     <ui-section-header
       title="Admin empresas"
-      subtitle="Verifica o rechaza empresas registradas en RevaloraIA."
+      subtitle="Verifica o rechaza empresas registradas en ReciclaYa."
     />
 
     @if (error()) {

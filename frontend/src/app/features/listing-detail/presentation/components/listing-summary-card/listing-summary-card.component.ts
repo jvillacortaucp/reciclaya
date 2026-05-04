@@ -1,11 +1,11 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
-import { LucideSend } from '@lucide/angular';
+import { LucideMessageCircle, LucideSend } from '@lucide/angular';
 import { ListingDetailEntity } from '../../../domain/listing-detail.models';
 
 @Component({
   selector: 'app-listing-summary-card',
   standalone: true,
-  imports: [LucideSend],
+  imports: [LucideSend, LucideMessageCircle],
   template: `
     @if (detail) {
       <aside class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:rounded-3xl md:p-5">
@@ -17,7 +17,7 @@ import { ListingDetailEntity } from '../../../domain/listing-detail.models';
         <div class="mt-4 space-y-4">
           <div>
             <p class="text-[11px] uppercase tracking-[0.14em] text-slate-400">Cantidad total</p>
-            <p class="wrap-break-words text-3xl font-semibold leading-tight text-slate-900 md:text-4xl">
+            <p class="break-words text-3xl font-semibold leading-tight text-slate-900 md:text-4xl">
               {{ detail.volume.amount }}
               <span class="text-lg text-slate-400 md:text-xl">{{ detail.volume.unit === 'tons' ? 'Toneladas' : detail.volume.unit }}</span>
             </p>
@@ -25,7 +25,7 @@ import { ListingDetailEntity } from '../../../domain/listing-detail.models';
 
           <div>
             <p class="text-[11px] uppercase tracking-[0.14em] text-slate-400">Costo unitario</p>
-            <p class="wrap-break-words text-3xl font-semibold leading-tight text-slate-900 md:text-4xl">
+            <p class="break-words text-3xl font-semibold leading-tight text-slate-900 md:text-4xl">
               S/ {{ detail.pricing.costPerUnit }}
               <span class="text-lg text-slate-400 md:text-xl">/ {{ detail.volume.unit === 'tons' ? 'Ton' : detail.volume.unit }}</span>
             </p>
@@ -33,7 +33,7 @@ import { ListingDetailEntity } from '../../../domain/listing-detail.models';
 
           <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
             <p class="text-[11px] uppercase tracking-[0.12em] text-emerald-700">Valor estimado</p>
-            <p class="wrap-break-words text-3xl font-bold leading-tight text-emerald-700 md:text-4xl">S/ {{ detail.pricing.estimatedTotal }}</p>
+            <p class="break-words text-3xl font-bold leading-tight text-emerald-700 md:text-4xl">S/ {{ detail.pricing.estimatedTotal }}</p>
           </div>
         </div>
 
@@ -46,6 +46,14 @@ import { ListingDetailEntity } from '../../../domain/listing-detail.models';
             <svg lucideSend class="h-4 w-4"></svg>
             {{ primaryActionLabel }}
           </button>
+          <button
+            type="button"
+            class="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+            (click)="requestInfo.emit()"
+          >
+            <svg lucideMessageCircle class="h-4 w-4"></svg>
+            {{ secondaryActionLabel }}
+          </button>
         </div>
       </aside>
     }
@@ -54,7 +62,7 @@ import { ListingDetailEntity } from '../../../domain/listing-detail.models';
 })
 export class ListingSummaryCardComponent {
   @Input() detail: ListingDetailEntity | null = null;
-  @Input() primaryActionLabel = 'Generar Orden';
+  @Input() primaryActionLabel = 'Generar pre-orden';
   @Input() secondaryActionLabel = 'Solicitar información';
   @Output() readonly contact = new EventEmitter<void>();
   @Output() readonly requestInfo = new EventEmitter<void>();

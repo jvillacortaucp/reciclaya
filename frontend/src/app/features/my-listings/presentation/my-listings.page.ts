@@ -5,6 +5,7 @@ import { Subscription } from 'rxjs';
 import {
   LucideFilter,
   LucideInfo,
+  LucideLoaderCircle,
   LucidePlusCircle,
   LucideSparkles
 } from '@lucide/angular';
@@ -26,7 +27,6 @@ import { MyListing } from '../domain/my-listing.model';
 import { FloatingActionsComponent } from './components/floating-actions.component';
 import { MyListingCardComponent } from './components/my-listing-card.component';
 import { MyListingsFiltersComponent } from './components/my-listings-filters.component';
-import { LoaderComponent } from '../../../shared/ui/loader/loader.component';
 
 @Component({
   selector: 'app-my-listings-page',
@@ -38,9 +38,9 @@ import { LoaderComponent } from '../../../shared/ui/loader/loader.component';
     MyListingCardComponent,
     MyListingsFiltersComponent,
     FloatingActionsComponent,
-    LoaderComponent,
     LucideFilter,
     LucideInfo,
+    LucideLoaderCircle,
     LucidePlusCircle,
     LucideSparkles
   ],

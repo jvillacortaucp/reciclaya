@@ -13,7 +13,7 @@ import { ActivatedRoute } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
-import { LucideInfo, LucidePlus, LucideSlidersHorizontal } from '@lucide/angular';
+import { LucideBookmark, LucideInfo, LucidePlus, LucideSlidersHorizontal } from '@lucide/angular';
 import { APP_ROUTES } from '../../../core/constants/app.constants';
 import { ProtectedActionService } from '../../../core/services/protected-action.service';
 import { EmptyStateComponent } from '../../../shared/ui/empty-state/empty-state.component';
@@ -40,6 +40,7 @@ import { MarketplaceProductCardComponent } from './components/marketplace-produc
     MarketplaceFiltersComponent,
     RecommendedListingCardComponent,
     MarketplaceProductCardComponent,
+    LucideBookmark,
     LucideSlidersHorizontal,
     LucidePlus,
     LucideInfo
@@ -121,20 +122,6 @@ export class MarketplacePageComponent implements OnInit, AfterViewInit, OnDestro
 
   ngAfterViewInit(): void {
     this.setupInfiniteObserver();
-
-    // Si el sentinel aún no está en el DOM (por ejemplo cuando la lista está vacía
-    // en el primer render), reintentamos observar periódicamente hasta que exista
-    // o hasta que el componente se destruya.
-    if (!this.sentinelRef?.nativeElement) {
-      const handle = setInterval(() => {
-        if (this.sentinelRef?.nativeElement) {
-          this.setupInfiniteObserver();
-          clearInterval(handle);
-        }
-      }, 300);
-
-      this.subscriptions.add(new Subscription(() => clearInterval(handle)));
-    }
   }
 
   ngOnDestroy(): void {

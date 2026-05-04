@@ -1,22 +1,17 @@
 <div class="grid min-h-screen grid-cols-1 bg-slate-50 lg:grid-cols-[420px_1fr]">
-  <aside
-    class="relative hidden overflow-hidden bg-linear-to-br from-slate-950 via-slate-900 to-slate-800 p-12 text-white lg:flex lg:flex-col lg:justify-between">
-    <div
-      class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_30%,rgba(16,185,129,0.1)_0%,transparent_50%)]">
-    </div>
+  <aside class="relative hidden overflow-hidden bg-linear-to-br from-slate-950 via-slate-900 to-slate-800 p-12 text-white lg:flex lg:flex-col lg:justify-between">
+    <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_30%,rgba(16,185,129,0.1)_0%,transparent_50%)]"></div>
     <div class="relative z-10">
-      <div class="flex items-center mb-2 gap-2">
-        <div class="flex items-center justify-center bg-green-300/10 rounded-full w-16">
-          <img src="/logo-revaloraIA.png" alt="revalora-IA" class="w-full h-full">
+          <div class="flex items-center gap-3">
+        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500 shadow-[0_4px_15px_rgba(16,185,129,0.3)]">
+          <svg lucideZap class="text-white" size="24"></svg>
         </div>
-        <h1 class="text-2xl font-extrabold tracking-tight text-white">Revalora <span
-            class="font-normal text-emerald-200">IA</span></h1>
+        <h1 class="text-2xl font-extrabold tracking-tight">EcoLoop <span class="font-normal text-emerald-400">Empresas</span></h1>
       </div>
 
       <div class="mt-12">
         <h2 class="mb-4 text-3xl font-bold leading-tight text-white">Transformando residuos en valor industrial.</h2>
-        <p class="text-slate-300 text-lg leading-relaxed">Únase al ecosistema líder en economía circular B2B y optimice
-          sus flujos de materiales con inteligencia operativa.</p>
+        <p class="text-slate-300 text-lg leading-relaxed">Únase al ecosistema líder en economía circular B2B y optimice sus flujos de materiales con inteligencia operativa.</p>
       </div>
 
       <div class="mt-10 space-y-8">
@@ -35,8 +30,7 @@
           </div>
           <div>
             <h3 class="text-white font-semibold mb-1">Cumplimiento ESG</h3>
-            <p class="text-slate-400 text-sm">Trazabilidad completa y reportes automatizados para su estrategia de
-              sostenibilidad.</p>
+            <p class="text-slate-400 text-sm">Trazabilidad completa y reportes automatizados para su estrategia de sostenibilidad.</p>
           </div>
         </div>
       </div>
@@ -44,10 +38,7 @@
 
     <footer class="relative z-10">
       <p class="text-slate-500 text-xs text-center border-t border-slate-800 pt-6">
-        © {{ now }} <a href="https://www.lynqer.dev/" class="decoration-0">Lynqer.Dev</a>
-      </p>
-      <p class="text-slate-500 text-xs text-center">
-        Crece donde tus clientes ya estan
+        © 2024 EcoLoop Systems. Eficiencia industrial y compromiso ambiental.
       </p>
     </footer>
   </aside>
@@ -55,7 +46,7 @@
   <main class="flex flex-col">
     <div class="flex flex-1 justify-center overflow-y-auto px-4 py-8 md:px-8 md:py-16">
       <div class="w-full max-w-[640px]">
-
+        
         <!-- Header Info -->
         <header class="mb-8">
           <p class="text-xs font-bold text-emerald-600 uppercase tracking-widest mb-2 flex items-center gap-2">
@@ -76,17 +67,26 @@
             <span class="text-sm font-semibold text-slate-700">Tipo de cuenta</span>
             <span class="text-xs font-medium text-emerald-600">Recomendado para B2B</span>
           </div>
-          <app-account-type-selector [selected]="selectedAccountType()" [options]="accountTypeOptions"
-            (selectedChange)="onAccountTypeChange($event)" />
+          <app-account-type-selector
+            [selected]="selectedAccountType()"
+            [options]="accountTypeOptions"
+            (selectedChange)="onAccountTypeChange($event)"
+          />
         </div>
 
         <!-- Form Area -->
         @if (selectedAccountType() === accountType.Company) {
-        <app-company-register-form [loading]="loading()" [errorMessage]="authError()"
-          (submitted)="submitCompany($event)" />
+          <app-company-register-form
+            [loading]="loading()"
+            [errorMessage]="authError()"
+            (submitted)="submitCompany($event)"
+          />
         } @else {
-        <app-natural-person-register-form [loading]="loading()" [errorMessage]="authError()"
-          (submitted)="submitNaturalPerson($event)" />
+          <app-natural-person-register-form
+            [loading]="loading()"
+            [errorMessage]="authError()"
+            (submitted)="submitNaturalPerson($event)"
+          />
         }
 
         <!-- Footer Actions -->
@@ -105,3 +105,4 @@
     </div>
   </main>
 </div>
+
