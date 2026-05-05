@@ -3,20 +3,20 @@ import { PaymentMethod } from '../models/pre-order.model';
 export const PRE_ORDER_COPY = {
   breadcrumbMarketplace: 'Marketplace',
   breadcrumbDetail: 'Detalle del residuo',
-  breadcrumbCurrent: 'Pre-orden',
-  title: 'Generar pre-orden',
+  breadcrumbCurrent: 'Orden',
+  title: 'Generar Orden',
   subtitle: 'Revisa el residuo seleccionado, define la cantidad y simula el pago.',
   sellerCardTitle: 'Proveedor',
   configureTitle: 'Configurar compra',
   paymentTitle: 'Método de pago',
-  summaryTitle: 'Resumen de Pre-orden',
-  payButton: 'Pagar y generar pre-orden',
+  summaryTitle: 'Resumen de la Orden',
+  payButton: 'Pagar y generar Orden',
   infoButton: 'Solicitar información',
   reserveLabel: 'Deseo separar esta cantidad temporalmente (reserva por 48h)',
   impactTitle: 'Impacto Ambiental',
   impactDescription:
     'Al recuperar este material, estás evitando emisiones y acelerando la valorización circular.',
-  successMessage: 'Pre-orden generada correctamente.',
+  successMessage: 'Orden generada correctamente.',
   failureMessage: 'No se pudo completar la simulación de pago. Intente nuevamente.',
   processingMessage: 'Procesando pago simulado...'
 } as const;

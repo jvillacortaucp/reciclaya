@@ -116,7 +116,13 @@ export class PreOrderNewPageComponent implements OnInit, OnDestroy {
         return;
       }
 
-      this.toast.error(message);
+      const lower = message.toLowerCase();
+      if (lower.includes('descarg') || lower.includes('orden de compra') || lower.includes('descarga')) {
+        this.toast.success(message);
+      } else {
+        this.toast.error(message);
+      }
+
       this.facade.clearToastMessage();
     });
 
