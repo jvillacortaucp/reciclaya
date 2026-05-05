@@ -79,6 +79,43 @@ public sealed class RecommendationsController(IRecommendationService recommendat
         return Ok(ApiResponse<ReciclaYa.Application.ValueSectors.Dtos.ValueRouteDetailDto>.Ok(analysis));
     }
 
+    [HttpPost("listings/{listingId:guid}/analysis/save")]
+    public async Task<IActionResult> SaveListingAnalysis(
+        Guid listingId,
+        [FromQuery] string? selectedProductId = null,
+        [FromQuery] bool useAi = true,
+        [FromQuery] bool includeExplanation = true,
+        CancellationToken cancellationToken = default)
+    {
+        if (!TryGetUserContext(out var userId, out var role))
+        {
+            return Unauthorized(ApiResponse<object>.Fail("Unauthorized.", ["INVALID_TOKEN"]));
+        }
+
+        if (!CanUseRecommendations(role))
+        {
+            return StatusCode(
+                StatusCodes.Status403Forbidden,
+                ApiResponse<object>.Fail("Forbidden.", ["FORBIDDEN"]));
+        }
+
+        var analysis = await recommendationService.SaveListingAnalysisAsync(
+            userId,
+            IsAdmin(role),
+            listingId,
+            selectedProductId,
+            useAi,
+            includeExplanation,
+            cancellationToken);
+
+        if (analysis is null)
+        {
+            return NotFound(ApiResponse<object>.Fail("Listing not found.", ["LISTING_NOT_FOUND"]));
+        }
+
+        return Ok(ApiResponse<ReciclaYa.Application.ValueSectors.Dtos.ValueRouteDetailDto>.Ok(analysis));
+    }
+
     [HttpGet("listings/{listingId:guid}/analysis/latest")]
     public async Task<IActionResult> GetLatestListingAnalysis(
         Guid listingId,

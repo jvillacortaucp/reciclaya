@@ -224,7 +224,7 @@ export class RecommendationsFacade {
     }
 
     this.recommendationsRepository
-      .getListingAnalysis(listingId, selectedProductId ?? null, true, true)
+      .saveListingAnalysis(listingId, selectedProductId ?? null, true, true)
       .pipe(
         catchError((error: unknown) => {
           this.saveMessage.set(getErrorMessage(error, 'No se pudo guardar la recomendacion.'));

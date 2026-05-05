@@ -1,8 +1,9 @@
 import { Location } from '@angular/common';
-import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, effect, inject, signal } from '@angular/core';
+import { ToastService } from '../../core/services/toast.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, ParamMap, Router } from '@angular/router';
-import { LucideArrowLeft, LucideBookmark, LucideSparkles } from '@lucide/angular';
+import { LucideArrowLeft, LucideBookmark, LucideSparkles, LucideLoaderCircle } from '@lucide/angular';
 import { combineLatest } from 'rxjs';
 import { RecommendationsFacade } from './application/recommendations.facade';
 import { ChatbotAnalysisRequest } from './recommendations-http.repository';
@@ -20,6 +21,7 @@ import {LoaderComponent} from 'app/shared/ui/loader/loader.component'
   imports: [
     LucideArrowLeft,
     LucideBookmark,
+    LucideLoaderCircle,
     LucideSparkles,
     RecommendationTabsComponent,
     MarketAnalysisComponent,
@@ -36,6 +38,7 @@ export class RecommendationsPageComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly location = inject(Location);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly toast = inject(ToastService);
   private loadedProductId: string | null = null;
   private readonly sourceListingId = signal<string | null>(null);
   private readonly selectedProductId = signal<string | null>(null);
@@ -57,6 +60,23 @@ export class RecommendationsPageComponent implements OnInit {
   protected readonly selectedChartType = this.facade.selectedChartType;
   protected readonly saving = this.facade.saving;
   protected readonly saveMessage = this.facade.saveMessage;
+  protected readonly canSaveRecommendation = computed(() => {
+    const listingId = this.sourceListingId();
+    return !!listingId && this.isGuid(listingId) && !this.loading() && !this.saving();
+  });
+  private readonly saveMessageEffect = effect(() => {
+    const msg = this.saveMessage();
+    if (!msg) {
+      return;
+    }
+
+    if (msg.toLowerCase().includes('no se pudo')) {
+      this.toast.error(msg);
+      return;
+    }
+
+    this.toast.success(msg);
+  });
 
   ngOnInit(): void {
     combineLatest([this.route.paramMap, this.route.queryParamMap])
@@ -65,7 +85,11 @@ export class RecommendationsPageComponent implements OnInit {
         const productId = params.get('productId');
         const tab = this.parseTab(query.get('tab'));
         this.sourceListingId.set(query.get('listing'));
-        const selectedProductId = query.get('selectedProductId') ?? query.get('recommendedProduct');
+        const routeProductId = params.get('productId');
+        const selectedProductId =
+          query.get('selectedProductId') ??
+          query.get('recommendedProduct') ??
+          (routeProductId && this.isGuid(routeProductId) ? routeProductId : null);
         this.selectedProductId.set(selectedProductId);
         const chatbotContext = this.readChatbotContext(params, query);
 
@@ -77,6 +101,7 @@ export class RecommendationsPageComponent implements OnInit {
 
         this.facade.setActiveTab(tab);
       });
+
   }
 
   protected setTab(tab: 'process' | 'explanation' | 'market'): void {
@@ -136,7 +161,15 @@ export class RecommendationsPageComponent implements OnInit {
   }
 
   protected saveRecommendation(): void {
+    if (!this.canSaveRecommendation()) {
+      this.facade.saveCurrentRecommendation(null, this.selectedProductId());
+      return;
+    }
     this.facade.saveCurrentRecommendation(this.sourceListingId(), this.selectedProductId());
+  }
+
+  private isGuid(value: string): boolean {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
   }
 
   private parseTab(tab: string | null): RecommendationTab {
