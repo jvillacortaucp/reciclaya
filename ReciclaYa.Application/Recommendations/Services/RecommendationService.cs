@@ -131,6 +131,25 @@ public sealed class RecommendationService(
         return unavailable;
     }
 
+    public Task<ReciclaYa.Application.ValueSectors.Dtos.ValueRouteDetailDto?> SaveListingAnalysisAsync(
+        Guid userId,
+        bool isAdmin,
+        Guid listingId,
+        string? selectedProductId = null,
+        bool useAi = true,
+        bool includeExplanation = true,
+        CancellationToken cancellationToken = default)
+    {
+        return GetListingAnalysisAsync(
+            userId,
+            isAdmin,
+            listingId,
+            selectedProductId,
+            useAi,
+            includeExplanation,
+            cancellationToken);
+    }
+
     public async Task<RecommendationAnalysisRecordDto?> GetLatestListingAnalysisAsync(
         Guid listingId,
         string? selectedProductId = null,

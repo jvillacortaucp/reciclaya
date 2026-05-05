@@ -210,6 +210,31 @@ export class RecommendationsHttpRepository {
       );
   }
 
+  saveListingAnalysis(
+    listingId: string,
+    selectedProductId?: string | null,
+    useAi = true,
+    includeExplanation = true): Observable<RecommendationProcess> {
+    return this.http
+      .post<ApiResponse<ValueRouteDetailApi>>(
+        `${environment.apiBaseUrl}/recommendations/listings/${listingId}/analysis/save`,
+        {},
+        {
+          params: {
+            selectedProductId: selectedProductId ?? '',
+            useAi,
+            includeExplanation
+          }
+        })
+      .pipe(
+        map(unwrapApiResponse),
+        map((detail: ValueRouteDetailApi) => this.mapToRecommendationProcess(detail)),
+        catchError((error: unknown) =>
+          throwError(() => normalizeHttpError(error, 'No se pudo guardar el analisis de la recomendacion.'))
+        )
+      );
+  }
+
   saveChatbotAnalysis(
     request: ChatbotAnalysisRequest,
     useAi = true,

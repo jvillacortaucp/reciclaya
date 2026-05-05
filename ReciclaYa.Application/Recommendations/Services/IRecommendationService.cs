@@ -21,6 +21,15 @@ public interface IRecommendationService
         bool includeExplanation = true,
         CancellationToken cancellationToken = default);
 
+    Task<ReciclaYa.Application.ValueSectors.Dtos.ValueRouteDetailDto?> SaveListingAnalysisAsync(
+        Guid userId,
+        bool isAdmin,
+        Guid listingId,
+        string? selectedProductId = null,
+        bool useAi = true,
+        bool includeExplanation = true,
+        CancellationToken cancellationToken = default);
+
     Task<RecommendationAnalysisRecordDto?> GetLatestListingAnalysisAsync(
         Guid listingId,
         string? selectedProductId = null,
