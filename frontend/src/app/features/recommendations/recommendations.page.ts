@@ -42,6 +42,8 @@ export class RecommendationsPageComponent implements OnInit {
   private loadedProductId: string | null = null;
   private readonly sourceListingId = signal<string | null>(null);
   private readonly selectedProductId = signal<string | null>(null);
+  private readonly chatbotMode = signal(false);
+  protected readonly readOnlyMode = signal(false);
 
   protected readonly loading = this.facade.loading;
   protected readonly error = this.facade.error;
@@ -61,6 +63,14 @@ export class RecommendationsPageComponent implements OnInit {
   protected readonly saving = this.facade.saving;
   protected readonly saveMessage = this.facade.saveMessage;
   protected readonly canSaveRecommendation = computed(() => {
+    if (this.readOnlyMode()) {
+      return false;
+    }
+
+    if (this.chatbotMode()) {
+      return !this.loading() && !this.saving();
+    }
+
     const listingId = this.sourceListingId();
     return !!listingId && this.isGuid(listingId) && !this.loading() && !this.saving();
   });
@@ -85,6 +95,8 @@ export class RecommendationsPageComponent implements OnInit {
         const productId = params.get('productId');
         const tab = this.parseTab(query.get('tab'));
         this.sourceListingId.set(query.get('listing'));
+        this.chatbotMode.set(query.get('chatbot') === 'true' || query.get('chatbot') === '1');
+        this.readOnlyMode.set(query.get('history') === '1' || query.get('readonly') === '1');
         const routeProductId = params.get('productId');
         const selectedProductId =
           query.get('selectedProductId') ??
@@ -95,7 +107,14 @@ export class RecommendationsPageComponent implements OnInit {
 
         if (this.loadedProductId !== productId) {
           this.loadedProductId = productId;
-          this.facade.load(productId, tab, this.sourceListingId(), selectedProductId, chatbotContext);
+          this.facade.load(
+            productId,
+            tab,
+            this.sourceListingId(),
+            selectedProductId,
+            chatbotContext,
+            this.readOnlyMode()
+          );
           return;
         }
 
@@ -161,6 +180,11 @@ export class RecommendationsPageComponent implements OnInit {
   }
 
   protected saveRecommendation(): void {
+    if (this.readOnlyMode()) {
+      this.toast.info('Esta idea es de solo lectura.');
+      return;
+    }
+
     if (!this.canSaveRecommendation()) {
       this.facade.saveCurrentRecommendation(null, this.selectedProductId());
       return;
@@ -188,7 +212,7 @@ export class RecommendationsPageComponent implements OnInit {
       return null;
     }
 
-    const productId = params.get('productId');
+    const productId = query.get('selectedProductId') ?? params.get('productId');
     const productName = query.get('recommendedProduct');
     if (!productId || !productName) {
       return null;

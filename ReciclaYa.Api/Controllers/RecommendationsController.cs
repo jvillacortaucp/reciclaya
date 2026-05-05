@@ -290,6 +290,33 @@ public sealed class RecommendationsController(IRecommendationService recommendat
         return Ok(ApiResponse<RecommendationAnalysisHistoryPageDto>.Ok(history));
     }
 
+    [HttpGet("analyses/my")]
+    public async Task<IActionResult> GetMyAnalyses(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10,
+        CancellationToken cancellationToken = default)
+    {
+        if (!TryGetUserContext(out var userId, out var role))
+        {
+            return Unauthorized(ApiResponse<object>.Fail("Unauthorized.", ["INVALID_TOKEN"]));
+        }
+
+        if (!CanUseRecommendations(role))
+        {
+            return StatusCode(
+                StatusCodes.Status403Forbidden,
+                ApiResponse<object>.Fail("Forbidden.", ["FORBIDDEN"]));
+        }
+
+        var history = await recommendationService.GetMyAnalysesAsync(
+            userId,
+            page,
+            pageSize,
+            cancellationToken);
+
+        return Ok(ApiResponse<RecommendationAnalysisHistoryPageDto>.Ok(history));
+    }
+
     private static bool CanUseRecommendations(string role)
     {
         return string.Equals(role, "buyer", StringComparison.OrdinalIgnoreCase)

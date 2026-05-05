@@ -135,6 +135,24 @@ export interface ChatbotAnalysisRequest {
   readonly marketPotential?: string | null;
 }
 
+export interface SavedAnalysisListItem {
+  readonly id: string;
+  readonly listingId: string;
+  readonly title: string;
+  readonly recommendedProduct?: string | null;
+  readonly sectorName?: string | null;
+  readonly residueInput?: string | null;
+  readonly createdAt?: string | null;
+  readonly updatedAt?: string | null;
+}
+
+export interface SavedAnalysisListResult {
+  readonly items: readonly SavedAnalysisListItem[];
+  readonly page: number;
+  readonly pageSize: number;
+  readonly total: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class RecommendationsHttpRepository {
   private readonly http = inject(HttpClient);
@@ -281,6 +299,32 @@ export class RecommendationsHttpRepository {
         map((payload) => (payload?.items ?? []).map((item) => this.mapToRecommendationProcess(item.data))),
         catchError((error: unknown) =>
           throwError(() => normalizeHttpError(error, 'No se pudo cargar el historial de analisis del chatbot.'))
+        )
+      );
+  }
+
+  getMySavedAnalyses(page = 1, pageSize = 10): Observable<SavedAnalysisListResult> {
+    return this.http
+      .get<ApiResponse<unknown>>(`${environment.apiBaseUrl}/recommendations/analyses/my`, {
+        params: { page, pageSize }
+      })
+      .pipe(
+        map(unwrapApiResponse),
+        map((payload: unknown) => this.mapSavedAnalyses(payload, page, pageSize)),
+        catchError((error: unknown) =>
+          throwError(() => normalizeHttpError(error, 'No se pudieron cargar las ideas guardadas.'))
+        )
+      );
+  }
+
+  getListingAnalysisHistory(listingId: string): Observable<readonly RecommendationProcess[]> {
+    return this.http
+      .get<ApiResponse<unknown>>(`${environment.apiBaseUrl}/recommendations/listings/${listingId}/analysis/history`)
+      .pipe(
+        map(unwrapApiResponse),
+        map((payload: unknown) => this.extractHistoryItems(payload).map((item) => this.mapToRecommendationProcess(item))),
+        catchError((error: unknown) =>
+          throwError(() => normalizeHttpError(error, 'No se pudo cargar el historial del analisis.'))
         )
       );
   }
@@ -542,5 +586,119 @@ export class RecommendationsHttpRepository {
     }
 
     return Math.max(0, Math.min(100, Math.round(score)));
+  }
+
+  private mapSavedAnalyses(payload: unknown, fallbackPage: number, fallbackPageSize: number): SavedAnalysisListResult {
+    const source = this.asRecord(payload);
+    const rawItems = Array.isArray(payload)
+      ? payload
+      : Array.isArray(source?.['items'])
+        ? source['items']
+        : Array.isArray(source?.['data'])
+          ? source['data']
+          : [];
+
+    const items = rawItems
+      .map((entry, index) => this.mapSavedAnalysisItem(entry, index))
+      .filter((item): item is SavedAnalysisListItem => !!item);
+
+    const page = this.asNumber(source?.['page']) ?? fallbackPage;
+    const pageSize = this.asNumber(source?.['pageSize']) ?? fallbackPageSize;
+    const total = this.asNumber(source?.['total']) ?? items.length;
+
+    return {
+      items,
+      page,
+      pageSize,
+      total
+    };
+  }
+
+  private mapSavedAnalysisItem(value: unknown, index: number): SavedAnalysisListItem | null {
+    const node = this.asRecord(value);
+    if (!node) {
+      return null;
+    }
+
+    const listingId = this.asString(node['listingId'])
+      ?? this.asString(node['listing_id'])
+      ?? this.asString(node['listingGuid'])
+      ?? this.asString(node['listing_guid'])
+      ?? '';
+    const id = this.asString(node['id'])
+      ?? this.asString(node['analysisId'])
+      ?? this.asString(node['analysis_id'])
+      ?? `${listingId || 'analysis'}-${index}`;
+
+    return {
+      id,
+      listingId,
+      title: this.asString(node['title'])
+        ?? this.asString(node['recommendedProduct'])
+        ?? this.asString(node['productName'])
+        ?? 'Idea guardada',
+      recommendedProduct: this.asString(node['recommendedProduct']) ?? this.asString(node['productName']) ?? null,
+      sectorName: this.asString(node['sectorName']) ?? this.asString(node['sector']) ?? null,
+      residueInput: this.asString(node['residueInput']) ?? this.asString(node['residue']) ?? null,
+      createdAt: this.asString(node['createdAt']) ?? this.asString(node['created_at']) ?? null,
+      updatedAt: this.asString(node['updatedAt']) ?? this.asString(node['updated_at']) ?? null
+    };
+  }
+
+  private extractHistoryItems(payload: unknown): ValueRouteDetailApi[] {
+    if (Array.isArray(payload)) {
+      return payload
+        .map((entry) => this.extractHistoryDetail(entry))
+        .filter((entry): entry is ValueRouteDetailApi => !!entry);
+    }
+
+    const source = this.asRecord(payload);
+    const rawItems = Array.isArray(source?.['items'])
+      ? source['items']
+      : Array.isArray(source?.['data'])
+        ? source['data']
+        : Array.isArray(source?.['history'])
+          ? source['history']
+          : [];
+
+    return rawItems
+      .map((entry) => this.extractHistoryDetail(entry))
+      .filter((entry): entry is ValueRouteDetailApi => !!entry);
+  }
+
+  private extractHistoryDetail(entry: unknown): ValueRouteDetailApi | null {
+    const node = this.asRecord(entry);
+    if (!node) {
+      return null;
+    }
+
+    const dataNode = this.asRecord(node['data']);
+    const detail = dataNode ?? node;
+    if (!this.asString(detail['recommendationId']) || !this.asString(detail['recommendedProduct'])) {
+      return null;
+    }
+
+    return detail as unknown as ValueRouteDetailApi;
+  }
+
+  private asRecord(value: unknown): Record<string, unknown> | null {
+    return typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : null;
+  }
+
+  private asString(value: unknown): string | null {
+    return typeof value === 'string' ? value : null;
+  }
+
+  private asNumber(value: unknown): number | null {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return value;
+    }
+
+    if (typeof value === 'string') {
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : null;
+    }
+
+    return null;
   }
 }

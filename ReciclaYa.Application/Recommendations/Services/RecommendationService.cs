@@ -311,6 +311,35 @@ public sealed class RecommendationService(
             start + safePageSize < total);
     }
 
+    public async Task<RecommendationAnalysisHistoryPageDto> GetMyAnalysesAsync(
+        Guid userId,
+        int page = 1,
+        int pageSize = 10,
+        CancellationToken cancellationToken = default)
+    {
+        var safePage = Math.Max(1, page);
+        var safePageSize = Math.Clamp(pageSize, 1, 50);
+
+        var query = dbContext.RecommendationAnalyses
+            .AsNoTracking()
+            .Where(item => item.UserId == userId);
+
+        var total = await query.CountAsync(cancellationToken);
+        var start = (safePage - 1) * safePageSize;
+        var items = await query
+            .OrderByDescending(item => item.CreatedAt)
+            .Skip(start)
+            .Take(safePageSize)
+            .ToListAsync(cancellationToken);
+
+        return new RecommendationAnalysisHistoryPageDto(
+            items.Select(ToAnalysisRecordDto).ToArray(),
+            total,
+            safePage,
+            safePageSize,
+            start + safePageSize < total);
+    }
+
     private async Task<(ValueRouteDetailDto Detail, string Status, string? ErrorCode)> BuildChatbotAnalysisAsync(
         Guid userId,
         ChatbotRecommendationAnalysisRequestDto request,

@@ -67,4 +67,10 @@ public interface IRecommendationService
         int page = 1,
         int pageSize = 10,
         CancellationToken cancellationToken = default);
+
+    Task<RecommendationAnalysisHistoryPageDto> GetMyAnalysesAsync(
+        Guid userId,
+        int page = 1,
+        int pageSize = 10,
+        CancellationToken cancellationToken = default);
 }
