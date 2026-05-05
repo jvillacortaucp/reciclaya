@@ -158,26 +158,20 @@ export class ChatInputComponent implements OnDestroy {
     this.recognition.onresult = (event: any) => {
       if (this.isCancelled) return;
 
-      // Build full transcript from all results
-      let finalPart = '';
       let interimPart = '';
 
-      for (const result of event.results) {
-        if (result.isFinal) {
-          finalPart += result[0].transcript;
+      // Use event.resultIndex to process ONLY new words and prevent Android Chrome stuttering bug
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        if (event.results[i].isFinal) {
+          this.confirmedTranscript += event.results[i][0].transcript;
         } else {
-          interimPart += result[0].transcript;
+          interimPart += event.results[i][0].transcript;
         }
       }
 
-      // Update confirmed transcript with final parts
-      if (finalPart) {
-        this.confirmedTranscript = finalPart;
-      }
-
-      // Show live text: confirmed + interim (in real time, like Gemini)
+      // Show live text: confirmed + interim
       const liveText = (this.confirmedTranscript + ' ' + interimPart).trim();
-      console.log('[Voice] onresult — final:', JSON.stringify(finalPart), 'interim:', JSON.stringify(interimPart), 'live:', liveText);
+      console.log('[Voice] onresult — live:', liveText);
       this.control().setValue(liveText.substring(0, 120));
 
       // Reset the silence timer every time we get speech
