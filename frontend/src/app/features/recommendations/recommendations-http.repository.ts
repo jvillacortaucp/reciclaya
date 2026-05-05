@@ -72,6 +72,9 @@ interface ValueRouteDetailApi {
       readonly probability: number;
       readonly channel: string;
       readonly type: string;
+      readonly marketScope?: string;
+      readonly region?: string;
+      readonly country?: string;
       readonly iconName: string;
     }[];
     readonly marketKpis: readonly {
@@ -130,6 +133,24 @@ export interface ChatbotAnalysisRequest {
   readonly description?: string | null;
   readonly complexity?: string | null;
   readonly marketPotential?: string | null;
+}
+
+export interface SavedAnalysisListItem {
+  readonly id: string;
+  readonly listingId: string;
+  readonly title: string;
+  readonly recommendedProduct?: string | null;
+  readonly sectorName?: string | null;
+  readonly residueInput?: string | null;
+  readonly createdAt?: string | null;
+  readonly updatedAt?: string | null;
+}
+
+export interface SavedAnalysisListResult {
+  readonly items: readonly SavedAnalysisListItem[];
+  readonly page: number;
+  readonly pageSize: number;
+  readonly total: number;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -207,6 +228,107 @@ export class RecommendationsHttpRepository {
       );
   }
 
+  saveListingAnalysis(
+    listingId: string,
+    selectedProductId?: string | null,
+    useAi = true,
+    includeExplanation = true): Observable<RecommendationProcess> {
+    return this.http
+      .post<ApiResponse<ValueRouteDetailApi>>(
+        `${environment.apiBaseUrl}/recommendations/listings/${listingId}/analysis/save`,
+        {},
+        {
+          params: {
+            selectedProductId: selectedProductId ?? '',
+            useAi,
+            includeExplanation
+          }
+        })
+      .pipe(
+        map(unwrapApiResponse),
+        map((detail: ValueRouteDetailApi) => this.mapToRecommendationProcess(detail)),
+        catchError((error: unknown) =>
+          throwError(() => normalizeHttpError(error, 'No se pudo guardar el analisis de la recomendacion.'))
+        )
+      );
+  }
+
+  saveChatbotAnalysis(
+    request: ChatbotAnalysisRequest,
+    useAi = true,
+    includeExplanation = true
+  ): Observable<RecommendationProcess> {
+    return this.http
+      .post<ApiResponse<ValueRouteDetailApi>>(
+        `${environment.apiBaseUrl}/recommendations/chatbot-analysis/save`,
+        request,
+        { params: { useAi, includeExplanation } }
+      )
+      .pipe(
+        map(unwrapApiResponse),
+        map((detail: ValueRouteDetailApi) => this.mapToRecommendationProcess(detail)),
+        catchError((error: unknown) =>
+          throwError(() => normalizeHttpError(error, 'No se pudo guardar el analisis de recomendacion desde chatbot.'))
+        )
+      );
+  }
+
+  getChatbotAnalysisLatest(productId: string): Observable<RecommendationProcess> {
+    return this.http
+      .get<ApiResponse<{ data: ValueRouteDetailApi } | any>>(
+        `${environment.apiBaseUrl}/recommendations/chatbot-analysis/latest`,
+        { params: { productId } }
+      )
+      .pipe(
+        map(unwrapApiResponse),
+        map((record: any) => this.mapToRecommendationProcess((record?.data ?? record) as ValueRouteDetailApi)),
+        catchError((error: unknown) =>
+          throwError(() => normalizeHttpError(error, 'No se pudo cargar el ultimo analisis guardado del chatbot.'))
+        )
+      );
+  }
+
+  getChatbotAnalysisHistory(productId: string, page = 1, pageSize = 10): Observable<readonly RecommendationProcess[]> {
+    return this.http
+      .get<ApiResponse<{ items: Array<{ data: ValueRouteDetailApi }> }>>(
+        `${environment.apiBaseUrl}/recommendations/chatbot-analysis/history`,
+        { params: { productId, page, pageSize } }
+      )
+      .pipe(
+        map(unwrapApiResponse),
+        map((payload) => (payload?.items ?? []).map((item) => this.mapToRecommendationProcess(item.data))),
+        catchError((error: unknown) =>
+          throwError(() => normalizeHttpError(error, 'No se pudo cargar el historial de analisis del chatbot.'))
+        )
+      );
+  }
+
+  getMySavedAnalyses(page = 1, pageSize = 10): Observable<SavedAnalysisListResult> {
+    return this.http
+      .get<ApiResponse<unknown>>(`${environment.apiBaseUrl}/recommendations/analyses/my`, {
+        params: { page, pageSize }
+      })
+      .pipe(
+        map(unwrapApiResponse),
+        map((payload: unknown) => this.mapSavedAnalyses(payload, page, pageSize)),
+        catchError((error: unknown) =>
+          throwError(() => normalizeHttpError(error, 'No se pudieron cargar las ideas guardadas.'))
+        )
+      );
+  }
+
+  getListingAnalysisHistory(listingId: string): Observable<readonly RecommendationProcess[]> {
+    return this.http
+      .get<ApiResponse<unknown>>(`${environment.apiBaseUrl}/recommendations/listings/${listingId}/analysis/history`)
+      .pipe(
+        map(unwrapApiResponse),
+        map((payload: unknown) => this.extractHistoryItems(payload).map((item) => this.mapToRecommendationProcess(item))),
+        catchError((error: unknown) =>
+          throwError(() => normalizeHttpError(error, 'No se pudo cargar el historial del analisis.'))
+        )
+      );
+  }
+
   private mapToRecommendationProcess(detail: ValueRouteDetailApi): RecommendationProcess {
     const buyers: readonly BuyerSegment[] = (detail.marketAnalysis?.potentialBuyers ?? []).map((buyer) => ({
       id: buyer.id,
@@ -214,8 +336,10 @@ export class RecommendationsHttpRepository {
       segment: buyer.segment,
       monthlyVolume: buyer.monthlyVolume,
       probability: this.normalizeScore(Number(buyer.probability)),
-      channel: buyer.channel,
-      scope: this.normalizeBuyerScope(buyer.type),
+      channel: this.normalizeChannel(buyer.channel),
+      scope: this.normalizeBuyerScope(buyer.type, buyer.marketScope, buyer.country),
+      region: this.resolveBuyerRegion(buyer.region, buyer.country, buyer.type, buyer.marketScope),
+      country: this.resolveBuyerCountry(buyer.country, buyer.type, buyer.marketScope),
       iconName: this.normalizeBuyerIcon(buyer.iconName)
     }));
 
@@ -328,9 +452,41 @@ export class RecommendationsHttpRepository {
     return 'medium';
   }
 
-  private normalizeBuyerScope(type: string): 'nacional' | 'internacional' {
+  private normalizeBuyerScope(type: string, marketScope?: string, country?: string): 'nacional' | 'internacional' {
+    const byScope = (marketScope ?? '').trim().toLowerCase();
+    if (byScope.includes('international') || byScope.includes('internacional')) {
+      return 'internacional';
+    }
+
+    const byCountry = (country ?? '').trim().toLowerCase();
+    if (byCountry && byCountry !== 'peru' && byCountry !== 'perú') {
+      return 'internacional';
+    }
+
     const normalized = (type ?? '').trim().toLowerCase();
     return normalized.includes('international') ? 'internacional' : 'nacional';
+  }
+
+  private resolveBuyerCountry(country: string | undefined, type: string, marketScope?: string): string {
+    const value = (country ?? '').trim();
+    if (value) {
+      return value;
+    }
+
+    return this.normalizeBuyerScope(type, marketScope, country) === 'internacional'
+      ? 'No se encontró la información'
+      : 'Perú';
+  }
+
+  private resolveBuyerRegion(region: string | undefined, country: string | undefined, type: string, marketScope?: string): string {
+    const value = (region ?? '').trim();
+    if (value) {
+      return value;
+    }
+
+    return this.normalizeBuyerScope(type, marketScope, country) === 'internacional'
+      ? 'Internacional'
+      : 'No se encontró la información';
   }
 
   private normalizeBuyerIcon(icon: string): 'building' | 'store' | 'leaf' {
@@ -396,6 +552,23 @@ export class RecommendationsHttpRepository {
     return this.translateMarketText(text ?? '');
   }
 
+  private normalizeChannel(channel: string): string {
+    const normalized = (channel ?? '').trim().toLowerCase();
+    switch (normalized) {
+      case 'direct':
+      case 'directo':
+        return 'Directo';
+      case 'b2b':
+        return 'B2B';
+      case 'whatsapp':
+        return 'WhatsApp';
+      case 'retail':
+        return 'Retail';
+      default:
+        return channel;
+    }
+  }
+
   private normalizeRecommendation(item: Recommendation): Recommendation {
     return {
       ...item,
@@ -413,5 +586,119 @@ export class RecommendationsHttpRepository {
     }
 
     return Math.max(0, Math.min(100, Math.round(score)));
+  }
+
+  private mapSavedAnalyses(payload: unknown, fallbackPage: number, fallbackPageSize: number): SavedAnalysisListResult {
+    const source = this.asRecord(payload);
+    const rawItems = Array.isArray(payload)
+      ? payload
+      : Array.isArray(source?.['items'])
+        ? source['items']
+        : Array.isArray(source?.['data'])
+          ? source['data']
+          : [];
+
+    const items = rawItems
+      .map((entry, index) => this.mapSavedAnalysisItem(entry, index))
+      .filter((item): item is SavedAnalysisListItem => !!item);
+
+    const page = this.asNumber(source?.['page']) ?? fallbackPage;
+    const pageSize = this.asNumber(source?.['pageSize']) ?? fallbackPageSize;
+    const total = this.asNumber(source?.['total']) ?? items.length;
+
+    return {
+      items,
+      page,
+      pageSize,
+      total
+    };
+  }
+
+  private mapSavedAnalysisItem(value: unknown, index: number): SavedAnalysisListItem | null {
+    const node = this.asRecord(value);
+    if (!node) {
+      return null;
+    }
+
+    const listingId = this.asString(node['listingId'])
+      ?? this.asString(node['listing_id'])
+      ?? this.asString(node['listingGuid'])
+      ?? this.asString(node['listing_guid'])
+      ?? '';
+    const id = this.asString(node['id'])
+      ?? this.asString(node['analysisId'])
+      ?? this.asString(node['analysis_id'])
+      ?? `${listingId || 'analysis'}-${index}`;
+
+    return {
+      id,
+      listingId,
+      title: this.asString(node['title'])
+        ?? this.asString(node['recommendedProduct'])
+        ?? this.asString(node['productName'])
+        ?? 'Idea guardada',
+      recommendedProduct: this.asString(node['recommendedProduct']) ?? this.asString(node['productName']) ?? null,
+      sectorName: this.asString(node['sectorName']) ?? this.asString(node['sector']) ?? null,
+      residueInput: this.asString(node['residueInput']) ?? this.asString(node['residue']) ?? null,
+      createdAt: this.asString(node['createdAt']) ?? this.asString(node['created_at']) ?? null,
+      updatedAt: this.asString(node['updatedAt']) ?? this.asString(node['updated_at']) ?? null
+    };
+  }
+
+  private extractHistoryItems(payload: unknown): ValueRouteDetailApi[] {
+    if (Array.isArray(payload)) {
+      return payload
+        .map((entry) => this.extractHistoryDetail(entry))
+        .filter((entry): entry is ValueRouteDetailApi => !!entry);
+    }
+
+    const source = this.asRecord(payload);
+    const rawItems = Array.isArray(source?.['items'])
+      ? source['items']
+      : Array.isArray(source?.['data'])
+        ? source['data']
+        : Array.isArray(source?.['history'])
+          ? source['history']
+          : [];
+
+    return rawItems
+      .map((entry) => this.extractHistoryDetail(entry))
+      .filter((entry): entry is ValueRouteDetailApi => !!entry);
+  }
+
+  private extractHistoryDetail(entry: unknown): ValueRouteDetailApi | null {
+    const node = this.asRecord(entry);
+    if (!node) {
+      return null;
+    }
+
+    const dataNode = this.asRecord(node['data']);
+    const detail = dataNode ?? node;
+    if (!this.asString(detail['recommendationId']) || !this.asString(detail['recommendedProduct'])) {
+      return null;
+    }
+
+    return detail as unknown as ValueRouteDetailApi;
+  }
+
+  private asRecord(value: unknown): Record<string, unknown> | null {
+    return typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : null;
+  }
+
+  private asString(value: unknown): string | null {
+    return typeof value === 'string' ? value : null;
+  }
+
+  private asNumber(value: unknown): number | null {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return value;
+    }
+
+    if (typeof value === 'string') {
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : null;
+    }
+
+    return null;
   }
 }

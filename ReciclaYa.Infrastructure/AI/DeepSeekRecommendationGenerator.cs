@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -16,6 +17,7 @@ public sealed class DeepSeekRecommendationGenerator(
     IOptions<DeepSeekOptions> options,
     ILogger<DeepSeekRecommendationGenerator> logger) : IRecommendationAiGenerator
 {
+    private const string MissingInfo = "No se encontró la información";
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
     {
         PropertyNameCaseInsensitive = true
@@ -468,6 +470,9 @@ Devuelve SOLO JSON valido con esta forma exacta:
       {{
         ""id"": ""string"",
         ""name"": ""string"",
+        ""marketScope"": ""national|international"",
+        ""region"": ""string"",
+        ""country"": ""Perú"",
         ""segment"": ""string"",
         ""monthlyVolume"": ""string"",
         ""probability"": 0,
@@ -490,6 +495,8 @@ Devuelve SOLO JSON valido con esta forma exacta:
       {{
         ""id"": ""string"",
         ""label"": ""string"",
+        ""currency"": ""PEN"",
+        ""amountPen"": 0.0,
         ""amountUsd"": 0.0,
         ""percent"": 0
       }}
@@ -523,7 +530,11 @@ Reglas:
 - riskLevel/complexity/marketPotential solo low|medium|high.
 - utilizationPercent/environmentalRiskPercent/probability/trendPercent/percent en rango 0..100.
 - Incluye al menos 3 processSteps y 2 explanationSteps.
-- Incluye al menos 1 buyer, 1 KPI y 2 items de costo.
+- Incluye al menos 2 buyers: 1 nacional (Perú, con region/departamento) y 1 internacional (pais no Perú).
+- Incluye al menos 1 KPI y 2 items de costo.
+- Moneda obligatoria: PEN (soles peruanos). No usar USD en textos ni etiquetas monetarias.
+- En marketAnalysis.costStructure usa amountPen y currency=""PEN"" (amountUsd solo compatibilidad si no hay alternativa).
+- Include compradores reales/plausibles peruanos. Si la ubicacion del listing es Iquitos/Loreto, incluir al menos 1 buyer de Iquitos/Loreto y 1 buyer nacional del Peru.
 - Si uso alimentario/animal, agregar advertencia sanitaria en riesgos o condiciones.";
     }
 
@@ -628,22 +639,22 @@ Reglas:
             var root = document.RootElement;
 
             var recommendationId = ReadString(root, "recommendationId", $"rec-{candidate.ListingId:N}");
-            var recommendedProduct = ReadString(root, "recommendedProduct", candidate.ProductType ?? candidate.Title);
-            var baseResidue = ReadString(root, "baseResidue", candidate.SpecificResidue ?? candidate.ProductType ?? candidate.Title);
+            var recommendedProduct = ReadString(root, "recommendedProduct", candidate.ProductType ?? candidate.Title ?? MissingInfo);
+            var baseResidue = ReadString(root, "baseResidue", candidate.SpecificResidue ?? candidate.ProductType ?? candidate.Title ?? MissingInfo);
             var complexity = NormalizeViabilityLevel(ReadString(root, "complexity", "medium"));
-            var totalEstimatedTime = ReadString(root, "totalEstimatedTime", "N/D");
-            var approximateCost = ReadString(root, "approximateCost", "N/D");
+            var totalEstimatedTime = ReadString(root, "totalEstimatedTime", MissingInfo);
+            var approximateCost = NormalizeCurrencyText(ReadString(root, "approximateCost", MissingInfo));
             var marketPotential = NormalizeViabilityLevel(ReadString(root, "marketPotential", "medium"));
-            var principalEquipment = ReadStringArray(root, "principalEquipment", ["Equipo basico"]);
-            var expectedOutcome = ReadString(root, "expectedOutcome", "Resultado esperado por validar.");
-            var explanation = ReadString(root, "explanation", "Analisis generado por IA.");
-            var manufacturingProcess = ReadString(root, "manufacturingProcess", "Proceso por validar en piloto.");
+            var principalEquipment = ReadStringArray(root, "principalEquipment", Array.Empty<string>());
+            var expectedOutcome = ReadString(root, "expectedOutcome", MissingInfo);
+            var explanation = NormalizeCurrencyText(ReadString(root, "explanation", MissingInfo));
+            var manufacturingProcess = ReadString(root, "manufacturingProcess", MissingInfo);
 
             var complexityOverview = ParseComplexityOverview(root);
             var processSteps = ParseProcessSteps(root);
             var explanationSteps = ParseExplanationSteps(root);
             var environmentalSummary = ParseEnvironmentalSummary(root);
-            var marketAnalysis = ParseMarketAnalysis(root, recommendedProduct, expectedOutcome);
+            var marketAnalysis = ParseMarketAnalysis(root, recommendedProduct, expectedOutcome, candidate.Location);
 
             return new ValueRouteDetailDto(
                 recommendationId,
@@ -682,7 +693,7 @@ Reglas:
             ReadString(complexity, "equipmentNeeded", null),
             ReadString(complexity, "technicalKnowledge", null),
             ReadString(complexity, "transformationTime", null),
-            ReadString(complexity, "estimatedCost", null),
+            NormalizeCurrencyText(ReadString(complexity, "estimatedCost", null)),
             ReadString(complexity, "operationalRisk", null),
             ReadString(complexity, "positiveEnvironmentalImpact", null));
     }
@@ -702,11 +713,11 @@ Reglas:
                 ReadString(item, "id", $"proc-{order}"),
                 NormalizeInt(ReadNullableInt(item, "order"), order, 1, 50),
                 ReadString(item, "title", $"Paso {order}"),
-                ReadString(item, "shortDescription", "Descripcion no disponible."),
-                ReadString(item, "estimatedTime", "N/D"),
-                ReadStringArray(item, "requiredEquipment", ["Equipo basico"]),
-                ReadStringArray(item, "keyActions", ["Accion clave"]),
-                ReadString(item, "quickTip", "Validar en piloto."),
+                ReadString(item, "shortDescription", MissingInfo),
+                ReadString(item, "estimatedTime", MissingInfo),
+                ReadStringArray(item, "requiredEquipment", [MissingInfo]),
+                ReadStringArray(item, "keyActions", [MissingInfo]),
+                ReadString(item, "quickTip", MissingInfo),
                 NormalizeViabilityLevel(ReadString(item, "riskLevel", "medium")),
                 NormalizeProcessIcon(ReadString(item, "iconName", "factory"))));
             order++;
@@ -731,26 +742,26 @@ Reglas:
                 : default;
 
             var positive = factors.ValueKind == JsonValueKind.Object
-                ? ReadStringArray(factors, "positive", ["Aprovechamiento circular"])
-                : new[] { "Aprovechamiento circular" };
+                ? ReadStringArray(factors, "positive", [MissingInfo])
+                : [MissingInfo];
             var negative = factors.ValueKind == JsonValueKind.Object
-                ? ReadStringArray(factors, "negative", ["Validar riesgo operativo"])
-                : new[] { "Validar riesgo operativo" };
+                ? ReadStringArray(factors, "negative", [MissingInfo])
+                : [MissingInfo];
 
             result.Add(new ValueRouteExplanationStepDto(
                 ReadString(item, "id", $"exp-{order}"),
                 NormalizeInt(ReadNullableInt(item, "order"), order, 1, 50),
                 ReadString(item, "title", $"Etapa {order}"),
                 ReadString(item, "shortLabel", $"Paso {order}"),
-                ReadString(item, "transformationType", "Analisis IA"),
-                ReadString(item, "whatHappens", "Detalle no disponible."),
-                ReadString(item, "whyItMatters", "Impacto por validar."),
-                ReadString(item, "transformationOutcome", "Resultado esperado."),
-                ReadString(item, "quickTip", "Validar en lote pequeno."),
-                ReadString(item, "avoidRisk", "Evitar variaciones no controladas."),
+                ReadString(item, "transformationType", MissingInfo),
+                ReadString(item, "whatHappens", MissingInfo),
+                ReadString(item, "whyItMatters", MissingInfo),
+                ReadString(item, "transformationOutcome", MissingInfo),
+                ReadString(item, "quickTip", MissingInfo),
+                ReadString(item, "avoidRisk", MissingInfo),
                 ReadString(item, "processImageUrl", string.Empty),
                 new ValueRouteEnvironmentalFactorsDto(positive, negative),
-                ReadStringArray(item, "natureBenefits", ["Economia circular"]),
+                ReadStringArray(item, "natureBenefits", [MissingInfo]),
                 NormalizeProcessIcon(ReadString(item, "iconName", "scan-line"))));
             order++;
         }
@@ -762,23 +773,27 @@ Reglas:
     {
         if (!TryGetProperty(root, "environmentalSummary", out var item))
         {
-            return new ValueRouteEnvironmentalSummaryDto(5m, "Medio", 50, "Controlado", 30, "Validar siguiente paso.");
+            return new ValueRouteEnvironmentalSummaryDto(0m, MissingInfo, 0, MissingInfo, 0, MissingInfo);
         }
 
         return new ValueRouteEnvironmentalSummaryDto(
-            NormalizeDecimal(ReadNullableDecimal(item, "impactScore"), 5m, 0m, 10m),
-            ReadString(item, "utilizationLevelLabel", "Medio"),
-            NormalizeInt(ReadNullableInt(item, "utilizationPercent"), 50, 0, 100),
-            ReadString(item, "environmentalRiskLabel", "Controlado"),
-            NormalizeInt(ReadNullableInt(item, "environmentalRiskPercent"), 30, 0, 100),
-            ReadString(item, "keyRecommendation", "Validar siguiente paso comercial."));
+            NormalizeDecimal(ReadNullableDecimal(item, "impactScore"), 0m, 0m, 10m),
+            ReadString(item, "utilizationLevelLabel", MissingInfo),
+            NormalizeInt(ReadNullableInt(item, "utilizationPercent"), 0, 0, 100),
+            ReadString(item, "environmentalRiskLabel", MissingInfo),
+            NormalizeInt(ReadNullableInt(item, "environmentalRiskPercent"), 0, 0, 100),
+            ReadString(item, "keyRecommendation", MissingInfo));
     }
 
-    private static ValueRouteMarketAnalysisDto ParseMarketAnalysis(JsonElement root, string recommendedProduct, string expectedOutcome)
+    private static ValueRouteMarketAnalysisDto ParseMarketAnalysis(
+        JsonElement root,
+        string recommendedProduct,
+        string expectedOutcome,
+        string? location)
     {
         if (!TryGetProperty(root, "marketAnalysis", out var item))
         {
-            return BuildMinimalMarketAnalysis(recommendedProduct, expectedOutcome);
+            return BuildNoInfoMarketAnalysis(recommendedProduct, expectedOutcome, location);
         }
 
         var finishedProduct = TryGetPropertyAny(item, out var fp, "finishedProduct", "productoFinal") ? fp : default;
@@ -788,7 +803,7 @@ Reglas:
         var competition = TryGetPropertyAny(item, out var ci, "competitionInsight", "insightCompetencia") ? ci : default;
         var opportunity = TryGetPropertyAny(item, out var os, "opportunitySummary", "resumenOportunidad") ? os : default;
 
-        var parsedBuyers = ParseBuyers(buyers);
+        var parsedBuyers = ParseBuyers(buyers, location);
         var parsedKpis = ParseKpis(kpis);
         var parsedCosts = ParseCosts(costs);
 
@@ -796,10 +811,10 @@ Reglas:
             new ValueRouteFinishedProductDto(
                 ReadStringAny(finishedProduct, recommendedProduct, "name", "nombre"),
                 ReadStringAny(finishedProduct, expectedOutcome, "useCase", "casoUso"),
-                ReadStringAny(finishedProduct, "Lote", "suggestedFormat", "formatoSugerido", "recommendedFormat"),
+                ReadStringAny(finishedProduct, MissingInfo, "suggestedFormat", "formatoSugerido", "recommendedFormat"),
                 NormalizeDecimal(ReadNullableDecimalAny(finishedProduct, "suggestedPricePerKg", "precioSugeridoPorKg"), 0m, 0m, 100000m),
-                ReadStringAny(finishedProduct, "Opportunity: Medium", "opportunityTag", "etiquetaOportunidad"),
-                ReadStringAny(finishedProduct, string.Empty, "productImageUrl", "imagenProductoUrl")),
+                ReadStringAny(finishedProduct, MissingInfo, "opportunityTag", "etiquetaOportunidad"),
+                ReadStringAny(finishedProduct, BuildMarketImageFallback(recommendedProduct), "productImageUrl", "imagenProductoUrl")),
             parsedBuyers,
             parsedKpis,
             parsedCosts,
@@ -807,42 +822,73 @@ Reglas:
             NormalizeDecimal(ReadNullableDecimalAny(item, "suggestedPricePerKg", "precioSugeridoPorKg"), 0m, 0m, 100000m),
             NormalizeDecimal(ReadNullableDecimalAny(item, "totalCostPerKg", "costoTotalPorKg"), 0m, 0m, 100000m),
             new ValueRouteCompetitionInsightDto(
-                ReadStringAny(competition, "N/D", "competitionLevelLabel", "nivelCompetencia"),
-                ReadStringArrayAny(competition, ["Sustitutos por validar"], "directSubstitutes", "sustitutosDirectos"),
-                ReadStringAny(competition, "Validar posicionamiento comercial.", "positioningRecommendation", "recomendacionPosicionamiento")),
+                ReadStringAny(competition, MissingInfo, "competitionLevelLabel", "nivelCompetencia"),
+                ReadStringArrayAny(competition, [MissingInfo], "directSubstitutes", "sustitutosDirectos"),
+                ReadStringAny(competition, MissingInfo, "positioningRecommendation", "recomendacionPosicionamiento")),
             new ValueRouteOpportunitySummaryDto(
                 ReadStringAny(opportunity, DateTime.UtcNow.ToString("yyyy-MM-dd"), "generatedAt", "generadoEn"),
-                ReadStringAny(opportunity, "N/D", "initialInvestment", "inversionInicial"),
-                ReadStringAny(opportunity, "N/D", "paybackPeriod", "periodoRecuperacion"),
-                ReadStringAny(opportunity, "N/D", "monthlyProfitability", "rentabilidadMensual"),
-                ReadStringAny(opportunity, "50/100", "sustainabilityScore", "puntajeSostenibilidad"),
-                ReadStringArrayAny(opportunity, ["Contactar buyer objetivo"], "nextSteps", "siguientesPasos"),
-                ReadStringAny(opportunity, "Mejorar trazabilidad ambiental.", "ecoTip", "ecoConsejo")),
-            ReadStringArrayAny(item, ["Confianza IA"], "chartLabels", "etiquetasGrafico"),
-            ReadDecimalArrayAny(item, [50m], "chartSeries", "serieGrafico"));
+                NormalizeCurrencyText(ReadStringAny(opportunity, MissingInfo, "initialInvestment", "inversionInicial")),
+                ReadStringAny(opportunity, MissingInfo, "paybackPeriod", "periodoRecuperacion"),
+                NormalizeCurrencyText(ReadStringAny(opportunity, MissingInfo, "monthlyProfitability", "rentabilidadMensual")),
+                ReadStringAny(opportunity, MissingInfo, "sustainabilityScore", "puntajeSostenibilidad"),
+                ReadStringArrayAny(opportunity, [MissingInfo], "nextSteps", "siguientesPasos"),
+                ReadStringAny(opportunity, MissingInfo, "ecoTip", "ecoConsejo")),
+            ReadStringArrayAny(item, Array.Empty<string>(), "chartLabels", "etiquetasGrafico"),
+            ReadDecimalArrayAny(item, Array.Empty<decimal>(), "chartSeries", "serieGrafico"));
     }
 
-    private static ValueRouteMarketAnalysisDto BuildMinimalMarketAnalysis(string recommendedProduct, string expectedOutcome)
+    private static ValueRouteMarketAnalysisDto BuildNoInfoMarketAnalysis(
+        string recommendedProduct,
+        string expectedOutcome,
+        string? location)
     {
+        var region = ResolveRegionFromLocation(location);
         return new ValueRouteMarketAnalysisDto(
-            new ValueRouteFinishedProductDto(recommendedProduct, expectedOutcome, "Lote", 0m, "Opportunity: Medium", string.Empty),
-            new[] { new ValueRouteBuyerSegmentDto("buyer-1", "Segmento industrial", "B2B", "N/D", 50, "Directo", "enterprise", "building") },
-            new[] { new ValueRouteMarketKpiDto("kpi-1", "Confianza IA", "50%", "Fallback", 50, "slate") },
-            new[] { new ValueRouteCostStructureItemDto("cost-1", "Materia prima", 0m, 50) },
+            new ValueRouteFinishedProductDto(recommendedProduct, expectedOutcome, MissingInfo, 0m, MissingInfo, BuildMarketImageFallback(recommendedProduct)),
+            new[]
+            {
+                new ValueRouteBuyerSegmentDto(
+                    "buyer-1",
+                    MissingInfo,
+                    MissingInfo,
+                    MissingInfo,
+                    0,
+                    MissingInfo,
+                    "enterprise",
+                    "building",
+                    region,
+                    "Perú")
+            },
+            Array.Empty<ValueRouteMarketKpiDto>(),
+            Array.Empty<ValueRouteCostStructureItemDto>(),
             0m,
             0m,
             0m,
-            new ValueRouteCompetitionInsightDto("N/D", ["Sustitutos por validar"], "Validar propuesta de valor."),
-            new ValueRouteOpportunitySummaryDto(DateTime.UtcNow.ToString("yyyy-MM-dd"), "N/D", "N/D", "N/D", "50/100", ["Contactar buyer objetivo"], "Medir impacto."),
-            ["Confianza IA"],
-            [50m]);
+            new ValueRouteCompetitionInsightDto(MissingInfo, [MissingInfo], MissingInfo),
+            new ValueRouteOpportunitySummaryDto(DateTime.UtcNow.ToString("yyyy-MM-dd"), MissingInfo, MissingInfo, MissingInfo, MissingInfo, [MissingInfo], MissingInfo),
+            Array.Empty<string>(),
+            Array.Empty<decimal>());
     }
 
-    private static IReadOnlyCollection<ValueRouteBuyerSegmentDto> ParseBuyers(JsonElement buyers)
+    private static IReadOnlyCollection<ValueRouteBuyerSegmentDto> ParseBuyers(JsonElement buyers, string? location)
     {
+        var regionFallback = ResolveRegionFromLocation(location);
         if (buyers.ValueKind != JsonValueKind.Array)
         {
-            return new[] { new ValueRouteBuyerSegmentDto("buyer-1", "Segmento industrial", "B2B", "N/D", 50, "Directo", "enterprise", "building") };
+            return
+            [
+                new ValueRouteBuyerSegmentDto(
+                    "buyer-1",
+                    MissingInfo,
+                    MissingInfo,
+                    MissingInfo,
+                    0,
+                    MissingInfo,
+                    "enterprise",
+                    "building",
+                    regionFallback,
+                    "Perú")
+            ];
         }
 
         var result = new List<ValueRouteBuyerSegmentDto>();
@@ -850,26 +896,56 @@ Reglas:
         foreach (var item in buyers.EnumerateArray())
         {
             var type = NormalizeBuyerType(ReadString(item, "type", "enterprise"));
+            var name = ReadStringAny(item, MissingInfo, "name", "nombre");
+            var segment = ReadStringAny(item, "B2B", "segment", "segmento");
+            var channel = ReadStringAny(item, MissingInfo, "channel", "canal");
+            var rawRegion = ReadStringAny(item, string.Empty, "region", "regionName", "departamento");
+            var rawCountry = ReadStringAny(item, string.Empty, "country", "pais", "país");
+            var marketScope = ReadStringAny(item, string.Empty, "marketScope", "alcanceMercado");
+            var international = IsInternationalBuyer(rawCountry, marketScope, segment, channel, name);
+            var country = ResolveBuyerCountry(rawCountry, international);
+            var region = ResolveBuyerRegion(rawRegion, regionFallback, international);
+
             result.Add(new ValueRouteBuyerSegmentDto(
                 ReadStringAny(item, $"buyer-{index}", "id"),
-                ReadStringAny(item, $"Buyer {index}", "name", "nombre"),
-                ReadStringAny(item, "B2B", "segment", "segmento"),
-                ReadStringAny(item, "N/D", "monthlyVolume", "volumenMensual"),
-                NormalizeInt(ReadNullableIntAny(item, "probability", "probabilidad"), 50, 0, 100),
-                ReadStringAny(item, "Directo", "channel", "canal"),
+                name,
+                segment,
+                ReadStringAny(item, MissingInfo, "monthlyVolume", "volumenMensual"),
+                NormalizeInt(ReadNullableIntAny(item, "probability", "probabilidad"), 0, 0, 100),
+                channel,
                 type,
-                NormalizeBuyerIcon(ReadStringAny(item, type == "retail" ? "store" : "building", "iconName", "icono"))));
+                NormalizeBuyerIcon(ReadStringAny(item, type == "retail" ? "store" : "building", "iconName", "icono")),
+                region,
+                country));
             index++;
         }
 
-        return result.Count > 0 ? result : new[] { new ValueRouteBuyerSegmentDto("buyer-1", "Segmento industrial", "B2B", "N/D", 50, "Directo", "enterprise", "building") };
+        if (result.Count == 0)
+        {
+            return
+            [
+                new ValueRouteBuyerSegmentDto(
+                    "buyer-1",
+                    MissingInfo,
+                    MissingInfo,
+                    MissingInfo,
+                    0,
+                    MissingInfo,
+                    "enterprise",
+                    "building",
+                    regionFallback,
+                    "Perú")
+            ];
+        }
+
+        return result;
     }
 
     private static IReadOnlyCollection<ValueRouteMarketKpiDto> ParseKpis(JsonElement kpis)
     {
         if (kpis.ValueKind != JsonValueKind.Array)
         {
-            return new[] { new ValueRouteMarketKpiDto("kpi-1", "Confianza IA", "50%", "Fallback", 50, "slate") };
+            return Array.Empty<ValueRouteMarketKpiDto>();
         }
 
         var result = new List<ValueRouteMarketKpiDto>();
@@ -879,21 +955,21 @@ Reglas:
             result.Add(new ValueRouteMarketKpiDto(
                 ReadStringAny(item, $"kpi-{index}", "id"),
                 ReadStringAny(item, "KPI", "label", "etiqueta"),
-                ReadStringAny(item, "N/D", "value", "valor"),
-                ReadStringAny(item, "N/D", "helper", "ayuda"),
+                NormalizeCurrencyText(ReadStringAny(item, MissingInfo, "value", "valor")),
+                NormalizeCurrencyText(ReadStringAny(item, MissingInfo, "helper", "ayuda")),
                 NormalizeInt(ReadNullableIntAny(item, "trendPercent", "tendenciaPorcentaje"), 0, 0, 100),
                 NormalizeTone(ReadStringAny(item, "slate", "tone", "tono"))));
             index++;
         }
 
-        return result.Count > 0 ? result : new[] { new ValueRouteMarketKpiDto("kpi-1", "Confianza IA", "50%", "Fallback", 50, "slate") };
+        return result;
     }
 
     private static IReadOnlyCollection<ValueRouteCostStructureItemDto> ParseCosts(JsonElement costs)
     {
         if (costs.ValueKind != JsonValueKind.Array)
         {
-            return new[] { new ValueRouteCostStructureItemDto("cost-1", "Materia prima", 0m, 50) };
+            return Array.Empty<ValueRouteCostStructureItemDto>();
         }
 
         var result = new List<ValueRouteCostStructureItemDto>();
@@ -903,12 +979,12 @@ Reglas:
             result.Add(new ValueRouteCostStructureItemDto(
                 ReadStringAny(item, $"cost-{index}", "id"),
                 ReadStringAny(item, "Costo", "label", "etiqueta"),
-                NormalizeDecimal(ReadNullableDecimalAny(item, "amountUsd", "montoUsd"), 0m, 0m, 100000m),
+                NormalizeDecimal(ReadNullableDecimalAny(item, "amountPen", "montoPen", "amountUsd", "montoUsd"), 0m, 0m, 100000m),
                 NormalizeInt(ReadNullableIntAny(item, "percent", "porcentaje"), 0, 0, 100)));
             index++;
         }
 
-        return result.Count > 0 ? result : new[] { new ValueRouteCostStructureItemDto("cost-1", "Materia prima", 0m, 50) };
+        return result;
     }
 
     private static bool TryGetProperty(JsonElement element, string name, out JsonElement value)
@@ -1156,5 +1232,93 @@ Reglas:
             "emerald" or "slate" or "amber" => tone,
             _ => "slate"
         };
+    }
+
+    private static string ResolveRegionFromLocation(string? location)
+    {
+        if (string.IsNullOrWhiteSpace(location))
+        {
+            return "Perú";
+        }
+
+        var raw = location.Trim();
+        if (raw.Contains(',', StringComparison.Ordinal))
+        {
+            var first = raw.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).FirstOrDefault();
+            return string.IsNullOrWhiteSpace(first) ? "Perú" : first;
+        }
+
+        return raw;
+    }
+
+    private static string BuildMarketImageFallback(string product)
+    {
+        var query = Uri.EscapeDataString(string.IsNullOrWhiteSpace(product) ? "analisis de mercado peru" : product);
+        return $"https://placehold.co/1200x800/png?text={query}";
+    }
+
+    private static bool IsInternationalBuyer(
+        string rawCountry,
+        string marketScope,
+        string segment,
+        string channel,
+        string name)
+    {
+        if (!string.IsNullOrWhiteSpace(marketScope)
+            && marketScope.Contains("international", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        if (!string.IsNullOrWhiteSpace(rawCountry)
+            && !rawCountry.Contains("peru", StringComparison.OrdinalIgnoreCase)
+            && !rawCountry.Contains("perú", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        var joined = $"{segment} {channel} {name}";
+        return joined.Contains("internacional", StringComparison.OrdinalIgnoreCase)
+            || joined.Contains("export", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string ResolveBuyerCountry(string rawCountry, bool international)
+    {
+        if (!string.IsNullOrWhiteSpace(rawCountry))
+        {
+            return rawCountry.Trim();
+        }
+
+        return international ? MissingInfo : "Perú";
+    }
+
+    private static string ResolveBuyerRegion(string rawRegion, string regionFallback, bool international)
+    {
+        if (international)
+        {
+            return "Internacional";
+        }
+
+        if (!string.IsNullOrWhiteSpace(rawRegion))
+        {
+            return rawRegion.Trim();
+        }
+
+        return string.IsNullOrWhiteSpace(regionFallback) ? MissingInfo : regionFallback;
+    }
+
+    private static string NormalizeCurrencyText(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return text ?? string.Empty;
+        }
+
+        var value = text.Trim();
+        value = Regex.Replace(value, @"\bUSD\b", "PEN", RegexOptions.IgnoreCase);
+        value = Regex.Replace(value, @"\bUS\$\b", "S/", RegexOptions.IgnoreCase);
+        value = value.Replace("US$", "S/", StringComparison.OrdinalIgnoreCase);
+        value = value.Replace("$", "S/");
+        return value;
     }
 }

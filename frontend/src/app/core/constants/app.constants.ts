@@ -30,6 +30,7 @@ export const APP_ROUTES = {
   preOrders: '/app/pre-orders',
   assistantChat: '/assistant-chat',
   recommendations: '/app/recommendations',
+  recommendationsHistory: '/app/recommendations/history',
   requests: '/app/requests',
   messages: '/app/messages',
   orders: '/app/orders',

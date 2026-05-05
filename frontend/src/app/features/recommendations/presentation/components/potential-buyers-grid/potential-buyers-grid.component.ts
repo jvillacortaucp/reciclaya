@@ -30,9 +30,7 @@ export class PotentialBuyersGridComponent {
   protected readonly visibleBuyers = computed<readonly BuyerSegment[]>(() => {
     const items = this.buyers();
     const segment = this.selectedSegment();
-
-    const filtered = items.filter((buyer) => buyer.scope === segment);
-    return filtered.length > 0 ? filtered : items;
+    return items.filter((buyer) => buyer.scope === segment);
   });
 
   protected trackByBuyer(_: number, item: BuyerSegment): string {

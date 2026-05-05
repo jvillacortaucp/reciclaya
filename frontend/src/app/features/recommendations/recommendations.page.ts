@@ -1,8 +1,9 @@
 import { Location } from '@angular/common';
-import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, effect, inject, signal } from '@angular/core';
+import { ToastService } from '../../core/services/toast.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, ParamMap, Router } from '@angular/router';
-import { LucideArrowLeft, LucideBookmark, LucideSparkles } from '@lucide/angular';
+import { LucideArrowLeft, LucideBookmark, LucideSparkles, LucideLoaderCircle } from '@lucide/angular';
 import { combineLatest } from 'rxjs';
 import { RecommendationsFacade } from './application/recommendations.facade';
 import { ChatbotAnalysisRequest } from './recommendations-http.repository';
@@ -11,6 +12,7 @@ import { ManufacturingProcessComponent } from './presentation/components/manufac
 import { RecommendationComplexityComponent } from './presentation/components/recommendation-complexity/recommendation-complexity.component';
 import { RecommendationTabsComponent } from './presentation/components/recommendation-tabs/recommendation-tabs.component';
 import { BuyerScope, RecommendationTab } from './models/recommendation.model';
+import {LoaderComponent} from 'app/shared/ui/loader/loader.component'
 
 @Component({
   selector: 'app-recommendations-page',
@@ -19,11 +21,13 @@ import { BuyerScope, RecommendationTab } from './models/recommendation.model';
   imports: [
     LucideArrowLeft,
     LucideBookmark,
+    LucideLoaderCircle,
     LucideSparkles,
     RecommendationTabsComponent,
     MarketAnalysisComponent,
     ManufacturingProcessComponent,
     RecommendationComplexityComponent,
+    LoaderComponent
   ],
   templateUrl: './recommendations.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -34,8 +38,12 @@ export class RecommendationsPageComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly location = inject(Location);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly toast = inject(ToastService);
   private loadedProductId: string | null = null;
   private readonly sourceListingId = signal<string | null>(null);
+  private readonly selectedProductId = signal<string | null>(null);
+  private readonly chatbotMode = signal(false);
+  protected readonly readOnlyMode = signal(false);
 
   protected readonly loading = this.facade.loading;
   protected readonly error = this.facade.error;
@@ -52,6 +60,33 @@ export class RecommendationsPageComponent implements OnInit {
   protected readonly selectedBuyerSegment = this.facade.selectedBuyerSegment;
   protected readonly selectedCostView = this.facade.selectedCostView;
   protected readonly selectedChartType = this.facade.selectedChartType;
+  protected readonly saving = this.facade.saving;
+  protected readonly saveMessage = this.facade.saveMessage;
+  protected readonly canSaveRecommendation = computed(() => {
+    if (this.readOnlyMode()) {
+      return false;
+    }
+
+    if (this.chatbotMode()) {
+      return !this.loading() && !this.saving();
+    }
+
+    const listingId = this.sourceListingId();
+    return !!listingId && this.isGuid(listingId) && !this.loading() && !this.saving();
+  });
+  private readonly saveMessageEffect = effect(() => {
+    const msg = this.saveMessage();
+    if (!msg) {
+      return;
+    }
+
+    if (msg.toLowerCase().includes('no se pudo')) {
+      this.toast.error(msg);
+      return;
+    }
+
+    this.toast.success(msg);
+  });
 
   ngOnInit(): void {
     combineLatest([this.route.paramMap, this.route.queryParamMap])
@@ -60,17 +95,32 @@ export class RecommendationsPageComponent implements OnInit {
         const productId = params.get('productId');
         const tab = this.parseTab(query.get('tab'));
         this.sourceListingId.set(query.get('listing'));
-        const selectedProductId = query.get('selectedProductId') ?? query.get('recommendedProduct');
+        this.chatbotMode.set(query.get('chatbot') === 'true' || query.get('chatbot') === '1');
+        this.readOnlyMode.set(query.get('history') === '1' || query.get('readonly') === '1');
+        const routeProductId = params.get('productId');
+        const selectedProductId =
+          query.get('selectedProductId') ??
+          query.get('recommendedProduct') ??
+          (routeProductId && this.isGuid(routeProductId) ? routeProductId : null);
+        this.selectedProductId.set(selectedProductId);
         const chatbotContext = this.readChatbotContext(params, query);
 
         if (this.loadedProductId !== productId) {
           this.loadedProductId = productId;
-          this.facade.load(productId, tab, this.sourceListingId(), selectedProductId, chatbotContext);
+          this.facade.load(
+            productId,
+            tab,
+            this.sourceListingId(),
+            selectedProductId,
+            chatbotContext,
+            this.readOnlyMode()
+          );
           return;
         }
 
         this.facade.setActiveTab(tab);
       });
+
   }
 
   protected setTab(tab: 'process' | 'explanation' | 'market'): void {
@@ -129,6 +179,23 @@ export class RecommendationsPageComponent implements OnInit {
     });
   }
 
+  protected saveRecommendation(): void {
+    if (this.readOnlyMode()) {
+      this.toast.info('Esta idea es de solo lectura.');
+      return;
+    }
+
+    if (!this.canSaveRecommendation()) {
+      this.facade.saveCurrentRecommendation(null, this.selectedProductId());
+      return;
+    }
+    this.facade.saveCurrentRecommendation(this.sourceListingId(), this.selectedProductId());
+  }
+
+  private isGuid(value: string): boolean {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+  }
+
   private parseTab(tab: string | null): RecommendationTab {
     if (tab === 'complexity') {
       return 'explanation';
@@ -145,7 +212,7 @@ export class RecommendationsPageComponent implements OnInit {
       return null;
     }
 
-    const productId = params.get('productId');
+    const productId = query.get('selectedProductId') ?? params.get('productId');
     const productName = query.get('recommendedProduct');
     if (!productId || !productName) {
       return null;

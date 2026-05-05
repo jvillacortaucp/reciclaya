@@ -1,0 +1,98 @@
+<section class="mx-auto w-full max-w-7xl px-4 pb-10 pt-6 sm:px-6 lg:px-8">
+  <header class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+    <div>
+      <p class="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">Historial IA</p>
+      <h1 class="mt-1 text-2xl font-semibold text-slate-900 sm:text-3xl">Ideas guardadas</h1>
+      <p class="mt-2 text-sm text-slate-600">Visualiza y reabre tus análisis guardados del motor de recomendaciones.</p>
+    </div>
+  </header>
+
+  <div class="mb-5 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+    <div class="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_170px_170px_auto]">
+      <label class="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2">
+        <svg lucideSearch class="h-4 w-4 text-slate-400"></svg>
+        <input
+          [formControl]="searchControl"
+          type="search"
+          placeholder="Buscar por nombre, producto, sector o listing"
+          class="w-full border-0 bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-400" />
+      </label>
+
+      <label class="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2">
+        <svg lucideCalendarDays class="h-4 w-4 text-slate-400"></svg>
+        <input [formControl]="fromDateControl" type="date" class="w-full border-0 bg-transparent text-sm text-slate-700 outline-none" />
+      </label>
+
+      <label class="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2">
+        <svg lucideCalendarDays class="h-4 w-4 text-slate-400"></svg>
+        <input [formControl]="toDateControl" type="date" class="w-full border-0 bg-transparent text-sm text-slate-700 outline-none" />
+      </label>
+
+      <button
+        type="button"
+        (click)="resetFilters()"
+        class="h-10 rounded-xl border border-slate-300 px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+        Limpiar
+      </button>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">Cargando ideas guardadas...</div>
+  } @else if (error()) {
+    <div class="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">{{ error() }}</div>
+  } @else {
+    <div class="space-y-4">
+      @for (item of filteredItems(); track trackById($index, item)) {
+        <article class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div class="min-w-0">
+              <h2 class="truncate text-lg font-semibold text-slate-900">{{ item.title }}</h2>
+              <p class="mt-1 text-sm text-slate-600">
+                {{ item.recommendedProduct || 'Producto no especificado' }}
+              </p>
+              <div class="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                <span class="rounded-full bg-slate-100 px-2 py-1">Listing: {{ item.listingId || 'N/A' }}</span>
+                <span class="rounded-full bg-emerald-50 px-2 py-1 text-emerald-700">Sector: {{ item.sectorName || 'No especificado' }}</span>
+                <span class="rounded-full bg-slate-100 px-2 py-1">Fecha: {{ (item.createdAt || item.updatedAt) | date:'short' }}</span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              (click)="openIdea(item)"
+              class="inline-flex h-10 shrink-0 items-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white transition hover:bg-emerald-700">
+              <svg lucideSparkles class="h-4 w-4"></svg>
+              Ver idea
+            </button>
+          </div>
+        </article>
+      } @empty {
+        <div class="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
+          No se encontraron ideas con los filtros aplicados.
+        </div>
+      }
+    </div>
+
+    <footer class="mt-6 flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3">
+      <p class="text-sm text-slate-600">Página {{ page() }} de {{ totalPages() }} · Total {{ total() }}</p>
+      <div class="flex items-center gap-2">
+        <button
+          type="button"
+          (click)="previousPage()"
+          [disabled]="page() <= 1 || loading()"
+          class="h-9 rounded-lg border border-slate-300 px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50">
+          Anterior
+        </button>
+        <button
+          type="button"
+          (click)="nextPage()"
+          [disabled]="page() >= totalPages() || loading()"
+          class="h-9 rounded-lg border border-slate-300 px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50">
+          Siguiente
+        </button>
+      </div>
+    </footer>
+  }
+</section>
+
