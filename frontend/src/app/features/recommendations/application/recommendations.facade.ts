@@ -29,6 +29,9 @@ export class RecommendationsFacade {
   readonly selectedBuyerSegment = signal<BuyerScope>('nacional');
   readonly selectedCostView = signal<CostView>('percent');
   readonly selectedChartType = signal<ChartType>('donut');
+  readonly saving = signal(false);
+  readonly saveMessage = signal<string | null>(null);
+  private chatbotContext: ChatbotAnalysisRequest | null = null;
 
   readonly steps = computed(() => this.recommendation()?.processSteps ?? []);
 
@@ -64,13 +67,15 @@ export class RecommendationsFacade {
     tab: RecommendationTab = 'process',
     listingId?: string | null,
     selectedProductId?: string | null,
-    chatbotContext?: ChatbotAnalysisRequest | null
+    chatbotContext?: ChatbotAnalysisRequest | null,
+    useListingHistory = false
   ): void {
     this.error.set(null);
     this.activeTab.set(tab);
     this.loading.set(true);
 
     if (!productOrListingId) {
+      this.chatbotContext = null;
       this.usingCommercialMode.set(true);
       this.recommendation.set(null);
       this.recommendationsRepository
@@ -90,6 +95,7 @@ export class RecommendationsFacade {
     this.commercialRecommendations.set([]);
 
     if (chatbotContext) {
+      this.chatbotContext = chatbotContext;
       this.recommendationsRepository
         .getChatbotAnalysis(chatbotContext, true, true)
         .pipe(
@@ -107,9 +113,35 @@ export class RecommendationsFacade {
       return;
     }
 
+    this.chatbotContext = null;
     const listingCandidate = listingId?.trim() || null;
     const selectedProductCandidate = selectedProductId?.trim() || null;
     if (listingCandidate && this.isGuid(listingCandidate)) {
+      if (useListingHistory) {
+        this.recommendationsRepository
+          .getListingAnalysisHistory(listingCandidate)
+          .pipe(
+            catchError((error: unknown) => {
+              this.error.set(getErrorMessage(error, 'No se pudo cargar el historial del analisis.'));
+              return EMPTY;
+            }),
+            finalize(() => this.loading.set(false))
+          )
+          .subscribe((items: readonly RecommendationProcess[]) => {
+            const selected = this.pickHistoryAnalysis(items, selectedProductCandidate ?? productOrListingId ?? null);
+            if (!selected) {
+              this.error.set('No se encontraron ideas guardadas para este listing.');
+              this.recommendation.set(null);
+              return;
+            }
+
+            this.recommendation.set(selected);
+            this.selectedStepId.set(selected.processSteps[0]?.id ?? null);
+            this.selectedExplanationStepId.set(selected.explanationSteps[0]?.id ?? null);
+          });
+        return;
+      }
+
       this.recommendationsRepository
         .getListingAnalysis(listingCandidate, selectedProductCandidate ?? productOrListingId, true, true)
         .pipe(
@@ -190,7 +222,81 @@ export class RecommendationsFacade {
     this.selectedChartType.set(type);
   }
 
+  saveCurrentRecommendation(listingId: string | null, selectedProductId?: string | null): void {
+    this.saveMessage.set(null);
+    this.saving.set(true);
+
+    if (this.chatbotContext) {
+      this.recommendationsRepository
+        .saveChatbotAnalysis(this.chatbotContext, true, true)
+        .pipe(
+          catchError((error: unknown) => {
+            this.saveMessage.set(getErrorMessage(error, 'No se pudo guardar la recomendacion del chatbot.'));
+            return EMPTY;
+          }),
+          finalize(() => this.saving.set(false))
+        )
+        .subscribe((process: RecommendationProcess) => {
+          this.recommendation.set(process);
+          this.saveMessage.set('Recomendacion guardada correctamente.');
+        });
+      return;
+    }
+
+    if (!listingId) {
+      this.saveMessage.set('No se pudo guardar: falta la publicacion asociada.');
+      this.saving.set(false);
+      return;
+    }
+
+    this.recommendationsRepository
+      .saveListingAnalysis(listingId, selectedProductId ?? null, true, true)
+      .pipe(
+        catchError((error: unknown) => {
+          this.saveMessage.set(getErrorMessage(error, 'No se pudo guardar la recomendacion.'));
+          return EMPTY;
+        }),
+        finalize(() => this.saving.set(false))
+      )
+      .subscribe((process: RecommendationProcess) => {
+        this.recommendation.set(process);
+        this.saveMessage.set('Recomendacion guardada correctamente.');
+      });
+  }
+
   private isGuid(value: string): boolean {
     return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+  }
+
+  private pickHistoryAnalysis(items: readonly RecommendationProcess[], selectedProductId: string | null): RecommendationProcess | null {
+    if (!items.length) {
+      return null;
+    }
+
+    if (!selectedProductId) {
+      return items[0] ?? null;
+    }
+
+    const normalized = selectedProductId.trim().toLowerCase();
+    const byRecommendationId = items.find((item) => item.recommendationId.toLowerCase() === normalized);
+    if (byRecommendationId) {
+      return byRecommendationId;
+    }
+
+    const byProductName = items.find((item) => this.slugify(item.recommendedProduct) === normalized);
+    if (byProductName) {
+      return byProductName;
+    }
+
+    return items[0] ?? null;
+  }
+
+  private slugify(value: string): string {
+    return (value ?? '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
   }
 }

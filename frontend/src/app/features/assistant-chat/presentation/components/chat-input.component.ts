@@ -158,26 +158,26 @@ export class ChatInputComponent implements OnDestroy {
     this.recognition.onresult = (event: any) => {
       if (this.isCancelled) return;
 
-      // Build full transcript from all results
-      let finalPart = '';
-      let interimPart = '';
-
+      // Rebuild the entire string from scratch every time.
+      // This completely eliminates ANY possibility of exponential duplication or stuttering.
+      let fullText = '';
       for (const result of event.results) {
-        if (result.isFinal) {
-          finalPart += result[0].transcript;
+        const transcript = result[0].transcript;
+        
+        // HACK: Android Chrome Web Speech API cumulative bug fix
+        // If the new transcript completely contains the previous fullText,
+        // it means Android is accumulating the string natively. Overwrite instead of append.
+        if (fullText && transcript.trim().toLowerCase().startsWith(fullText.trim().toLowerCase())) {
+          fullText = transcript;
         } else {
-          interimPart += result[0].transcript;
+          fullText += transcript;
         }
       }
 
-      // Update confirmed transcript with final parts
-      if (finalPart) {
-        this.confirmedTranscript = finalPart;
-      }
+      this.confirmedTranscript = fullText;
 
-      // Show live text: confirmed + interim (in real time, like Gemini)
-      const liveText = (this.confirmedTranscript + ' ' + interimPart).trim();
-      console.log('[Voice] onresult — final:', JSON.stringify(finalPart), 'interim:', JSON.stringify(interimPart), 'live:', liveText);
+      const liveText = fullText.trim();
+      console.log('[Voice] onresult — liveText:', liveText);
       this.control().setValue(liveText.substring(0, 120));
 
       // Reset the silence timer every time we get speech

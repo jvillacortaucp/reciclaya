@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using ReciclaYa.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using ReciclaYa.Infrastructure.Persistence;
 namespace ReciclaYa.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(ReciclaYaDbContext))]
-    partial class ReciclaYaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260504203329_AddRecommendationAnalyses")]
+    partial class AddRecommendationAnalyses
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -971,96 +974,6 @@ namespace ReciclaYa.Infrastructure.Persistence.Migrations
                     b.ToTable("purchase_preferences", (string)null);
                 });
 
-            modelBuilder.Entity("ReciclaYa.Domain.Entities.RecommendationAnalysis", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("AnalysisOrigin")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.Property<string>("ChatbotProductId")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<string>("ChatbotProductName")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<string>("ChatbotResidueInput")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<string>("ChatbotSectorName")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<decimal>("CoveragePercent")
-                        .HasPrecision(5, 2)
-                        .HasColumnType("numeric(5,2)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("ErrorCode")
-                        .HasMaxLength(80)
-                        .HasColumnType("character varying(80)");
-
-                    b.Property<bool>("ExplanationOk")
-                        .HasColumnType("boolean");
-
-                    b.Property<Guid?>("ListingId")
-                        .HasColumnType("uuid");
-
-                    b.Property<bool>("MarketOk")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("PayloadJson")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<bool>("ProcessOk")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("SelectedProductId")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<string>("Source")
-                        .IsRequired()
-                        .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AnalysisOrigin");
-
-                    b.HasIndex("CreatedAt");
-
-                    b.HasIndex("Source");
-
-                    b.HasIndex("Status");
-
-                    b.HasIndex("ListingId", "SelectedProductId", "CreatedAt");
-
-                    b.HasIndex("UserId", "AnalysisOrigin", "ChatbotProductId", "CreatedAt");
-
-                    b.ToTable("recommendation_analyses", (string)null);
-                });
-
             modelBuilder.Entity("ReciclaYa.Domain.Entities.RefreshToken", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1482,16 +1395,6 @@ namespace ReciclaYa.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Buyer");
-                });
-
-            modelBuilder.Entity("ReciclaYa.Domain.Entities.RecommendationAnalysis", b =>
-                {
-                    b.HasOne("ReciclaYa.Domain.Entities.Listing", "Listing")
-                        .WithMany()
-                        .HasForeignKey("ListingId")
-                        .OnDelete(DeleteBehavior.Cascade);
-
-                    b.Navigation("Listing");
                 });
 
             modelBuilder.Entity("ReciclaYa.Domain.Entities.RefreshToken", b =>

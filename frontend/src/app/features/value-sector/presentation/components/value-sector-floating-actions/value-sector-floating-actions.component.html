@@ -48,13 +48,13 @@
     (click)="toggleMenu()"
     data-tour="bot-guide-button"
     class="inline-flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border-2 border-white bg-white text-white shadow-lg transition hover:-translate-y-0.5 focus:outline-none focus:ring-4 focus:ring-emerald-200">
-    @if (imageError()) {
+    @if (!botImageUrl || imageError()) {
       <span class="inline-flex h-full w-full items-center justify-center bg-emerald-600">
         <svg lucidePlus class="h-6 w-6 transition-transform duration-200" [class.rotate-45]="isOpen()"></svg>
       </span>
     } @else {
       <img
-        [src]="botImageUrl || fallbackImage"
+        [src]="botImageUrl"
         alt="Bot guía"
         class="h-full w-full object-cover"
         (error)="imageError.set(true)" />
