@@ -72,6 +72,9 @@ interface ValueRouteDetailApi {
       readonly probability: number;
       readonly channel: string;
       readonly type: string;
+      readonly marketScope?: string;
+      readonly region?: string;
+      readonly country?: string;
       readonly iconName: string;
     }[];
     readonly marketKpis: readonly {
@@ -207,6 +210,56 @@ export class RecommendationsHttpRepository {
       );
   }
 
+  saveChatbotAnalysis(
+    request: ChatbotAnalysisRequest,
+    useAi = true,
+    includeExplanation = true
+  ): Observable<RecommendationProcess> {
+    return this.http
+      .post<ApiResponse<ValueRouteDetailApi>>(
+        `${environment.apiBaseUrl}/recommendations/chatbot-analysis/save`,
+        request,
+        { params: { useAi, includeExplanation } }
+      )
+      .pipe(
+        map(unwrapApiResponse),
+        map((detail: ValueRouteDetailApi) => this.mapToRecommendationProcess(detail)),
+        catchError((error: unknown) =>
+          throwError(() => normalizeHttpError(error, 'No se pudo guardar el analisis de recomendacion desde chatbot.'))
+        )
+      );
+  }
+
+  getChatbotAnalysisLatest(productId: string): Observable<RecommendationProcess> {
+    return this.http
+      .get<ApiResponse<{ data: ValueRouteDetailApi } | any>>(
+        `${environment.apiBaseUrl}/recommendations/chatbot-analysis/latest`,
+        { params: { productId } }
+      )
+      .pipe(
+        map(unwrapApiResponse),
+        map((record: any) => this.mapToRecommendationProcess((record?.data ?? record) as ValueRouteDetailApi)),
+        catchError((error: unknown) =>
+          throwError(() => normalizeHttpError(error, 'No se pudo cargar el ultimo analisis guardado del chatbot.'))
+        )
+      );
+  }
+
+  getChatbotAnalysisHistory(productId: string, page = 1, pageSize = 10): Observable<readonly RecommendationProcess[]> {
+    return this.http
+      .get<ApiResponse<{ items: Array<{ data: ValueRouteDetailApi }> }>>(
+        `${environment.apiBaseUrl}/recommendations/chatbot-analysis/history`,
+        { params: { productId, page, pageSize } }
+      )
+      .pipe(
+        map(unwrapApiResponse),
+        map((payload) => (payload?.items ?? []).map((item) => this.mapToRecommendationProcess(item.data))),
+        catchError((error: unknown) =>
+          throwError(() => normalizeHttpError(error, 'No se pudo cargar el historial de analisis del chatbot.'))
+        )
+      );
+  }
+
   private mapToRecommendationProcess(detail: ValueRouteDetailApi): RecommendationProcess {
     const buyers: readonly BuyerSegment[] = (detail.marketAnalysis?.potentialBuyers ?? []).map((buyer) => ({
       id: buyer.id,
@@ -214,8 +267,10 @@ export class RecommendationsHttpRepository {
       segment: buyer.segment,
       monthlyVolume: buyer.monthlyVolume,
       probability: this.normalizeScore(Number(buyer.probability)),
-      channel: buyer.channel,
-      scope: this.normalizeBuyerScope(buyer.type),
+      channel: this.normalizeChannel(buyer.channel),
+      scope: this.normalizeBuyerScope(buyer.type, buyer.marketScope, buyer.country),
+      region: this.resolveBuyerRegion(buyer.region, buyer.country, buyer.type, buyer.marketScope),
+      country: this.resolveBuyerCountry(buyer.country, buyer.type, buyer.marketScope),
       iconName: this.normalizeBuyerIcon(buyer.iconName)
     }));
 
@@ -328,9 +383,41 @@ export class RecommendationsHttpRepository {
     return 'medium';
   }
 
-  private normalizeBuyerScope(type: string): 'nacional' | 'internacional' {
+  private normalizeBuyerScope(type: string, marketScope?: string, country?: string): 'nacional' | 'internacional' {
+    const byScope = (marketScope ?? '').trim().toLowerCase();
+    if (byScope.includes('international') || byScope.includes('internacional')) {
+      return 'internacional';
+    }
+
+    const byCountry = (country ?? '').trim().toLowerCase();
+    if (byCountry && byCountry !== 'peru' && byCountry !== 'perú') {
+      return 'internacional';
+    }
+
     const normalized = (type ?? '').trim().toLowerCase();
     return normalized.includes('international') ? 'internacional' : 'nacional';
+  }
+
+  private resolveBuyerCountry(country: string | undefined, type: string, marketScope?: string): string {
+    const value = (country ?? '').trim();
+    if (value) {
+      return value;
+    }
+
+    return this.normalizeBuyerScope(type, marketScope, country) === 'internacional'
+      ? 'No se encontró la información'
+      : 'Perú';
+  }
+
+  private resolveBuyerRegion(region: string | undefined, country: string | undefined, type: string, marketScope?: string): string {
+    const value = (region ?? '').trim();
+    if (value) {
+      return value;
+    }
+
+    return this.normalizeBuyerScope(type, marketScope, country) === 'internacional'
+      ? 'Internacional'
+      : 'No se encontró la información';
   }
 
   private normalizeBuyerIcon(icon: string): 'building' | 'store' | 'leaf' {
@@ -394,6 +481,23 @@ export class RecommendationsHttpRepository {
 
   private normalizeCurrencyText(text: string): string {
     return this.translateMarketText(text ?? '');
+  }
+
+  private normalizeChannel(channel: string): string {
+    const normalized = (channel ?? '').trim().toLowerCase();
+    switch (normalized) {
+      case 'direct':
+      case 'directo':
+        return 'Directo';
+      case 'b2b':
+        return 'B2B';
+      case 'whatsapp':
+        return 'WhatsApp';
+      case 'retail':
+        return 'Retail';
+      default:
+        return channel;
+    }
   }
 
   private normalizeRecommendation(item: Recommendation): Recommendation {

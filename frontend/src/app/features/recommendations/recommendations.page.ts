@@ -11,6 +11,7 @@ import { ManufacturingProcessComponent } from './presentation/components/manufac
 import { RecommendationComplexityComponent } from './presentation/components/recommendation-complexity/recommendation-complexity.component';
 import { RecommendationTabsComponent } from './presentation/components/recommendation-tabs/recommendation-tabs.component';
 import { BuyerScope, RecommendationTab } from './models/recommendation.model';
+import {LoaderComponent} from 'app/shared/ui/loader/loader.component'
 
 @Component({
   selector: 'app-recommendations-page',
@@ -24,6 +25,7 @@ import { BuyerScope, RecommendationTab } from './models/recommendation.model';
     MarketAnalysisComponent,
     ManufacturingProcessComponent,
     RecommendationComplexityComponent,
+    LoaderComponent
   ],
   templateUrl: './recommendations.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -36,6 +38,7 @@ export class RecommendationsPageComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private loadedProductId: string | null = null;
   private readonly sourceListingId = signal<string | null>(null);
+  private readonly selectedProductId = signal<string | null>(null);
 
   protected readonly loading = this.facade.loading;
   protected readonly error = this.facade.error;
@@ -52,6 +55,8 @@ export class RecommendationsPageComponent implements OnInit {
   protected readonly selectedBuyerSegment = this.facade.selectedBuyerSegment;
   protected readonly selectedCostView = this.facade.selectedCostView;
   protected readonly selectedChartType = this.facade.selectedChartType;
+  protected readonly saving = this.facade.saving;
+  protected readonly saveMessage = this.facade.saveMessage;
 
   ngOnInit(): void {
     combineLatest([this.route.paramMap, this.route.queryParamMap])
@@ -61,6 +66,7 @@ export class RecommendationsPageComponent implements OnInit {
         const tab = this.parseTab(query.get('tab'));
         this.sourceListingId.set(query.get('listing'));
         const selectedProductId = query.get('selectedProductId') ?? query.get('recommendedProduct');
+        this.selectedProductId.set(selectedProductId);
         const chatbotContext = this.readChatbotContext(params, query);
 
         if (this.loadedProductId !== productId) {
@@ -127,6 +133,10 @@ export class RecommendationsPageComponent implements OnInit {
         listing: listingId ?? undefined
       }
     });
+  }
+
+  protected saveRecommendation(): void {
+    this.facade.saveCurrentRecommendation(this.sourceListingId(), this.selectedProductId());
   }
 
   private parseTab(tab: string | null): RecommendationTab {

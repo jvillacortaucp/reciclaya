@@ -97,7 +97,9 @@ public sealed record ValueRouteBuyerSegmentDto(
     int Probability,
     string Channel,
     string Type,
-    string IconName);
+    string IconName,
+    string? Region = null,
+    string? Country = null);
 
 public sealed record ValueRouteMarketKpiDto(
     string Id,

@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using ReciclaYa.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using ReciclaYa.Infrastructure.Persistence;
 namespace ReciclaYa.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(ReciclaYaDbContext))]
-    partial class ReciclaYaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260504211144_FixRecommendationAnalysesTable")]
+    partial class FixRecommendationAnalysesTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -976,27 +979,6 @@ namespace ReciclaYa.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
-                    b.Property<string>("AnalysisOrigin")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.Property<string>("ChatbotProductId")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<string>("ChatbotProductName")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<string>("ChatbotResidueInput")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<string>("ChatbotSectorName")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
                     b.Property<decimal>("CoveragePercent")
                         .HasPrecision(5, 2)
                         .HasColumnType("numeric(5,2)");
@@ -1011,7 +993,7 @@ namespace ReciclaYa.Infrastructure.Persistence.Migrations
                     b.Property<bool>("ExplanationOk")
                         .HasColumnType("boolean");
 
-                    b.Property<Guid?>("ListingId")
+                    b.Property<Guid>("ListingId")
                         .HasColumnType("uuid");
 
                     b.Property<bool>("MarketOk")
@@ -1041,12 +1023,7 @@ namespace ReciclaYa.Infrastructure.Persistence.Migrations
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid");
-
                     b.HasKey("Id");
-
-                    b.HasIndex("AnalysisOrigin");
 
                     b.HasIndex("CreatedAt");
 
@@ -1055,8 +1032,6 @@ namespace ReciclaYa.Infrastructure.Persistence.Migrations
                     b.HasIndex("Status");
 
                     b.HasIndex("ListingId", "SelectedProductId", "CreatedAt");
-
-                    b.HasIndex("UserId", "AnalysisOrigin", "ChatbotProductId", "CreatedAt");
 
                     b.ToTable("recommendation_analyses", (string)null);
                 });
@@ -1489,7 +1464,8 @@ namespace ReciclaYa.Infrastructure.Persistence.Migrations
                     b.HasOne("ReciclaYa.Domain.Entities.Listing", "Listing")
                         .WithMany()
                         .HasForeignKey("ListingId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Listing");
                 });
