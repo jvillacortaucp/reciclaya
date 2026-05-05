@@ -5,6 +5,7 @@
         <img
           [src]="item.productImageUrl || fallbackImage"
           [alt]="item.name"
+          (error)="onImageError($event)"
           class="h-full w-full object-cover"
           loading="lazy" />
       </div>

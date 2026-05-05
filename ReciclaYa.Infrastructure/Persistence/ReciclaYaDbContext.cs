@@ -37,6 +37,8 @@ public sealed class ReciclaYaDbContext(DbContextOptions<ReciclaYaDbContext> opti
 
     public DbSet<ValorizationIdea> ValorizationIdeas => Set<ValorizationIdea>();
 
+    public DbSet<RecommendationAnalysis> RecommendationAnalyses => Set<RecommendationAnalysis>();
+
     public DbSet<MediaAsset> MediaAssets => Set<MediaAsset>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

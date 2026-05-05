@@ -29,6 +29,9 @@ export class RecommendationsFacade {
   readonly selectedBuyerSegment = signal<BuyerScope>('nacional');
   readonly selectedCostView = signal<CostView>('percent');
   readonly selectedChartType = signal<ChartType>('donut');
+  readonly saving = signal(false);
+  readonly saveMessage = signal<string | null>(null);
+  private chatbotContext: ChatbotAnalysisRequest | null = null;
 
   readonly steps = computed(() => this.recommendation()?.processSteps ?? []);
 
@@ -71,6 +74,7 @@ export class RecommendationsFacade {
     this.loading.set(true);
 
     if (!productOrListingId) {
+      this.chatbotContext = null;
       this.usingCommercialMode.set(true);
       this.recommendation.set(null);
       this.recommendationsRepository
@@ -90,6 +94,7 @@ export class RecommendationsFacade {
     this.commercialRecommendations.set([]);
 
     if (chatbotContext) {
+      this.chatbotContext = chatbotContext;
       this.recommendationsRepository
         .getChatbotAnalysis(chatbotContext, true, true)
         .pipe(
@@ -107,6 +112,7 @@ export class RecommendationsFacade {
       return;
     }
 
+    this.chatbotContext = null;
     const listingCandidate = listingId?.trim() || null;
     const selectedProductCandidate = selectedProductId?.trim() || null;
     if (listingCandidate && this.isGuid(listingCandidate)) {
@@ -188,6 +194,48 @@ export class RecommendationsFacade {
 
   setSelectedChartType(type: ChartType): void {
     this.selectedChartType.set(type);
+  }
+
+  saveCurrentRecommendation(listingId: string | null, selectedProductId?: string | null): void {
+    this.saveMessage.set(null);
+    this.saving.set(true);
+
+    if (this.chatbotContext) {
+      this.recommendationsRepository
+        .saveChatbotAnalysis(this.chatbotContext, true, true)
+        .pipe(
+          catchError((error: unknown) => {
+            this.saveMessage.set(getErrorMessage(error, 'No se pudo guardar la recomendacion del chatbot.'));
+            return EMPTY;
+          }),
+          finalize(() => this.saving.set(false))
+        )
+        .subscribe((process: RecommendationProcess) => {
+          this.recommendation.set(process);
+          this.saveMessage.set('Recomendacion guardada correctamente.');
+        });
+      return;
+    }
+
+    if (!listingId) {
+      this.saveMessage.set('No se pudo guardar: falta la publicacion asociada.');
+      this.saving.set(false);
+      return;
+    }
+
+    this.recommendationsRepository
+      .getListingAnalysis(listingId, selectedProductId ?? null, true, true)
+      .pipe(
+        catchError((error: unknown) => {
+          this.saveMessage.set(getErrorMessage(error, 'No se pudo guardar la recomendacion.'));
+          return EMPTY;
+        }),
+        finalize(() => this.saving.set(false))
+      )
+      .subscribe((process: RecommendationProcess) => {
+        this.recommendation.set(process);
+        this.saveMessage.set('Recomendacion guardada correctamente.');
+      });
   }
 
   private isGuid(value: string): boolean {

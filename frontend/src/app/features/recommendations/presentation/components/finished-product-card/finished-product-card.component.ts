@@ -14,4 +14,15 @@ import { FinishedProductMarketCard } from '../../../models/recommendation.model'
 export class FinishedProductCardComponent {
   product = input<FinishedProductMarketCard | null>(null);
   protected readonly fallbackImage = FALLBACK_IMAGE_URL;
+
+  protected onImageError(event: Event): void {
+    const image = event.target as HTMLImageElement | null;
+    if (!image) {
+      return;
+    }
+
+    if (image.src !== this.fallbackImage) {
+      image.src = this.fallbackImage;
+    }
+  }
 }

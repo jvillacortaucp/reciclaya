@@ -5,6 +5,7 @@ using ReciclaYa.Application.Recommendations.Dtos;
 using ReciclaYa.Application.ValueSectors.Dtos;
 using ReciclaYa.Domain.Entities;
 using ReciclaYa.Domain.Enums;
+using System.Text.Json;
 
 namespace ReciclaYa.Application.Recommendations.Services;
 
@@ -16,6 +17,7 @@ public sealed class RecommendationService(
     private const string ActiveStatus = "active";
     private const int MaxLimit = 10;
     private const int DefaultLimit = 5;
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
     public async Task<IReadOnlyCollection<RecommendationDto>> GetRecommendationsAsync(
         Guid userId,
@@ -90,8 +92,19 @@ public sealed class RecommendationService(
                 if (aiAnalysis is not null)
                 {
                     var selected = ApplySelectedProduct(aiAnalysis, selectedProductId);
-                    LogCoverage(listingId, selected);
-                    return selected;
+                    var geoCompleted = EnsureBuyerGeo(selected, listing.Location);
+                    LogCoverage(listingId, geoCompleted);
+                    await SaveAnalysisAsync(
+                        userId,
+                        "listing",
+                        listingId,
+                        selectedProductId,
+                        null,
+                        geoCompleted,
+                        "ok",
+                        null,
+                        cancellationToken);
+                    return geoCompleted;
                 }
             }
             catch (Exception)
@@ -105,7 +118,73 @@ public sealed class RecommendationService(
 
         var unavailable = BuildNoCreditsValueRoute(listing, selectedProductId);
         LogCoverage(listingId, unavailable);
+        await SaveAnalysisAsync(
+            userId,
+            "listing",
+            listingId,
+            selectedProductId,
+            null,
+            unavailable,
+            "unavailable",
+            "sin-creditos",
+            cancellationToken);
         return unavailable;
+    }
+
+    public async Task<RecommendationAnalysisRecordDto?> GetLatestListingAnalysisAsync(
+        Guid listingId,
+        string? selectedProductId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var normalizedProductId = NormalizeSelectedProductId(selectedProductId);
+        var query = dbContext.RecommendationAnalyses
+            .AsNoTracking()
+            .Where(item => item.AnalysisOrigin == "listing" && item.ListingId == listingId);
+
+        query = normalizedProductId is null
+            ? query.Where(item => item.SelectedProductId == null)
+            : query.Where(item => item.SelectedProductId == normalizedProductId);
+
+        var latest = await query
+            .OrderByDescending(item => item.CreatedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return latest is null ? null : ToAnalysisRecordDto(latest);
+    }
+
+    public async Task<RecommendationAnalysisHistoryPageDto> GetListingAnalysisHistoryAsync(
+        Guid listingId,
+        string? selectedProductId = null,
+        int page = 1,
+        int pageSize = 10,
+        CancellationToken cancellationToken = default)
+    {
+        var safePage = Math.Max(1, page);
+        var safePageSize = Math.Clamp(pageSize, 1, 50);
+        var normalizedProductId = NormalizeSelectedProductId(selectedProductId);
+
+        var query = dbContext.RecommendationAnalyses
+            .AsNoTracking()
+            .Where(item => item.AnalysisOrigin == "listing" && item.ListingId == listingId);
+
+        query = normalizedProductId is null
+            ? query.Where(item => item.SelectedProductId == null)
+            : query.Where(item => item.SelectedProductId == normalizedProductId);
+
+        var total = await query.CountAsync(cancellationToken);
+        var start = (safePage - 1) * safePageSize;
+        var items = await query
+            .OrderByDescending(item => item.CreatedAt)
+            .Skip(start)
+            .Take(safePageSize)
+            .ToListAsync(cancellationToken);
+
+        return new RecommendationAnalysisHistoryPageDto(
+            items.Select(ToAnalysisRecordDto).ToArray(),
+            total,
+            safePage,
+            safePageSize,
+            start + safePageSize < total);
     }
 
     public async Task<ValueRouteDetailDto> GetChatbotAnalysisAsync(
@@ -114,6 +193,111 @@ public sealed class RecommendationService(
         bool useAi = true,
         bool includeExplanation = true,
         CancellationToken cancellationToken = default)
+    {
+        var analysis = await BuildChatbotAnalysisAsync(userId, request, useAi, includeExplanation, cancellationToken);
+        await SaveAnalysisAsync(
+            userId,
+            "chatbot",
+            null,
+            request.ProductId,
+            request,
+            analysis.Detail,
+            analysis.Status,
+            analysis.ErrorCode,
+            cancellationToken);
+
+        return analysis.Detail;
+    }
+
+    public async Task<ValueRouteDetailDto> SaveChatbotAnalysisAsync(
+        Guid userId,
+        ChatbotRecommendationAnalysisRequestDto request,
+        bool useAi = true,
+        bool includeExplanation = true,
+        CancellationToken cancellationToken = default)
+    {
+        var analysis = await BuildChatbotAnalysisAsync(userId, request, useAi, includeExplanation, cancellationToken);
+        await SaveAnalysisAsync(
+            userId,
+            "chatbot",
+            null,
+            request.ProductId,
+            request,
+            analysis.Detail,
+            analysis.Status,
+            analysis.ErrorCode,
+            cancellationToken);
+
+        return analysis.Detail;
+    }
+
+    public async Task<RecommendationAnalysisRecordDto?> GetLatestChatbotAnalysisAsync(
+        Guid userId,
+        string productId,
+        CancellationToken cancellationToken = default)
+    {
+        var normalizedProductId = NormalizeSelectedProductId(productId);
+        if (normalizedProductId is null)
+        {
+            return null;
+        }
+
+        var latest = await dbContext.RecommendationAnalyses
+            .AsNoTracking()
+            .Where(item =>
+                item.UserId == userId
+                && item.AnalysisOrigin == "chatbot"
+                && item.ChatbotProductId == normalizedProductId)
+            .OrderByDescending(item => item.CreatedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return latest is null ? null : ToAnalysisRecordDto(latest);
+    }
+
+    public async Task<RecommendationAnalysisHistoryPageDto> GetChatbotAnalysisHistoryAsync(
+        Guid userId,
+        string productId,
+        int page = 1,
+        int pageSize = 10,
+        CancellationToken cancellationToken = default)
+    {
+        var safePage = Math.Max(1, page);
+        var safePageSize = Math.Clamp(pageSize, 1, 50);
+        var normalizedProductId = NormalizeSelectedProductId(productId);
+        if (normalizedProductId is null)
+        {
+            return new RecommendationAnalysisHistoryPageDto(Array.Empty<RecommendationAnalysisRecordDto>(), 0, safePage, safePageSize, false);
+        }
+
+        var query = dbContext.RecommendationAnalyses
+            .AsNoTracking()
+            .Where(item =>
+                item.UserId == userId
+                && item.AnalysisOrigin == "chatbot"
+                && item.ChatbotProductId == normalizedProductId);
+
+        var total = await query.CountAsync(cancellationToken);
+        var start = (safePage - 1) * safePageSize;
+        var items = await query
+            .OrderByDescending(item => item.CreatedAt)
+            .Skip(start)
+            .Take(safePageSize)
+            .ToListAsync(cancellationToken);
+
+        return new RecommendationAnalysisHistoryPageDto(
+            items.Select(ToAnalysisRecordDto).ToArray(),
+            total,
+            safePage,
+            safePageSize,
+            start + safePageSize < total);
+    }
+
+    private async Task<(ValueRouteDetailDto Detail, string Status, string? ErrorCode)> BuildChatbotAnalysisAsync(
+        Guid userId,
+        ChatbotRecommendationAnalysisRequestDto request,
+        bool useAi,
+        bool includeExplanation,
+        CancellationToken cancellationToken)
     {
         var syntheticListing = BuildSyntheticListing(request);
         var candidate = ToCandidate(syntheticListing);
@@ -129,8 +313,9 @@ public sealed class RecommendationService(
                 {
                     var selected = ApplySelectedProduct(aiAnalysis, request.ProductId);
                     var aligned = ApplyRequestedLevels(selected, request.Complexity, request.MarketPotential);
-                    LogCoverage(syntheticListing.Id, aligned);
-                    return aligned;
+                    var geoCompleted = EnsureBuyerGeo(aligned, request.SectorName);
+                    LogCoverage(syntheticListing.Id, geoCompleted);
+                    return (geoCompleted, "ok", null);
                 }
             }
             catch (Exception)
@@ -144,7 +329,7 @@ public sealed class RecommendationService(
 
         var unavailable = BuildNoCreditsValueRoute(syntheticListing, request.ProductId);
         LogCoverage(syntheticListing.Id, unavailable);
-        return unavailable;
+        return (unavailable, "unavailable", "sin-creditos");
     }
 
     private static ValueRouteDetailDto BuildNoCreditsValueRoute(
@@ -464,6 +649,81 @@ public sealed class RecommendationService(
         return string.Join(" ", tokens.Select(token => char.ToUpperInvariant(token[0]) + token[1..]));
     }
 
+    private static ValueRouteDetailDto EnsureBuyerGeo(ValueRouteDetailDto detail, string? locationHint)
+    {
+        if (detail.MarketAnalysis.PotentialBuyers.Count == 0)
+        {
+            return detail;
+        }
+
+        var regionFallback = ResolveRegion(locationHint);
+        var buyers = detail.MarketAnalysis.PotentialBuyers
+            .Select(buyer => buyer with
+            {
+                Region = ResolveBuyerRegionFallback(buyer, regionFallback),
+                Country = ResolveBuyerCountryFallback(buyer)
+            })
+            .ToArray();
+
+        return detail with
+        {
+            MarketAnalysis = detail.MarketAnalysis with
+            {
+                PotentialBuyers = buyers
+            }
+        };
+    }
+
+    private static string ResolveRegion(string? locationHint)
+    {
+        if (string.IsNullOrWhiteSpace(locationHint))
+        {
+            return "No se encontró la información";
+        }
+
+        var first = locationHint
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .FirstOrDefault();
+
+        return string.IsNullOrWhiteSpace(first) ? "No se encontró la información" : first;
+    }
+
+    private static string ResolveBuyerCountryFallback(ValueRouteBuyerSegmentDto buyer)
+    {
+        if (!string.IsNullOrWhiteSpace(buyer.Country))
+        {
+            return buyer.Country;
+        }
+
+        return IsInternationalBuyer(buyer) ? "No se encontró la información" : "Perú";
+    }
+
+    private static string ResolveBuyerRegionFallback(ValueRouteBuyerSegmentDto buyer, string regionFallback)
+    {
+        if (!string.IsNullOrWhiteSpace(buyer.Region))
+        {
+            return buyer.Region;
+        }
+
+        return IsInternationalBuyer(buyer)
+            ? "Internacional"
+            : regionFallback;
+    }
+
+    private static bool IsInternationalBuyer(ValueRouteBuyerSegmentDto buyer)
+    {
+        if (!string.IsNullOrWhiteSpace(buyer.Country)
+            && !buyer.Country.Contains("peru", StringComparison.OrdinalIgnoreCase)
+            && !buyer.Country.Contains("perú", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        var text = $"{buyer.Name} {buyer.Segment} {buyer.Channel}";
+        return text.Contains("internacional", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("export", StringComparison.OrdinalIgnoreCase);
+    }
+
     private static ValueRouteDetailDto MergeWithFallback(ValueRouteDetailDto ai, ValueRouteDetailDto fallback)
     {
         var mergedMarket = ai.MarketAnalysis with
@@ -526,6 +786,152 @@ public sealed class RecommendationService(
             explanationOk,
             marketOk,
             coverage);
+    }
+
+    private async Task SaveAnalysisAsync(
+        Guid userId,
+        string analysisOrigin,
+        Guid? listingId,
+        string? selectedProductId,
+        ChatbotRecommendationAnalysisRequestDto? chatbotRequest,
+        ValueRouteDetailDto detail,
+        string status,
+        string? errorCode,
+        CancellationToken cancellationToken)
+    {
+        var (processOk, explanationOk, marketOk, coverage) = ComputeCoverage(detail);
+        var normalizedProductId = NormalizeSelectedProductId(selectedProductId);
+        var now = DateTime.UtcNow;
+        var origin = string.IsNullOrWhiteSpace(analysisOrigin) ? "listing" : analysisOrigin.Trim().ToLowerInvariant();
+        var chatbotProductId = origin == "chatbot"
+            ? NormalizeSelectedProductId(chatbotRequest?.ProductId ?? selectedProductId)
+            : null;
+
+        dbContext.RecommendationAnalyses.Add(new RecommendationAnalysis
+        {
+            Id = Guid.NewGuid(),
+            AnalysisOrigin = origin,
+            UserId = userId,
+            ListingId = listingId,
+            SelectedProductId = normalizedProductId,
+            ChatbotProductId = chatbotProductId,
+            ChatbotProductName = origin == "chatbot" ? (chatbotRequest?.ProductName?.Trim()) : null,
+            ChatbotResidueInput = origin == "chatbot" ? (chatbotRequest?.ResidueInput?.Trim()) : null,
+            ChatbotSectorName = origin == "chatbot" ? (chatbotRequest?.SectorName?.Trim()) : null,
+            Source = string.IsNullOrWhiteSpace(detail.Source) ? "unknown" : detail.Source.Trim().ToLowerInvariant(),
+            Status = status,
+            PayloadJson = JsonSerializer.Serialize(detail, JsonOptions),
+            CoveragePercent = coverage,
+            ProcessOk = processOk,
+            ExplanationOk = explanationOk,
+            MarketOk = marketOk,
+            ErrorCode = errorCode,
+            CreatedAt = now,
+            UpdatedAt = now
+        });
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        logger.LogInformation(
+            "analysis_saved. Origin={Origin}, ListingId={ListingId}, selectedProductId={SelectedProductId}, chatbotProductId={ChatbotProductId}, source={Source}, status={Status}, coverage_percent={Coverage}",
+            origin,
+            listingId?.ToString() ?? "null",
+            normalizedProductId ?? "null",
+            chatbotProductId ?? "null",
+            string.IsNullOrWhiteSpace(detail.Source) ? "unknown" : detail.Source,
+            status,
+            coverage);
+    }
+
+    private static string? NormalizeSelectedProductId(string? selectedProductId)
+    {
+        if (string.IsNullOrWhiteSpace(selectedProductId))
+        {
+            return null;
+        }
+
+        return selectedProductId.Trim().ToLowerInvariant();
+    }
+
+    private static (bool ProcessOk, bool ExplanationOk, bool MarketOk, decimal CoveragePercent) ComputeCoverage(ValueRouteDetailDto detail)
+    {
+        var processOk = detail.ProcessSteps.Count > 0;
+        var explanationOk = detail.ExplanationSteps.Count > 0 && detail.ComplexityOverview is not null;
+        var marketOk = detail.MarketAnalysis.PotentialBuyers.Count > 0
+            && detail.MarketAnalysis.MarketKpis.Count > 0
+            && detail.MarketAnalysis.CostStructure.Count > 0;
+
+        var completed = 0;
+        if (processOk) completed++;
+        if (explanationOk) completed++;
+        if (marketOk) completed++;
+        var coverage = Math.Round((completed / 3m) * 100m, 2, MidpointRounding.AwayFromZero);
+
+        return (processOk, explanationOk, marketOk, coverage);
+    }
+
+    private static RecommendationAnalysisRecordDto ToAnalysisRecordDto(RecommendationAnalysis entity)
+    {
+        ValueRouteDetailDto? detail = null;
+        if (!string.IsNullOrWhiteSpace(entity.PayloadJson))
+        {
+            try
+            {
+                detail = JsonSerializer.Deserialize<ValueRouteDetailDto>(entity.PayloadJson, JsonOptions);
+            }
+            catch (JsonException)
+            {
+                detail = null;
+            }
+        }
+
+        detail ??= new ValueRouteDetailDto(
+            entity.ListingId.HasValue ? $"rec-{entity.ListingId.Value:N}" : $"rec-chatbot-{entity.Id:N}",
+            "No se pudo obtener",
+            "No se pudo obtener",
+            "medium",
+            "No se pudo obtener",
+            "No se pudo obtener",
+            "medium",
+            Array.Empty<string>(),
+            "No se pudo obtener",
+            "No se pudo obtener",
+            Array.Empty<ValueRouteExplanationStepDto>(),
+            new ValueRouteEnvironmentalSummaryDto(0m, "No se pudo obtener", 0, "No se pudo obtener", 0, "No se pudo obtener"),
+            new ValueRouteMarketAnalysisDto(
+                new ValueRouteFinishedProductDto("No se pudo obtener", "No se pudo obtener", "No se pudo obtener", 0m, "No se pudo obtener", string.Empty),
+                Array.Empty<ValueRouteBuyerSegmentDto>(),
+                Array.Empty<ValueRouteMarketKpiDto>(),
+                Array.Empty<ValueRouteCostStructureItemDto>(),
+                0m,
+                0m,
+                0m,
+                new ValueRouteCompetitionInsightDto("No se pudo obtener", Array.Empty<string>(), "No se pudo obtener"),
+                new ValueRouteOpportunitySummaryDto(DateTime.UtcNow.ToString("yyyy-MM-dd"), "No se pudo obtener", "No se pudo obtener", "No se pudo obtener", "No se pudo obtener", Array.Empty<string>(), "No se pudo obtener"),
+                Array.Empty<string>(),
+                Array.Empty<decimal>()),
+            Array.Empty<ValueRouteProcessStepDto>(),
+            entity.Source ?? "unknown");
+
+        return new RecommendationAnalysisRecordDto(
+            entity.Id,
+            entity.ListingId,
+            entity.SelectedProductId,
+            entity.AnalysisOrigin,
+            entity.UserId,
+            entity.ChatbotProductId,
+            entity.ChatbotProductName,
+            entity.ChatbotResidueInput,
+            entity.ChatbotSectorName,
+            entity.Source ?? "unknown",
+            entity.Status,
+            entity.CoveragePercent,
+            entity.ProcessOk,
+            entity.ExplanationOk,
+            entity.MarketOk,
+            entity.ErrorCode,
+            entity.CreatedAt,
+            detail);
     }
 
     private async Task<PurchasePreference?> GetCurrentPreferenceAsync(
@@ -659,7 +1065,7 @@ public sealed class RecommendationService(
             Description = string.IsNullOrWhiteSpace(request.Description) ? $"Idea de valorizacion para {productName}." : request.Description.Trim(),
             Quantity = 1,
             Unit = "tons",
-            Currency = "USD",
+            Currency = "PEN",
             ExchangeType = "sale",
             DeliveryMode = "coordinated_delivery",
             ImmediateAvailability = true,
@@ -806,7 +1212,7 @@ public sealed class RecommendationService(
     {
         if (listing.PricePerUnitUsd.HasValue)
         {
-            return $"Puede mejorar tu abastecimiento con precio referencial de USD {listing.PricePerUnitUsd.Value:0.##} por {listing.Unit}.";
+            return $"Puede mejorar tu abastecimiento con precio referencial de S/ {listing.PricePerUnitUsd.Value:0.##} por {listing.Unit}.";
         }
 
         return confidenceScore >= 75
