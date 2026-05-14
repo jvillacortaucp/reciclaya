@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, ElementRef, HostListener, inject, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import {
   LucideBarChart3,
   LucideBot,
@@ -9,7 +9,6 @@ import {
   LucideStore
 } from '@lucide/angular';
 import { APP_ROUTES } from '../../../../../core/constants/app.constants';
-import { TourGuideService } from '../../../../../core/services/tour-guide.service';
 
 @Component({
   selector: 'app-value-sector-floating-actions',
@@ -28,7 +27,7 @@ import { TourGuideService } from '../../../../../core/services/tour-guide.servic
 })
 export class ValueSectorFloatingActionsComponent {
   private readonly elementRef = inject(ElementRef<HTMLElement>);
-  private readonly tourGuide = inject(TourGuideService);
+  private readonly router = inject(Router);
 
   protected readonly isOpen = signal(false);
   protected readonly imageError = signal(false);
@@ -44,7 +43,7 @@ export class ValueSectorFloatingActionsComponent {
   }
 
   protected startGuide(): void {
-    this.tourGuide.launchFromBot();
+    void this.router.navigateByUrl(APP_ROUTES.assistantChat);
     this.closeMenu();
   }
 

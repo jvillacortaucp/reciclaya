@@ -21,10 +21,10 @@ export interface DefaultChatBubbleMessage {
           [class.opacity-0]="!isOpen()"
           [class.opacity-100]="isOpen()">
           <div class="rounded-t-2xl bg-emerald-700 p-4 text-white">
-            <h3 class="text-2xl font-semibold leading-tight text-white">{{ title }}</h3>
-            @if (message) {
+            <h3 class="text-base font-semibold leading-tight text-white">{{ message }}</h3>
+            <!-- @if (message) {
               <p class="mt-1 text-base leading-relaxed text-emerald-100">{{ message }}</p>
-            }
+            } -->
           </div>
 
           <div class="space-y-3 border-x rounded-b-2xl border-slate-200 bg-white px-3 pt-3 pb-3">
