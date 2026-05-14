@@ -1,16 +1,24 @@
 <aside
-  class="fixed left-0 top-0 z-40 h-dvh w-64 border-r border-gray-100 bg-white pt-14 transition-transform md:translate-x-0 flex flex-col"
+  class="fixed left-0 top-0 z-40 h-dvh w-64 border-r border-gray-100 bg-white pt-14 transition-all duration-360 ease-[cubic-bezier(0.22,0.8,0.22,1)] md:translate-x-0 flex flex-col motion-reduce:transition-none"
   [class.translate-x-0]="isOpen()"
   [class.-translate-x-full]="!isOpen()"
+  [class.opacity-0]="!containerReady()"
+  [class.scale-[0.985]]="!containerReady()"
+  [class.opacity-100]="containerReady()"
+  [class.scale-100]="containerReady()"
   aria-label="Sidenav"
 >
   <div class="w-full flex-1 min-h-0 overflow-x-hidden overflow-y-auto bg-white px-3 py-5">
     <ul class="space-y-2">
-      @for (item of mainNavItems(); track item.route) {
+      @for (item of mainNavItems(); track item.route; let i = $index) {
       <li>
         <a
           [routerLink]="item.route"
-          class="group flex h-11 w-full items-center rounded-xl border-r-4 px-3 text-base font-medium transition-all"
+          class="group relative flex h-11 w-full items-center overflow-hidden rounded-xl border-r-4 px-3 text-base font-medium transition-all motion-reduce:transform-none motion-reduce:opacity-100"
+          [class.translate-y-2]="!sidebarReady()"
+          [class.opacity-0]="!sidebarReady()"
+          [class.translate-y-0]="sidebarReady()"
+          [class.opacity-100]="sidebarReady()"
           [class.bg-emerald-50]="isRouteActive(item)"
           [class.text-emerald-700]="isRouteActive(item)"
           [class.font-semibold]="isRouteActive(item)"
@@ -20,10 +28,22 @@
           [class.text-slate-700]="!isRouteActive(item)"
           [class.hover:bg-slate-50]="!isRouteActive(item)"
           [class.hover:text-emerald-700]="!isRouteActive(item)"
+          [style.transition-delay.ms]="iconDelayMs(i)"
           (click)="onLinkClick()"
         >
           <span
-            class="h-5 w-5 shrink-0 transition duration-75"
+            class="pointer-events-none absolute inset-y-0 left-0 z-0 w-full origin-left bg-emerald-100 transition-transform duration-500 ease-out motion-reduce:transition-none"
+            [class.scale-x-0]="!shouldSweep(item)"
+            [class.scale-x-100]="shouldSweep(item)">
+          </span>
+
+          <span
+            class="relative z-10 h-5 w-5 shrink-0 transition duration-75 motion-reduce:transform-none motion-reduce:opacity-100"
+            [class.translate-x-1]="!sidebarReady()"
+            [class.opacity-0]="!sidebarReady()"
+            [class.translate-x-0]="sidebarReady()"
+            [class.opacity-100]="sidebarReady()"
+            [style.transition-delay.ms]="iconDelayMs(i)"
             [class.text-emerald-600]="isRouteActive(item)"
             [class.text-slate-400]="!isRouteActive(item)"
             [class.group-hover:text-emerald-600]="!isRouteActive(item)"
@@ -43,7 +63,15 @@
             }
           </span>
 
-          <span class="ml-3">{{ item.label }}</span>
+          <span
+            class="relative z-10 ml-3 transition-all duration-300 motion-reduce:transform-none motion-reduce:opacity-100"
+            [class.translate-x-2]="!sidebarReady()"
+            [class.opacity-0]="!sidebarReady()"
+            [class.translate-x-0]="sidebarReady()"
+            [class.opacity-100]="sidebarReady()"
+            [style.transition-delay.ms]="labelDelayMs(i)">
+            {{ item.label }}
+          </span>
         </a>
       </li>
       }
@@ -51,11 +79,15 @@
 
     @if (isAuthenticated()) {
     <ul class="pt-5 mt-5 space-y-2 border-t border-slate-100">
-      @for (item of accountNavItems(); track item.route) {
+      @for (item of accountNavItems(); track item.route; let i = $index) {
       <li>
         <a
           [routerLink]="item.route"
-          class="group flex h-11 w-full items-center rounded-xl border-r-4 px-3 text-base font-medium transition-all"
+          class="group relative flex h-11 w-full items-center overflow-hidden rounded-xl border-r-4 px-3 text-base font-medium transition-all motion-reduce:transform-none motion-reduce:opacity-100"
+          [class.translate-y-2]="!sidebarReady()"
+          [class.opacity-0]="!sidebarReady()"
+          [class.translate-y-0]="sidebarReady()"
+          [class.opacity-100]="sidebarReady()"
           [class.bg-emerald-50]="isRouteActive(item)"
           [class.text-emerald-700]="isRouteActive(item)"
           [class.font-semibold]="isRouteActive(item)"
@@ -65,10 +97,22 @@
           [class.text-slate-700]="!isRouteActive(item)"
           [class.hover:bg-slate-50]="!isRouteActive(item)"
           [class.hover:text-emerald-700]="!isRouteActive(item)"
+          [style.transition-delay.ms]="iconDelayMs(i, true)"
           (click)="onLinkClick()"
         >
           <span
-            class="h-5 w-5 shrink-0 transition duration-75"
+            class="pointer-events-none absolute inset-y-0 left-0 z-0 w-full origin-left bg-emerald-100 transition-transform duration-500 ease-out motion-reduce:transition-none"
+            [class.scale-x-0]="!shouldSweep(item)"
+            [class.scale-x-100]="shouldSweep(item)">
+          </span>
+
+          <span
+            class="relative z-10 h-5 w-5 shrink-0 transition duration-75 motion-reduce:transform-none motion-reduce:opacity-100"
+            [class.translate-x-1]="!sidebarReady()"
+            [class.opacity-0]="!sidebarReady()"
+            [class.translate-x-0]="sidebarReady()"
+            [class.opacity-100]="sidebarReady()"
+            [style.transition-delay.ms]="iconDelayMs(i, true)"
             [class.text-emerald-600]="isRouteActive(item)"
             [class.text-slate-400]="!isRouteActive(item)"
             [class.group-hover:text-emerald-600]="!isRouteActive(item)"
@@ -79,7 +123,15 @@
             }
           </span>
 
-          <span class="ml-3">{{ item.label }}</span>
+          <span
+            class="relative z-10 ml-3 transition-all duration-300 motion-reduce:transform-none motion-reduce:opacity-100"
+            [class.translate-x-2]="!sidebarReady()"
+            [class.opacity-0]="!sidebarReady()"
+            [class.translate-x-0]="sidebarReady()"
+            [class.opacity-100]="sidebarReady()"
+            [style.transition-delay.ms]="labelDelayMs(i, true)">
+            {{ item.label }}
+          </span>
         </a>
       </li>
       }

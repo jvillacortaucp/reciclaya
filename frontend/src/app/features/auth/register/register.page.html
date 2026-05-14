@@ -1,4 +1,6 @@
-<div class="grid min-h-screen grid-cols-1 bg-slate-50 lg:grid-cols-[420px_1fr]">
+<div
+  class="relative grid min-h-screen grid-cols-1 bg-slate-50 lg:grid-cols-[420px_1fr]"
+  [class.pointer-events-none]="isTransitioning()">
   <aside
     class="relative hidden overflow-hidden bg-linear-to-br from-slate-950 via-slate-900 to-slate-800 p-12 text-white lg:flex lg:flex-col lg:justify-between">
     <div
@@ -82,10 +84,10 @@
 
         <!-- Form Area -->
         @if (selectedAccountType() === accountType.Company) {
-        <app-company-register-form [loading]="loading()" [errorMessage]="authError()"
+        <app-company-register-form [loading]="loading() || isTransitioning()" [errorMessage]="authError()"
           (submitted)="submitCompany($event)" />
         } @else {
-        <app-natural-person-register-form [loading]="loading()" [errorMessage]="authError()"
+        <app-natural-person-register-form [loading]="loading() || isTransitioning()" [errorMessage]="authError()"
           (submitted)="submitNaturalPerson($event)" />
         }
 

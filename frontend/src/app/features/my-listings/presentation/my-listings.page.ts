@@ -9,7 +9,6 @@ import {
   LucideSparkles
 } from '@lucide/angular';
 import { EmptyStateComponent } from '../../../shared/ui/empty-state/empty-state.component';
-import { TourGuideService } from '../../../core/services/tour-guide.service';
 import { MyListingsFacade } from '../application/my-listings.facade';
 import {
   MY_LISTINGS_COPY,
@@ -23,7 +22,6 @@ import {
 } from '../data/my-listings.constants';
 import { ListingTab } from '../domain/my-listing.model';
 import { MyListing } from '../domain/my-listing.model';
-import { FloatingActionsComponent } from './components/floating-actions.component';
 import { MyListingCardComponent } from './components/my-listing-card.component';
 import { MyListingsFiltersComponent } from './components/my-listings-filters.component';
 import { LoaderComponent } from '../../../shared/ui/loader/loader.component';
@@ -37,7 +35,6 @@ import { LoaderComponent } from '../../../shared/ui/loader/loader.component';
     EmptyStateComponent,
     MyListingCardComponent,
     MyListingsFiltersComponent,
-    FloatingActionsComponent,
     LoaderComponent,
     LucideFilter,
     LucideInfo,
@@ -51,7 +48,6 @@ export class MyListingsPageComponent implements OnInit, OnDestroy {
   private readonly fb = inject(FormBuilder);
   private readonly router = inject(Router);
   private readonly facade = inject(MyListingsFacade);
-  private readonly tourGuide = inject(TourGuideService);
   private readonly subscriptions = new Subscription();
 
   protected readonly copy = MY_LISTINGS_COPY;
@@ -91,7 +87,6 @@ export class MyListingsPageComponent implements OnInit, OnDestroy {
   });
 
   ngOnInit(): void {
-    this.tourGuide.init();
     this.facade.loadListings();
     this.subscriptions.add(
       this.filtersForm.valueChanges.subscribe((value) => {
@@ -143,13 +138,8 @@ export class MyListingsPageComponent implements OnInit, OnDestroy {
     this.facade.clearToast();
   }
 
-  protected startGuide(): void {
-    this.tourGuide.launchFromBot();
-  }
-
   protected selectListing(listingId: string): void {
     this.selectedListingId.set(listingId);
-    this.tourGuide.notifyListingSelected(listingId);
   }
 
   protected goToValueSector(): void {
@@ -158,7 +148,6 @@ export class MyListingsPageComponent implements OnInit, OnDestroy {
       this.facade.showMissingListingToast();
       return;
     }
-    this.tourGuide.notifyRecommendationsClicked(listingId);
     this.facade.showGeneratingRoutesToast();
     this.router.navigate(['/app/value-sector'], { queryParams: { listing: listingId } });
   }
