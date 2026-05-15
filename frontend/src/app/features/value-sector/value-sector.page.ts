@@ -34,6 +34,7 @@ import { ValueSectorRoutesMapComponent } from './presentation/components/value-s
     RouterLink
   ],
   templateUrl: './value-sector.page.html',
+  styleUrl: './value-sector.page.css',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestroy {
@@ -76,6 +77,8 @@ export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestro
   protected readonly hasSelectedRouteProducts = computed(() => this.selectedRouteProducts().length > 0);
   protected readonly selectedProductId = computed(() => this.activeProductId());
   protected readonly hasSelectedProduct = computed(() => !!this.activeProductId());
+  protected readonly productPanelAnimated = computed(() => this.panelAnimate());
+  protected readonly actionButtonsAnimated = computed(() => this.buttonsAnimate());
 
   protected readonly minZoomPercent = 55;
   protected readonly maxZoomPercent = 190;
@@ -115,6 +118,8 @@ export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestro
 
   private readonly activeRouteId = signal<string | null>(null);
   private readonly activeProductId = signal<string | null>(null);
+  private readonly panelAnimate = signal(false);
+  private readonly buttonsAnimate = signal(false);
   private readonly productGroupPosition = signal<{ x: number; y: number }>({ x: 1360, y: 360 });
   private readonly productConnectorPathSignal = signal<{
     fromX: number;
@@ -151,6 +156,15 @@ export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestro
     effect(() => {
       this.activeRouteId();
       queueMicrotask(() => this.updateProductGroupPosition());
+    });
+
+    effect(() => {
+      const routeId = this.activeRouteId();
+      if (!routeId) {
+        this.panelAnimate.set(false);
+        return;
+      }
+      this.triggerPanelAnimation();
     });
   }
 
@@ -190,6 +204,7 @@ export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestro
 
     this.activeRouteId.set(routeId);
     this.activeProductId.set(null);
+    this.buttonsAnimate.set(false);
     queueMicrotask(() => this.updateProductGroupPosition());
   }
 
@@ -198,6 +213,7 @@ export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestro
     if (!route) return;
     this.activeProductId.set(productId);
     this.facade.selectProduct(route.id, productId);
+    this.triggerButtonsAnimation();
   }
 
   protected onGenerateRequested(): void {
@@ -223,6 +239,8 @@ export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestro
   protected onBackRequested(): void {
     this.activeRouteId.set(null);
     this.activeProductId.set(null);
+    this.panelAnimate.set(false);
+    this.buttonsAnimate.set(false);
     this.focusMap();
     this.productGroupPosition.set(this.productPanelDefault);
     this.productConnectorPathSignal.set(null);
@@ -512,5 +530,15 @@ export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestro
       toX,
       toY
     });
+  }
+
+  private triggerPanelAnimation(): void {
+    this.panelAnimate.set(false);
+    queueMicrotask(() => this.panelAnimate.set(true));
+  }
+
+  private triggerButtonsAnimation(): void {
+    this.buttonsAnimate.set(false);
+    queueMicrotask(() => this.buttonsAnimate.set(true));
   }
 }
