@@ -24,6 +24,12 @@ export class ValueSectorRoutesMapComponent {
   routeSelected = output<string>();
 
   protected readonly visibleRoutes = computed(() => this.routes().slice(0, 4));
+  protected readonly routeCoords = [
+    { x: 18, y: 8 },
+    { x: 18, y: 58 },
+    { x: 67, y: 8 },
+    { x: 67, y: 58 }
+  ] as const;
 
   protected matchPercent(route: ValueSectorRoute): number {
     switch (route.marketPotential) {
