@@ -19,6 +19,114 @@
         {{ text.goToListingsButton }}
       </a>
     </div>
+  } @else if (isInitialLoading()) {
+    <div class="relative overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+      <div
+        class="absolute inset-0 pointer-events-none"
+        style="background-image:
+          linear-gradient(rgba(15, 23, 42, 0.035) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(15, 23, 42, 0.035) 1px, transparent 1px),
+          linear-gradient(rgba(15, 23, 42, 0.02) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(15, 23, 42, 0.02) 1px, transparent 1px);
+          background-size: 120px 120px, 120px 120px, 24px 24px, 24px 24px;
+          background-position: -1px -1px, -1px -1px, -1px -1px, -1px -1px;"></div>
+
+      <div
+        class="relative z-10 h-[calc(100vh-210px)] w-full overflow-hidden md:h-[calc(100vh-190px)] lg:h-[calc(100vh-170px)]"
+        [style.height]="workspaceViewportHeight()"
+        [style.min-height.px]="workspaceViewportMinHeight()">
+        <div class="pointer-events-none absolute inset-x-3 top-3 z-20 sm:inset-x-6 sm:top-4">
+          <div class="rounded-2xl border border-slate-200 bg-white/95 px-4 py-3 shadow-sm backdrop-blur-sm sm:px-6 sm:py-4">
+            <div class="flex flex-wrap items-center justify-between gap-4">
+              <div class="space-y-3">
+                <div class="skeleton-block h-8 w-56 rounded-2xl sm:h-11 sm:w-80"></div>
+                <div class="skeleton-block h-4 w-44 rounded-full sm:w-72"></div>
+              </div>
+              <div class="skeleton-block h-10 w-36 rounded-full sm:h-12 sm:w-56"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="pointer-events-none absolute bottom-4 left-3 z-30 sm:left-4">
+          <div class="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white/95 px-2.5 py-2 shadow-sm backdrop-blur-sm sm:px-3">
+            <div class="skeleton-block h-7 w-7 rounded-full sm:h-8 sm:w-8"></div>
+            <div class="skeleton-block h-1 w-24 rounded-full sm:w-36"></div>
+            <div class="skeleton-block h-7 w-7 rounded-full sm:h-8 sm:w-8"></div>
+            <div class="skeleton-block h-3 w-10 rounded-full sm:w-12"></div>
+          </div>
+        </div>
+
+        <div class="absolute inset-0 z-10">
+          <div class="absolute left-1/2 top-1/2 h-28 w-28 -translate-x-1/2 -translate-y-1/2 rounded-full border border-slate-200 bg-white/85 shadow-sm sm:h-40 sm:w-40 md:h-48 md:w-48">
+            <div class="absolute inset-0 flex items-center justify-center">
+              <div class="skeleton-block h-12 w-12 rounded-2xl sm:h-14 sm:w-14"></div>
+            </div>
+          </div>
+
+          <div class="absolute left-[12%] top-[22%] h-28 w-24 rounded-[28px] border border-slate-200 bg-white/90 shadow-sm sm:left-[17%] sm:top-[24%] sm:h-36 sm:w-28 md:h-40 md:w-32">
+            <div class="p-4">
+              <div class="skeleton-block mx-auto h-10 w-10 rounded-2xl"></div>
+              <div class="mt-5 space-y-2">
+                <div class="skeleton-block h-3 w-full rounded-full"></div>
+                <div class="skeleton-block h-3 w-3/4 rounded-full"></div>
+                <div class="skeleton-block mt-4 h-6 w-14 rounded-full"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="absolute right-[12%] top-[22%] h-28 w-24 rounded-[28px] border border-slate-200 bg-white/90 shadow-sm sm:right-[17%] sm:top-[24%] sm:h-36 sm:w-28 md:h-40 md:w-32">
+            <div class="p-4">
+              <div class="skeleton-block mx-auto h-10 w-10 rounded-2xl"></div>
+              <div class="mt-5 space-y-2">
+                <div class="skeleton-block h-3 w-full rounded-full"></div>
+                <div class="skeleton-block h-3 w-3/4 rounded-full"></div>
+                <div class="skeleton-block mt-4 h-6 w-14 rounded-full"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="absolute left-[12%] bottom-[18%] h-28 w-24 rounded-[28px] border border-slate-200 bg-white/90 shadow-sm sm:left-[17%] sm:bottom-[18%] sm:h-36 sm:w-28 md:h-40 md:w-32">
+            <div class="p-4">
+              <div class="skeleton-block mx-auto h-10 w-10 rounded-2xl"></div>
+              <div class="mt-5 space-y-2">
+                <div class="skeleton-block h-3 w-full rounded-full"></div>
+                <div class="skeleton-block h-3 w-3/4 rounded-full"></div>
+                <div class="skeleton-block mt-4 h-6 w-14 rounded-full"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="absolute right-[12%] bottom-[18%] h-28 w-24 rounded-[28px] border border-slate-200 bg-white/90 shadow-sm sm:right-[17%] sm:bottom-[18%] sm:h-36 sm:w-28 md:h-40 md:w-32">
+            <div class="p-4">
+              <div class="skeleton-block mx-auto h-10 w-10 rounded-2xl"></div>
+              <div class="mt-5 space-y-2">
+                <div class="skeleton-block h-3 w-full rounded-full"></div>
+                <div class="skeleton-block h-3 w-3/4 rounded-full"></div>
+                <div class="skeleton-block mt-4 h-6 w-14 rounded-full"></div>
+              </div>
+            </div>
+          </div>
+
+          @if (!isSmallMobile()) {
+            <div class="absolute right-[8%] top-[34%] hidden w-[340px] rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-lg lg:block">
+              <div class="skeleton-block h-4 w-48 rounded-full"></div>
+              <div class="mt-4 grid grid-cols-2 gap-3">
+                <div class="rounded-xl border border-slate-200 p-3">
+                  <div class="skeleton-block h-3 w-full rounded-full"></div>
+                  <div class="skeleton-block mt-2 h-3 w-2/3 rounded-full"></div>
+                  <div class="skeleton-block mt-4 h-5 w-12 rounded-full"></div>
+                </div>
+                <div class="rounded-xl border border-slate-200 p-3">
+                  <div class="skeleton-block h-3 w-full rounded-full"></div>
+                  <div class="skeleton-block mt-2 h-3 w-2/3 rounded-full"></div>
+                  <div class="skeleton-block mt-4 h-5 w-12 rounded-full"></div>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
   } @else if (!items().length) {
     <div class="mt-4 rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center">
       <p class="text-base font-semibold text-slate-700">{{ text.emptyTitle }}</p>
@@ -200,11 +308,7 @@
             }
           }
 
-          @if (isInitialLoading() && !items().length) {
-            <div class="absolute left-[840px] top-[850px] w-[520px] text-center">
-              <p class="text-sm font-semibold text-slate-600">Cargando primeras rutas...</p>
-            </div>
-          } @else if (!hasUsableData()) {
+          @if (!hasUsableData()) {
             <div class="absolute left-[600px] top-[840px] w-[1000px] text-center">
               <p class="text-sm font-semibold text-amber-700">No hay productos utilizables para mostrar.</p>
               <p class="mt-1 text-xs text-slate-500">Regenera con IA o selecciona otra publicación para obtener productos finales.</p>
