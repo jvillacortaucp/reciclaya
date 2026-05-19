@@ -133,6 +133,7 @@
 
             <div
               class="pointer-events-none absolute z-30 w-[320px] sm:w-[340px] md:w-[360px]"
+              data-focus-id="product-panel"
               [style]="productGroupStyles()"
               [class.product-panel-enter]="productPanelAnimated()">
               <div data-panzoom-ignore class="pointer-events-auto rounded-2xl border border-slate-200 bg-white/95 p-3 shadow-lg backdrop-blur-sm">
@@ -146,6 +147,8 @@
                       <button
                         type="button"
                         data-panzoom-ignore
+                        data-product-card
+                        [attr.data-focus-id]="'product:' + product.id"
                         class="rounded-xl border bg-white px-3 py-2 text-left transition-all duration-200 ease-out hover:shadow-sm"
                         [class.border-emerald-400]="selectedProductId() === product.id"
                         [class.ring-2]="selectedProductId() === product.id"
@@ -179,7 +182,7 @@
             </div>
           }
 
-          @if (isInitialLoading()) {
+          @if (isInitialLoading() && !items().length) {
             <div class="absolute left-[840px] top-[850px] w-[520px] text-center">
               <p class="text-sm font-semibold text-slate-600">Cargando primeras rutas...</p>
             </div>

@@ -20,6 +20,7 @@ import { VALUE_SECTOR_TEXT } from './data/value-sector.constants';
 import { ValueSectorProduct, ValueSectorRoute } from './models/value-sector.model';
 import { ValueSectorActionButtonsComponent } from './presentation/components/value-sector-action-buttons/value-sector-action-buttons.component';
 import { ValueSectorRoutesMapComponent } from './presentation/components/value-sector-routes-map/value-sector-routes-map.component';
+import { VALUE_SECTOR_MAP_LAYOUT } from './presentation/constants/value-sector-map-layout.constants';
 
 @Component({
   selector: 'app-value-sector-page',
@@ -38,6 +39,13 @@ import { ValueSectorRoutesMapComponent } from './presentation/components/value-s
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestroy {
+  private readonly ROUTE_SLOT_ORDER = ['TL', 'TR', 'BL', 'BR'] as const;
+  private readonly SLOT_INDEX_BY_NAME: Record<(typeof this.ROUTE_SLOT_ORDER)[number], number> = {
+    TL: 0,
+    TR: 1,
+    BL: 2,
+    BR: 3
+  };
   private readonly facade = inject(ValueSectorFacade);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -45,6 +53,9 @@ export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestro
   private panzoom: PanzoomObject | null = null;
   private isPointerPanning = false;
   private lastPointer = { x: 0, y: 0 };
+  private hadData = false;
+  private hasCenteredForCurrentData = false;
+  private initialFocusFrame: number | null = null;
 
   protected readonly isInitialLoading = this.facade.isInitialLoading;
   protected readonly listingId = this.facade.listingId;
@@ -88,9 +99,9 @@ export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestro
   // Canonical scene geometry (single source of truth)
   protected readonly sceneWidth = 2200;
   protected readonly sceneHeight = 1300;
-  protected readonly mapAnchorX = 700;
-  protected readonly mapAnchorY = 300;
-  protected readonly mapAnchorWidth = 860;
+  protected readonly mapAnchorX = 650;
+  protected readonly mapAnchorY = 380;
+  protected readonly mapAnchorWidth = 900;
 
   protected readonly mapAnchorStyles = computed(() => ({
     left: `${this.mapAnchorX}px`,
@@ -118,6 +129,7 @@ export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestro
 
   private readonly activeRouteId = signal<string | null>(null);
   private readonly activeProductId = signal<string | null>(null);
+  private readonly focusState = signal<'INITIAL_CENTERED' | 'ROUTE_FOCUSED' | 'PRODUCT_FOCUSED'>('INITIAL_CENTERED');
   private readonly panelAnimate = signal(false);
   private readonly buttonsAnimate = signal(false);
   private readonly productGroupPosition = signal<{ x: number; y: number }>({ x: 1360, y: 360 });
@@ -131,26 +143,101 @@ export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestro
     toX: number;
     toY: number;
   } | null>(null);
-  private readonly currentScale = signal(0.88);
+  private readonly currentScale = signal(0.77);
+  private readonly initialScale = 0.77;
 
   private readonly sceneOverscanX = 1000;
   private readonly sceneOverscanY = 680;
   private readonly minScale = 0.55;
   private readonly maxScale = 1.9;
   private readonly zoomStep = 0.08;
-  private readonly productGroupWidth = 360;
-  private readonly productGroupHeight = 460;
-  private readonly productPanelGap = 24;
+  // Ancho base del panel de productos (ajústalo para cards más anchas/estrechas)
+  private readonly productPanelWidth = 360;
+  // Alto estimado del panel (afecta cálculo de colisión/posicionamiento)
+  private readonly productPanelHeight = 460;
+  // Separación horizontal entre ruta activa y panel de productos
+  private readonly productPanelGapX = 24;
+  // Separación vertical base para colocar el panel relativo a la ruta
+  private readonly productPanelGapY = 24;
+  // Tolerancia de foco en píxeles: evita micro-rebotes al centrar
+  private readonly focusTolerancePx = 8;
   private readonly productPanelDefault = { x: 1360, y: 360 };
+  // Ajuste fino del foco inicial respecto al centro del mapa (coordenadas globales de escena).
+  // OFFSET_X: derecha + / izquierda -
+  // OFFSET_Y: abajo + / arriba -
+  // Calibración rápida sugerida: pasos de 25px.
+  private readonly INITIAL_DATA_FOCUS_OFFSET_X = 450;
+  private readonly INITIAL_DATA_FOCUS_OFFSET_Y = 250;
+  private readonly INITIAL_DATA_FOCUS_SCALE = 0.77;
+
+  // AJUSTE RAPIDO DEL PANEL DE PRODUCTOS RELATIVO A LA CARD DE RUTA SELECCIONADA
+  // Cada entrada corresponde al slot visual: [TL, TR, BL, BR]
+  // x: desplaza el panel desde el borde izquierdo de la card seleccionada (px)
+  // y: desplaza el panel desde el borde superior de la card seleccionada (px)
+  private readonly PANEL_OFFSET_BY_SLOT = [
+    { x: -430, y: -170 }, // TL: panel afuera a la izquierda de ruta sup-izq
+    { x: 260, y: -170 }, // TR: panel afuera a la derecha de ruta sup-der
+    { x: -430, y: 160 }, // BL: panel afuera arriba-izquierda de ruta inf-izq
+    { x: 260, y: 160 } // BR: panel afuera arriba-derecha de ruta inf-der
+  ] as const;
+  // Anclaje horizontal del conector cuando entra al panel/card desde izquierda/derecha.
+  private readonly PRODUCT_CONNECTOR_TO_X_LEFT = 0;
+  private readonly PRODUCT_CONNECTOR_TO_X_RIGHT = this.productPanelWidth;
+  // Anclaje vertical preferido por cuadrante superior/inferior.
+  private readonly PRODUCT_CONNECTOR_TO_Y_TOP = 88;
+  private readonly PRODUCT_CONNECTOR_TO_Y_BOTTOM = this.productPanelHeight - 88;
+  // Margen para "pegar" conector al borde de la card sin invadir contenido.
+  private readonly PRODUCT_CONNECTOR_TO_CARD_INSET = 2;
+  // Autofocus por slot (rutas): coordenadas globales de escena (workspaceContent).
+  // X: derecha + / izquierda -, Y: abajo + / arriba -.
+  // TL/TR/BL/BR son posiciones visuales, no ids de datos.
+  private readonly AUTOFOCUS_ROUTE_X_BY_SLOT = { TL: 850, TR: 1350, BL: 850, BR: 1350 } as const;
+  private readonly AUTOFOCUS_ROUTE_Y_BY_SLOT = { TL: 470, TR: 470, BL: 780, BR: 780 } as const;
+  private readonly AUTOFOCUS_ROUTE_SCALE_BY_SLOT = { TL: 0.77, TR: 0.77, BL: 0.77, BR: 0.77 } as const;
+
+  // Autofocus por slot (panel de productos): coordenadas globales de escena (workspaceContent).
+  // Ajusta en pasos de 25 para calibrar fino por slot.
+  private readonly AUTOFOCUS_PRODUCT_PANEL_X_BY_SLOT = { TL: 200, TR: 800, BL: -100, BR: 800 } as const;
+  private readonly AUTOFOCUS_PRODUCT_PANEL_Y_BY_SLOT = { TL: 100, TR: 100, BL: -100, BR: 450 } as const;
+  private readonly AUTOFOCUS_PRODUCT_PANEL_SCALE_BY_SLOT = { TL: 1, TR: 1, BL: 1, BR: 1 } as const;
+
+  // Fallback global del autofocus por selección.
+  private readonly AUTOFOCUS_DEFAULT_SCALE = 0.77;
+  private readonly AUTOFOCUS_DEFAULT_OFFSET_X = 0;
+  private readonly AUTOFOCUS_DEFAULT_OFFSET_Y = 0;
   private readonly onWindowResize = () => this.updateProductGroupPosition();
+  private pendingInitialFocusId: string | null = null;
 
   constructor() {
     effect(() => {
       if (!this.items().length) {
+        this.hadData = false;
+        this.hasCenteredForCurrentData = false;
         this.teardownPanzoom();
         return;
       }
       queueMicrotask(() => this.tryInitPanzoom());
+    });
+
+    effect(() => {
+      const hasData = this.items().length > 0;
+      if (!hasData || !this.panzoom) return;
+      if (!this.hadData || !this.hasCenteredForCurrentData) {
+        this.hadData = true;
+        this.hasCenteredForCurrentData = true;
+        queueMicrotask(() => {
+          this.pendingInitialFocusId = 'INITIAL_CENTER';
+          this.centerInitialViewport();
+          this.initialFocusFrame = requestAnimationFrame(() => {
+            if (!this.pendingInitialFocusId) return;
+            if (!this.isInitialCenterInTolerance()) {
+              this.centerInitialViewport();
+            }
+            this.pendingInitialFocusId = null;
+            this.initialFocusFrame = null;
+          });
+        });
+      }
     });
 
     effect(() => {
@@ -196,6 +283,7 @@ export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestro
   ngOnDestroy(): void {
     this.teardownPanzoom();
     window.removeEventListener('resize', this.onWindowResize);
+    this.cancelInitialFocusFrame();
   }
 
   protected onRouteSelected(routeId: string): void {
@@ -205,7 +293,13 @@ export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestro
     this.activeRouteId.set(routeId);
     this.activeProductId.set(null);
     this.buttonsAnimate.set(false);
-    queueMicrotask(() => this.updateProductGroupPosition());
+    this.focusState.set('ROUTE_FOCUSED');
+    queueMicrotask(() => {
+      this.updateProductGroupPosition();
+      requestAnimationFrame(() => {
+        this.focusFirstProductCardForRoute(routeId);
+      });
+    });
   }
 
   protected onProductSelected(productId: string): void {
@@ -213,6 +307,7 @@ export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestro
     if (!route) return;
     this.activeProductId.set(productId);
     this.facade.selectProduct(route.id, productId);
+    this.focusState.set('PRODUCT_FOCUSED');
     this.triggerButtonsAnimation();
   }
 
@@ -233,7 +328,10 @@ export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestro
     this.facade.initialize(this.listingId());
     this.activeRouteId.set(null);
     this.activeProductId.set(null);
-    queueMicrotask(() => this.focusMap());
+    this.focusState.set('INITIAL_CENTERED');
+    this.hadData = false;
+    this.hasCenteredForCurrentData = false;
+    queueMicrotask(() => this.centerInitialViewport());
   }
 
   protected onBackRequested(): void {
@@ -241,7 +339,8 @@ export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestro
     this.activeProductId.set(null);
     this.panelAnimate.set(false);
     this.buttonsAnimate.set(false);
-    this.focusMap();
+    this.focusState.set('INITIAL_CENTERED');
+    this.centerInitialViewport();
     this.productGroupPosition.set(this.productPanelDefault);
     this.productConnectorPathSignal.set(null);
   }
@@ -287,7 +386,7 @@ export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestro
       minScale: this.minScale,
       maxScale: this.maxScale,
       step: 0.06,
-      startScale: 0.88,
+      startScale: this.initialScale,
       canvas: true
     });
 
@@ -300,7 +399,6 @@ export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestro
     viewport.addEventListener('pointercancel', this.onPointerUp);
 
     if (isDevMode()) console.log('[ValueSector] Panzoom initialized');
-    queueMicrotask(() => this.focusMap());
   }
 
   private teardownPanzoom(): void {
@@ -321,28 +419,244 @@ export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestro
       this.panzoom = null;
       if (isDevMode()) console.log('[ValueSector] Panzoom destroyed');
     }
+    this.cancelInitialFocusFrame();
   }
 
-  private focusMap(): void {
-    this.focusElement(this.mapAnchor?.nativeElement, 0.88);
-    this.updateProductGroupPosition();
-  }
-
-  private focusElement(element: HTMLElement | undefined, scale: number): void {
-    const viewport = this.workspaceViewport?.nativeElement;
+  private centerInitialViewport(): void {
+    // Fuente de verdad: centrar usando el nodo principal real renderizado.
     const content = this.workspaceContent?.nativeElement;
-    if (!element || !viewport || !content || !this.panzoom) return;
+    const mapCenterNode = content?.querySelector<HTMLElement>('[data-focus-id="map-center"]');
+    if (content && mapCenterNode) {
+      const center = this.resolveCenterInContent(content, mapCenterNode);
+      if (center) {
+        this.focusPoint(
+          center.x + this.INITIAL_DATA_FOCUS_OFFSET_X,
+          center.y + this.INITIAL_DATA_FOCUS_OFFSET_Y,
+          this.INITIAL_DATA_FOCUS_SCALE,
+          false
+        );
+        return;
+      }
+    }
 
-    const targetCenterX = element.offsetLeft + element.offsetWidth / 2;
-    const targetCenterY = element.offsetTop + element.offsetHeight / 2;
+    // Fallback por constantes si el nodo aún no existe en DOM.
+    const initialFocusX = this.mapAnchorX + VALUE_SECTOR_MAP_LAYOUT.centerX + this.INITIAL_DATA_FOCUS_OFFSET_X;
+    const initialFocusY = this.mapAnchorY + VALUE_SECTOR_MAP_LAYOUT.centerY + this.INITIAL_DATA_FOCUS_OFFSET_Y;
+    this.focusPoint(initialFocusX, initialFocusY, this.INITIAL_DATA_FOCUS_SCALE, false);
+  }
+
+  private resolveRouteSlot(routeId: string): (typeof this.ROUTE_SLOT_ORDER)[number] | null {
+    const mapAnchor = this.mapAnchor?.nativeElement;
+    if (!mapAnchor) return null;
+
+    const routeCard = mapAnchor.querySelector<HTMLElement>(`[data-route-card-id="${routeId}"]`);
+    if (!routeCard) return null;
+
+    // Slot por posición visual real renderizada (no por índice de datos).
+    const routeCenterX = routeCard.offsetLeft;
+    const routeCenterY = routeCard.offsetTop;
+    const mapCenterX = VALUE_SECTOR_MAP_LAYOUT.centerX;
+    const mapCenterY = VALUE_SECTOR_MAP_LAYOUT.centerY;
+
+    const isLeft = routeCenterX < mapCenterX;
+    const isTop = routeCenterY < mapCenterY;
+
+    if (isLeft && isTop) return 'TL';
+    if (!isLeft && isTop) return 'TR';
+    if (isLeft && !isTop) return 'BL';
+    return 'BR';
+  }
+
+  private focusRouteBySlot(routeId: string): void {
+    const slot = this.resolveRouteSlot(routeId);
+    if (!slot) {
+      this.focusById(`route:${routeId}`);
+      return;
+    }
+    const x = this.AUTOFOCUS_ROUTE_X_BY_SLOT[slot] + this.AUTOFOCUS_DEFAULT_OFFSET_X;
+    const y = this.AUTOFOCUS_ROUTE_Y_BY_SLOT[slot] + this.AUTOFOCUS_DEFAULT_OFFSET_Y;
+    const scale = this.AUTOFOCUS_ROUTE_SCALE_BY_SLOT[slot] ?? this.AUTOFOCUS_DEFAULT_SCALE;
+    if (isDevMode()) {
+      console.log('[ValueSector] route autofocus by slot', { routeId, slot, x, y, scale });
+    }
+    this.focusPoint(x, y, scale);
+  }
+
+  private focusProductPanelBySlot(routeId: string): void {
+    const slot = this.resolveRouteSlot(routeId);
+    if (!slot) {
+      this.focusById('product-panel');
+      return;
+    }
+    const x = this.AUTOFOCUS_PRODUCT_PANEL_X_BY_SLOT[slot] + this.AUTOFOCUS_DEFAULT_OFFSET_X;
+    const y = this.AUTOFOCUS_PRODUCT_PANEL_Y_BY_SLOT[slot] + this.AUTOFOCUS_DEFAULT_OFFSET_Y;
+    const scale = this.AUTOFOCUS_PRODUCT_PANEL_SCALE_BY_SLOT[slot] ?? this.AUTOFOCUS_DEFAULT_SCALE;
+    if (isDevMode()) {
+      console.log('[ValueSector] product panel autofocus by slot', { routeId, slot, x, y, scale });
+    }
+    this.focusPoint(x, y, scale);
+  }
+
+  private focusFirstProductCardForRoute(routeId: string): void {
+    const slot = this.resolveRouteSlot(routeId);
+    const scale =
+      (slot && this.AUTOFOCUS_PRODUCT_PANEL_SCALE_BY_SLOT[slot]) ??
+      this.AUTOFOCUS_DEFAULT_SCALE;
+
+    const content = this.workspaceContent?.nativeElement;
+    const panel = content?.querySelector<HTMLElement>('[data-focus-id="product-panel"]');
+    const firstCard = panel?.querySelector<HTMLElement>('[data-product-card]');
+
+    if (content && firstCard) {
+      const center = this.resolveCenterInContent(content, firstCard);
+      if (center) {
+        if (isDevMode()) {
+          console.log('[ValueSector] product panel autofocus target', {
+            routeId,
+            slot,
+            target: 'first-product-card',
+            x: center.x,
+            y: center.y,
+            scale
+          });
+        }
+        this.focusPoint(center.x, center.y, scale);
+        return;
+      }
+    }
+
+    if (content && panel) {
+      const center = this.resolveCenterInContent(content, panel);
+      if (center) {
+        if (isDevMode()) {
+          console.log('[ValueSector] product panel autofocus target', {
+            routeId,
+            slot,
+            target: 'product-panel',
+            x: center.x,
+            y: center.y,
+            scale
+          });
+        }
+        this.focusPoint(center.x, center.y, scale);
+        return;
+      }
+    }
+
+    if (isDevMode()) {
+      console.log('[ValueSector] product panel autofocus target', {
+        routeId,
+        slot,
+        target: 'slot-fallback'
+      });
+    }
+    this.focusProductPanelBySlot(routeId);
+  }
+
+  private focusById(focusId: string, scale?: number, skipRetry = false): void {
+    const content = this.workspaceContent?.nativeElement;
+    const element = content?.querySelector<HTMLElement>(`[data-focus-id="${focusId}"]`);
+    if (!content || !this.panzoom) return;
+    if (!element) {
+      if (!skipRetry) {
+        queueMicrotask(() =>
+          requestAnimationFrame(() => {
+            this.focusById(focusId, scale, true);
+          })
+        );
+      }
+      return;
+    }
+
+    const center = this.resolveCenterInContent(content, element);
+    if (!center) return;
+
+    const targetCenterX = center.x;
+    const targetCenterY = center.y;
+    this.focusPoint(targetCenterX, targetCenterY, scale ?? this.currentScale());
+  }
+
+  private resolveCenterInContent(
+    content: HTMLElement,
+    element: HTMLElement
+  ): { x: number; y: number } | null {
+    let x = element.offsetLeft;
+    let y = element.offsetTop;
+    let current: HTMLElement | null = element.offsetParent as HTMLElement | null;
+
+    while (current && current !== content) {
+      x += current.offsetLeft;
+      y += current.offsetTop;
+      current = current.offsetParent as HTMLElement | null;
+    }
+    if (current !== content) return null;
+
+    const hasHalfTranslateX = element.classList.contains('-translate-x-1/2');
+    const hasHalfTranslateY = element.classList.contains('-translate-y-1/2');
+    return {
+      x: hasHalfTranslateX ? x : x + element.offsetWidth / 2,
+      y: hasHalfTranslateY ? y : y + element.offsetHeight / 2
+    };
+  }
+
+  private focusPoint(targetCenterX: number, targetCenterY: number, scale: number, animate = true): void {
+    const viewport = this.workspaceViewport?.nativeElement;
+    if (!viewport || !this.panzoom) return;
+
     const panX = viewport.clientWidth / 2 - targetCenterX * scale;
     const panY = viewport.clientHeight / 2 - targetCenterY * scale;
     const boundedPan = this.clampPan(panX, panY, scale);
+    const clampedCenterX = (viewport.clientWidth / 2 - boundedPan.x) / scale;
+    const clampedCenterY = (viewport.clientHeight / 2 - boundedPan.y) / scale;
+    const clampDx = clampedCenterX - targetCenterX;
+    const clampDy = clampedCenterY - targetCenterY;
+    if (isDevMode() && (Math.abs(clampDx) > 0.5 || Math.abs(clampDy) > 0.5)) {
+      console.log('[ValueSector] autofocus clamped', {
+        requested: { x: targetCenterX, y: targetCenterY, scale },
+        applied: { x: clampedCenterX, y: clampedCenterY, scale },
+        delta: { x: clampDx, y: clampDy }
+      });
+    }
+    const currentPan = this.panzoom.getPan();
+    const noPanChange =
+      Math.abs(currentPan.x - boundedPan.x) <= this.focusTolerancePx &&
+      Math.abs(currentPan.y - boundedPan.y) <= this.focusTolerancePx;
+    const noScaleChange = Math.abs(this.currentScale() - scale) <= 0.01;
+    if (noPanChange && noScaleChange) return;
 
-    this.panzoom.zoom(scale, { animate: true, duration: 260, force: true });
-    this.panzoom.pan(boundedPan.x, boundedPan.y, { animate: true, duration: 280, force: true });
+    this.panzoom.zoom(scale, { animate, duration: animate ? 260 : 0, force: true });
+    this.panzoom.pan(boundedPan.x, boundedPan.y, { animate, duration: animate ? 280 : 0, force: true });
     this.currentScale.set(scale);
   }
+
+  private cancelInitialFocusFrame(): void {
+    if (this.initialFocusFrame !== null) {
+      cancelAnimationFrame(this.initialFocusFrame);
+      this.initialFocusFrame = null;
+    }
+  }
+
+  private isInitialCenterInTolerance(): boolean {
+    const viewport = this.workspaceViewport?.nativeElement;
+    const content = this.workspaceContent?.nativeElement;
+    if (!viewport || !this.panzoom || !content) return true;
+
+    const mapCenterNode = content.querySelector<HTMLElement>('[data-focus-id="map-center"]');
+    const nodeCenter = mapCenterNode ? this.resolveCenterInContent(content, mapCenterNode) : null;
+    const initialFocusX = (nodeCenter?.x ?? this.mapAnchorX + VALUE_SECTOR_MAP_LAYOUT.centerX) + this.INITIAL_DATA_FOCUS_OFFSET_X;
+    const initialFocusY = (nodeCenter?.y ?? this.mapAnchorY + VALUE_SECTOR_MAP_LAYOUT.centerY) + this.INITIAL_DATA_FOCUS_OFFSET_Y;
+    const expectedPanX = viewport.clientWidth / 2 - initialFocusX * this.INITIAL_DATA_FOCUS_SCALE;
+    const expectedPanY = viewport.clientHeight / 2 - initialFocusY * this.INITIAL_DATA_FOCUS_SCALE;
+    const bounded = this.clampPan(expectedPanX, expectedPanY, this.INITIAL_DATA_FOCUS_SCALE);
+    const current = this.panzoom.getPan();
+    const validationTolerance = this.focusTolerancePx + 2;
+
+    return (
+      Math.abs(current.x - bounded.x) <= validationTolerance &&
+      Math.abs(current.y - bounded.y) <= validationTolerance
+    );
+  }
+
 
   private onPanZoomChange = (): void => {
     if (!this.panzoom) return;
@@ -419,8 +733,7 @@ export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestro
     const routeId = this.activeRouteId();
     const route = this.activeRoute();
     const mapAnchor = this.mapAnchor?.nativeElement;
-    const workspace = this.workspaceContent?.nativeElement;
-    if (!routeId || !route || !mapAnchor || !workspace) {
+    if (!routeId || !route || !mapAnchor) {
       this.productConnectorPathSignal.set(null);
       return;
     }
@@ -432,58 +745,32 @@ export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestro
       return;
     }
 
+    const routeCenterX = routeCard.offsetLeft + mapAnchor.offsetLeft;
+    const routeCenterY = routeCard.offsetTop + mapAnchor.offsetTop;
     const routeRect = {
-      x: routeCard.offsetLeft + mapAnchor.offsetLeft,
-      y: routeCard.offsetTop + mapAnchor.offsetTop,
+      x: routeCenterX - routeCard.offsetWidth / 2,
+      y: routeCenterY - routeCard.offsetHeight / 2,
       width: routeCard.offsetWidth,
       height: routeCard.offsetHeight
     };
 
-    const allRouteRects = Array.from(mapAnchor.querySelectorAll<HTMLElement>('[data-route-card-id]'))
-      .filter((item) => item.dataset['routeCardId'] !== routeId)
-      .map((item) => ({
-        x: item.offsetLeft + mapAnchor.offsetLeft,
-        y: item.offsetTop + mapAnchor.offsetTop,
-        width: item.offsetWidth,
-        height: item.offsetHeight
-      }));
+    const visibleRouteIds = this.items().slice(0, 4).map((item) => item.id);
+    const routeIndex = visibleRouteIds.indexOf(routeId);
+    const slotOffset =
+      routeIndex >= 0
+        ? this.PANEL_OFFSET_BY_SLOT[routeIndex]
+        : { x: this.productPanelGapX, y: -this.productPanelGapY };
 
-    const routeCenterX = routeRect.x + routeRect.width / 2;
-    const routeCenterY = routeRect.y + routeRect.height / 2;
-    const candidates = [
-      { x: routeRect.x + routeRect.width + this.productPanelGap, y: routeRect.y - 24 }, // right-top
-      { x: routeRect.x + routeRect.width + this.productPanelGap, y: routeRect.y + routeRect.height - this.productGroupHeight + 24 }, // right-bottom
-      { x: routeRect.x - this.productGroupWidth - this.productPanelGap, y: routeRect.y - 24 }, // left-top
-      { x: routeRect.x - this.productGroupWidth - this.productPanelGap, y: routeRect.y + routeRect.height - this.productGroupHeight + 24 } // left-bottom
-    ].map((candidate) => ({
-      x: this.clampWithinSceneX(candidate.x, this.productGroupWidth, 24),
-      y: this.clampWithinSceneY(candidate.y, this.productGroupHeight, 180)
-    }));
-
-    const area = (rectA: { x: number; y: number; width: number; height: number }, rectB: { x: number; y: number; width: number; height: number }): number => {
-      const overlapX = Math.max(0, Math.min(rectA.x + rectA.width, rectB.x + rectB.width) - Math.max(rectA.x, rectB.x));
-      const overlapY = Math.max(0, Math.min(rectA.y + rectA.height, rectB.y + rectB.height) - Math.max(rectA.y, rectB.y));
-      return overlapX * overlapY;
+    // Posición hardcodeada basada en la card seleccionada (fácil de tunear con PANEL_OFFSET_BY_SLOT)
+    const basePos = {
+      x: routeRect.x + slotOffset.x,
+      y: routeRect.y + slotOffset.y
     };
 
-    let chosen = candidates[0];
-    let bestScore = Number.POSITIVE_INFINITY;
-    for (const candidate of candidates) {
-      const panelRect = { x: candidate.x, y: candidate.y, width: this.productGroupWidth, height: this.productGroupHeight };
-      const overlap = allRouteRects.reduce((sum, routeBox) => sum + area(panelRect, routeBox), 0);
-      const panelCenterX = panelRect.x + panelRect.width / 2;
-      const panelCenterY = panelRect.y + panelRect.height / 2;
-      const distance = Math.hypot(panelCenterX - routeCenterX, panelCenterY - routeCenterY);
-      const score = overlap * 1000 + distance;
-      if (score < bestScore) {
-        bestScore = score;
-        chosen = candidate;
-      }
-      if (overlap === 0) {
-        chosen = candidate;
-        break;
-      }
-    }
+    const chosen = {
+      x: this.clampWithinSceneX(basePos.x, this.productPanelWidth, 24),
+      y: this.clampWithinSceneY(basePos.y, this.productPanelHeight, 180)
+    };
 
     this.productGroupPosition.set(chosen);
     this.updateProductConnector(routeRect, chosen);
@@ -503,16 +790,50 @@ export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestro
     routeRect: { x: number; y: number; width: number; height: number },
     panelPos: { x: number; y: number }
   ): void {
-    const panelCenterX = panelPos.x + this.productGroupWidth / 2;
+    const panelCenterX = panelPos.x + this.productPanelWidth / 2;
 
     const fromX = panelCenterX > routeRect.x + routeRect.width / 2 ? routeRect.x + routeRect.width : routeRect.x;
     const fromY = routeRect.y + routeRect.height / 2;
 
     const routeCenterX = routeRect.x + routeRect.width / 2;
     const routeCenterY = routeRect.y + routeRect.height / 2;
+    const isPanelAtRight = panelCenterX > routeCenterX;
+    const isPanelAtTop = panelPos.y < routeCenterY;
 
-    const toX = panelCenterX > routeCenterX ? panelPos.x : panelPos.x + this.productGroupWidth;
-    const toY = Math.max(panelPos.y + 26, Math.min(panelPos.y + this.productGroupHeight - 26, routeCenterY));
+    // Fallback por panel: borde lateral + altura preferida por cuadrante.
+    const fallbackToX = isPanelAtRight
+      ? panelPos.x + this.PRODUCT_CONNECTOR_TO_X_LEFT + this.PRODUCT_CONNECTOR_TO_CARD_INSET
+      : panelPos.x + this.PRODUCT_CONNECTOR_TO_X_RIGHT - this.PRODUCT_CONNECTOR_TO_CARD_INSET;
+    const fallbackToY = panelPos.y + (isPanelAtTop ? this.PRODUCT_CONNECTOR_TO_Y_TOP : this.PRODUCT_CONNECTOR_TO_Y_BOTTOM);
+
+    // Preferido: anclar al borde real de la primera card de producto renderizada.
+    const workspace = this.workspaceContent?.nativeElement;
+    const panelEl = workspace?.querySelector<HTMLElement>('[data-focus-id="product-panel"]');
+    const firstCard = panelEl?.querySelector<HTMLElement>('[data-product-card]');
+
+    let toX = fallbackToX;
+    let toY = fallbackToY;
+
+    if (panelEl && firstCard) {
+      const panelRect = {
+        x: panelPos.x,
+        y: panelPos.y
+      };
+      const cardX = panelRect.x + firstCard.offsetLeft;
+      const cardY = panelRect.y + firstCard.offsetTop;
+      const cardW = firstCard.offsetWidth;
+      const cardH = firstCard.offsetHeight;
+
+      toX = isPanelAtRight
+        ? cardX + this.PRODUCT_CONNECTOR_TO_CARD_INSET
+        : cardX + cardW - this.PRODUCT_CONNECTOR_TO_CARD_INSET;
+
+      if (isPanelAtTop) {
+        toY = cardY + Math.min(cardH * 0.45, this.PRODUCT_CONNECTOR_TO_Y_TOP);
+      } else {
+        toY = cardY + Math.max(cardH * 0.55, cardH - (this.productPanelHeight - this.PRODUCT_CONNECTOR_TO_Y_BOTTOM));
+      }
+    }
 
     const curve = Math.max(44, Math.abs(toX - fromX) * 0.38);
     const c1x = fromX + (toX > fromX ? curve : -curve);
@@ -541,4 +862,5 @@ export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestro
     this.buttonsAnimate.set(false);
     queueMicrotask(() => this.buttonsAnimate.set(true));
   }
+
 }
