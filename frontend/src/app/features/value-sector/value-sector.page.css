@@ -6,6 +6,10 @@
   animation: actions-enter 300ms ease-in-out;
 }
 
+.mobile-sheet-enter {
+  animation: mobile-sheet-enter 240ms ease-out;
+}
+
 @keyframes panel-enter {
   from {
     opacity: 0;
@@ -26,6 +30,18 @@
   to {
     opacity: 1;
     max-height: 220px;
+    transform: translateY(0);
+  }
+}
+
+@keyframes mobile-sheet-enter {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+
+  to {
+    opacity: 1;
     transform: translateY(0);
   }
 }

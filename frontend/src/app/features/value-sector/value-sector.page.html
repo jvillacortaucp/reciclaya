@@ -36,20 +36,24 @@
           background-size: 120px 120px, 120px 120px, 24px 24px, 24px 24px;
           background-position: -1px -1px, -1px -1px, -1px -1px, -1px -1px;"></div>
 
-      <div #workspaceViewport class="relative z-10 h-[calc(100vh-210px)] min-h-[420px] w-full cursor-grab touch-none overflow-hidden active:cursor-grabbing md:h-[calc(100vh-190px)] lg:h-[calc(100vh-170px)]">
-        <div class="pointer-events-none absolute inset-x-4 top-4 z-20 sm:inset-x-6">
-          <div data-panzoom-ignore class="pointer-events-auto rounded-2xl border border-slate-200 bg-white/95 px-5 py-4 shadow-sm backdrop-blur-sm sm:px-6">
+      <div
+        #workspaceViewport
+        class="relative z-10 h-[calc(100vh-210px)] w-full cursor-grab touch-none overflow-hidden active:cursor-grabbing md:h-[calc(100vh-190px)] lg:h-[calc(100vh-170px)]"
+        [style.height]="workspaceViewportHeight()"
+        [style.min-height.px]="workspaceViewportMinHeight()">
+        <div class="pointer-events-none absolute inset-x-3 top-3 z-20 sm:inset-x-6 sm:top-4">
+          <div data-panzoom-ignore class="pointer-events-auto rounded-2xl border border-slate-200 bg-white/95 px-4 py-3 shadow-sm backdrop-blur-sm sm:px-6 sm:py-4">
             <div class="flex flex-wrap items-center justify-between gap-4">
               <div>
-                <h2 class="text-3xl font-semibold leading-tight text-slate-900 sm:text-4xl">Explorador de Rutas</h2>
-                <p class="mt-1 text-base text-emerald-700">{{ subtitle() }}</p>
+                <h2 class="text-2xl font-semibold leading-tight text-slate-900 sm:text-4xl">Explorador de Rutas</h2>
+                <p class="mt-1 text-sm text-emerald-700 sm:text-base">{{ subtitle() }}</p>
               </div>
 
               <div class="flex items-center gap-2 sm:gap-3">
                 @if (fromListingMode()) {
                   <button
                     type="button"
-                    class="inline-flex items-center rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition-all shadow-sm hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 sm:px-5 sm:py-2.5 sm:text-base"
+                    class="inline-flex items-center rounded-full bg-slate-900 px-3 py-2 text-xs font-semibold text-white transition-all shadow-sm hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 sm:px-5 sm:py-2.5 sm:text-base"
                     [disabled]="isGenerating()"
                     (click)="onGenerateRequested()">
                     @if (isGenerating()) {
@@ -65,7 +69,7 @@
                 @if (hasRouteFocus()) {
                   <button
                     type="button"
-                    class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+                    class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 sm:px-4 sm:text-sm"
                     (click)="onBackRequested()">
                     Regresar
                   </button>
@@ -75,18 +79,18 @@
           </div>
         </div>
 
-        <div class="pointer-events-none absolute bottom-4 left-4 z-30">
-          <div data-panzoom-ignore class="pointer-events-auto flex items-center gap-2 rounded-2xl border border-slate-200 bg-white/95 px-3 py-2 shadow-sm backdrop-blur-sm">
+        <div class="pointer-events-none absolute bottom-4 left-3 z-30 sm:left-4">
+          <div data-panzoom-ignore class="pointer-events-auto flex items-center gap-2 rounded-2xl border border-slate-200 bg-white/95 px-2.5 py-2 shadow-sm backdrop-blur-sm sm:px-3">
             <button
               type="button"
-              class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-700 transition hover:bg-slate-100"
+              class="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 text-slate-700 transition hover:bg-slate-100 sm:h-8 sm:w-8"
               (click)="zoomOut()">
               <svg lucideMinus class="h-4 w-4"></svg>
             </button>
 
             <input
               type="range"
-              class="h-1 w-36 accent-emerald-600"
+              class="h-1 w-24 accent-emerald-600 sm:w-36"
               [min]="minZoomPercent"
               [max]="maxZoomPercent"
               [value]="zoomPercent()"
@@ -94,21 +98,22 @@
 
             <button
               type="button"
-              class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-700 transition hover:bg-slate-100"
+              class="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 text-slate-700 transition hover:bg-slate-100 sm:h-8 sm:w-8"
               (click)="zoomIn()">
               <svg lucidePlus class="h-4 w-4"></svg>
             </button>
 
-            <span class="min-w-14 text-right text-xs font-semibold text-slate-700">{{ zoomPercentLabel() }}</span>
+            <span class="min-w-10 text-right text-[11px] font-semibold text-slate-700 sm:min-w-14 sm:text-xs">{{ zoomPercentLabel() }}</span>
           </div>
         </div>
 
-        <div #workspaceContent class="relative will-change-transform" [style.height.px]="sceneHeight" [style.width.px]="sceneWidth">
+        <div #workspaceContent class="relative will-change-transform" [style.height.px]="sceneHeight()" [style.width.px]="sceneWidth()">
           <div #mapAnchor class="absolute z-20" [style]="mapAnchorStyles()">
             <app-value-sector-routes-map
               [routes]="items()"
               [residueLabel]="listingResidueLabel() || text.baseResidueFallback"
               [selectedRouteId]="activeRoute()?.id || null"
+              [compactMode]="isSmallMobile()"
               (routeSelected)="onRouteSelected($event)" />
           </div>
 
@@ -119,67 +124,80 @@
           } -->
 
           @if (activeRoute(); as route) {
-            <svg class="pointer-events-none absolute inset-0 z-[5] h-full w-full">
-              @if (productConnectorPath(); as connectorPath) {
-                <path
-                  [attr.d]="connectorPath"
-                  fill="none"
-                  stroke="#6bd3bb"
-                  stroke-width="2"
-                  stroke-dasharray="5 5"
-                  stroke-linecap="round" />
-              }
-            </svg>
-
-            <div
-              class="pointer-events-none absolute z-30 w-[320px] sm:w-[340px] md:w-[360px]"
-              data-focus-id="product-panel"
-              [style]="productGroupStyles()"
-              [class.product-panel-enter]="productPanelAnimated()">
-              <div data-panzoom-ignore class="pointer-events-auto rounded-2xl border border-slate-200 bg-white/95 p-3 shadow-lg backdrop-blur-sm">
-                <p class="text-[11px] font-semibold uppercase tracking-[0.12em] text-emerald-700">
-                  Productos de {{ route.routeName }}
-                </p>
-
-                @if (hasSelectedRouteProducts()) {
-                  <div class="mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-                    @for (product of selectedRouteProducts(); track product.id) {
-                      <button
-                        type="button"
-                        data-panzoom-ignore
-                        data-product-card
-                        [attr.data-focus-id]="'product:' + product.id"
-                        class="rounded-xl border bg-white px-3 py-2 text-left transition-all duration-200 ease-out hover:shadow-sm"
-                        [class.border-emerald-400]="selectedProductId() === product.id"
-                        [class.ring-2]="selectedProductId() === product.id"
-                        [class.ring-emerald-100]="selectedProductId() === product.id"
-                        [class.shadow-md]="selectedProductId() === product.id"
-                        [class.scale-[1.01]]="selectedProductId() === product.id"
-                        [class.border-slate-200]="selectedProductId() !== product.id"
-                        (click)="onProductSelected(product.id)">
-                        <p class="line-clamp-2 text-xs font-semibold text-slate-800">{{ product.name }}</p>
-                        <p class="mt-1 text-[10px] uppercase tracking-[0.1em] text-slate-400">Match score</p>
-                        <p class="text-lg font-bold text-emerald-600">
-                          {{ product.marketPotential === 'high' ? '94%' : product.marketPotential === 'medium' ? '82%' : '76%' }}
-                        </p>
-                      </button>
-                    }
-                  </div>
-                } @else {
-                  <p class="mt-2 text-xs text-amber-700">Esta ruta no tiene productos utilizables.</p>
+            @if (!isSmallMobile()) {
+              <svg class="pointer-events-none absolute inset-0 z-[5] h-full w-full">
+                @if (productConnectorPath(); as connectorPath) {
+                  <path
+                    [attr.d]="connectorPath"
+                    fill="none"
+                    stroke="#6bd3bb"
+                    stroke-width="2"
+                    stroke-dasharray="5 5"
+                    stroke-linecap="round" />
                 }
+              </svg>
 
-                @if (hasSelectedProduct()) {
-                  <div class="mt-3 overflow-hidden border-t border-slate-200 pt-3" [class.actions-expand-enter]="actionButtonsAnimated()">
-                    <app-value-sector-action-buttons
+              <div
+                class="pointer-events-none absolute z-30 w-[320px] sm:w-[340px] md:w-[360px]"
+                data-focus-id="product-panel"
+                [style]="productGroupStyles()"
+                [class.product-panel-enter]="productPanelAnimated()">
+                <div data-panzoom-ignore class="pointer-events-auto rounded-2xl border border-slate-200 bg-white/95 p-3 shadow-lg backdrop-blur-sm">
+                  <div class="flex items-start justify-between gap-3">
+                    <div>
+                      <p class="text-[11px] font-semibold uppercase tracking-[0.12em] text-emerald-700">
+                        Productos de {{ route.routeName }}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
                       data-panzoom-ignore
-                      (processRequested)="onProcessRequested()"
-                      (complexityRequested)="onExplanationRequested()"
-                      (marketRequested)="onMarketRequested()" />
+                      class="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 text-sm font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
+                      (click)="onBackRequested()">
+                      ×
+                    </button>
                   </div>
-                }
+
+                  @if (hasSelectedRouteProducts()) {
+                    <div class="mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                      @for (product of selectedRouteProducts(); track product.id) {
+                        <button
+                          type="button"
+                          data-panzoom-ignore
+                          data-product-card
+                          [attr.data-focus-id]="'product:' + product.id"
+                          class="rounded-xl border bg-white px-3 py-2 text-left transition-all duration-200 ease-out hover:shadow-sm"
+                          [class.border-emerald-400]="selectedProductId() === product.id"
+                          [class.ring-2]="selectedProductId() === product.id"
+                          [class.ring-emerald-100]="selectedProductId() === product.id"
+                          [class.shadow-md]="selectedProductId() === product.id"
+                          [class.scale-[1.01]]="selectedProductId() === product.id"
+                          [class.border-slate-200]="selectedProductId() !== product.id"
+                          (click)="onProductSelected(product.id)">
+                          <p class="line-clamp-2 text-xs font-semibold text-slate-800">{{ product.name }}</p>
+                          <p class="mt-1 text-[10px] uppercase tracking-[0.1em] text-slate-400">Match score</p>
+                          <p class="text-lg font-bold text-emerald-600">
+                            {{ product.marketPotential === 'high' ? '94%' : product.marketPotential === 'medium' ? '82%' : '76%' }}
+                          </p>
+                        </button>
+                      }
+                    </div>
+                  } @else {
+                    <p class="mt-2 text-xs text-amber-700">Esta ruta no tiene productos utilizables.</p>
+                  }
+
+                  @if (hasSelectedProduct()) {
+                    <div class="mt-3 overflow-hidden border-t border-slate-200 pt-3" [class.actions-expand-enter]="actionButtonsAnimated()">
+                      <app-value-sector-action-buttons
+                        data-panzoom-ignore
+                        (processRequested)="onProcessRequested()"
+                        (complexityRequested)="onExplanationRequested()"
+                        (marketRequested)="onMarketRequested()" />
+                    </div>
+                  }
+                </div>
               </div>
-            </div>
+            }
           }
 
           @if (isInitialLoading() && !items().length) {
@@ -193,6 +211,72 @@
             </div>
           }
         </div>
+
+        @if (isSmallMobile() && activeRoute(); as route) {
+          <div class="pointer-events-none absolute inset-x-0 bottom-0 z-40 px-3 pb-3">
+            <div
+              data-focus-id="product-panel"
+              data-panzoom-ignore
+              class="mobile-sheet-enter pointer-events-auto rounded-[24px] border border-slate-200 bg-white/98 shadow-2xl backdrop-blur-sm">
+              <div class="border-b border-slate-100 px-4 py-3">
+                <div class="flex items-start justify-between gap-3">
+                  <div>
+                    <p class="text-[11px] font-semibold uppercase tracking-[0.12em] text-emerald-700">
+                      Productos de {{ route.routeName }}
+                    </p>
+                    <p class="mt-1 text-xs text-slate-500">Selecciona un producto para ver acciones.</p>
+                  </div>
+                  <button
+                    type="button"
+                    data-panzoom-ignore
+                    class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-slate-200 text-base font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
+                    (click)="onBackRequested()">
+                    ×
+                  </button>
+                </div>
+              </div>
+
+              <div class="max-h-[34vh] overflow-y-auto px-4 py-3">
+                @if (hasSelectedRouteProducts()) {
+                  <div class="grid grid-cols-1 gap-2.5">
+                    @for (product of selectedRouteProducts(); track product.id) {
+                      <button
+                        type="button"
+                        data-panzoom-ignore
+                        data-product-card
+                        [attr.data-focus-id]="'product:' + product.id"
+                        class="rounded-2xl border bg-white px-3 py-3 text-left transition-all duration-200 ease-out"
+                        [class.border-emerald-400]="selectedProductId() === product.id"
+                        [class.ring-2]="selectedProductId() === product.id"
+                        [class.ring-emerald-100]="selectedProductId() === product.id"
+                        [class.shadow-md]="selectedProductId() === product.id"
+                        [class.border-slate-200]="selectedProductId() !== product.id"
+                        (click)="onProductSelected(product.id)">
+                        <p class="text-sm font-semibold text-slate-800">{{ product.name }}</p>
+                        <p class="mt-1 text-[10px] uppercase tracking-[0.1em] text-slate-400">Match score</p>
+                        <p class="text-xl font-bold text-emerald-600">
+                          {{ product.marketPotential === 'high' ? '94%' : product.marketPotential === 'medium' ? '82%' : '76%' }}
+                        </p>
+                      </button>
+                    }
+                  </div>
+                } @else {
+                  <p class="text-xs text-amber-700">Esta ruta no tiene productos utilizables.</p>
+                }
+              </div>
+
+              @if (hasSelectedProduct()) {
+                <div class="border-t border-slate-100 px-4 py-3" [class.actions-expand-enter]="actionButtonsAnimated()">
+                  <app-value-sector-action-buttons
+                    data-panzoom-ignore
+                    (processRequested)="onProcessRequested()"
+                    (complexityRequested)="onExplanationRequested()"
+                    (marketRequested)="onMarketRequested()" />
+                </div>
+              }
+            </div>
+          </div>
+        }
       </div>
     </div>
   }

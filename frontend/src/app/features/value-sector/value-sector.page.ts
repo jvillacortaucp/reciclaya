@@ -49,6 +49,7 @@ export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestro
   private readonly facade = inject(ValueSectorFacade);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly viewportWidth = signal(typeof window !== 'undefined' ? window.innerWidth : 1024);
 
   private panzoom: PanzoomObject | null = null;
   private isPointerPanning = false;
@@ -95,19 +96,47 @@ export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestro
   protected readonly maxZoomPercent = 190;
   protected readonly zoomPercent = computed(() => Math.round(this.currentScale() * 100));
   protected readonly zoomPercentLabel = computed(() => `${this.zoomPercent()}%`);
+  protected readonly isSmallMobile = computed(() => this.viewportWidth() <= 393);
 
   // Canonical scene geometry (single source of truth)
-  protected readonly sceneWidth = 2200;
-  protected readonly sceneHeight = 1300;
-  protected readonly mapAnchorX = 650;
-  protected readonly mapAnchorY = 380;
-  protected readonly mapAnchorWidth = 900;
+  private readonly desktopSceneWidth = 2200;
+  private readonly desktopSceneHeight = 1300;
+  private readonly desktopMapAnchorX = 650;
+  private readonly desktopMapAnchorY = 380;
+  private readonly desktopMapAnchorWidth = 900;
+
+  // Modo guiado móvil: prioriza que el grafo sea visible sin pan inicial.
+  private readonly mobileSceneWidth = 360;
+  private readonly mobileSceneHeight = 760;
+  private readonly mobileMapAnchorX = 20;
+  private readonly mobileMapAnchorY = 115;
+  private readonly mobileMapAnchorWidth = 320;
+
+  protected readonly sceneWidth = computed(() =>
+    this.isSmallMobile() ? this.mobileSceneWidth : this.desktopSceneWidth
+  );
+  protected readonly sceneHeight = computed(() =>
+    this.isSmallMobile() ? this.mobileSceneHeight : this.desktopSceneHeight
+  );
+  protected readonly mapAnchorX = computed(() =>
+    this.isSmallMobile() ? this.mobileMapAnchorX : this.desktopMapAnchorX
+  );
+  protected readonly mapAnchorY = computed(() =>
+    this.isSmallMobile() ? this.mobileMapAnchorY : this.desktopMapAnchorY
+  );
+  protected readonly mapAnchorWidth = computed(() =>
+    this.isSmallMobile() ? this.mobileMapAnchorWidth : this.desktopMapAnchorWidth
+  );
 
   protected readonly mapAnchorStyles = computed(() => ({
-    left: `${this.mapAnchorX}px`,
-    top: `${this.mapAnchorY}px`,
-    width: `${this.mapAnchorWidth}px`
+    left: `${this.mapAnchorX()}px`,
+    top: `${this.mapAnchorY()}px`,
+    width: `${this.mapAnchorWidth()}px`
   }));
+  protected readonly workspaceViewportHeight = computed(() =>
+    this.isSmallMobile() ? 'calc(100vh - 138px)' : null
+  );
+  protected readonly workspaceViewportMinHeight = computed(() => (this.isSmallMobile() ? 360 : 420));
   protected readonly productGroupStyles = computed(() => {
     const position = this.productGroupPosition();
     return {
@@ -205,7 +234,10 @@ export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestro
   private readonly AUTOFOCUS_DEFAULT_SCALE = 0.77;
   private readonly AUTOFOCUS_DEFAULT_OFFSET_X = 0;
   private readonly AUTOFOCUS_DEFAULT_OFFSET_Y = 0;
-  private readonly onWindowResize = () => this.updateProductGroupPosition();
+  private readonly onWindowResize = () => {
+    this.viewportWidth.set(window.innerWidth);
+    this.updateProductGroupPosition();
+  };
   private pendingInitialFocusId: string | null = null;
 
   constructor() {
@@ -256,6 +288,7 @@ export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestro
   }
 
   ngOnInit(): void {
+    this.viewportWidth.set(window.innerWidth);
     this.route.queryParamMap.subscribe((params) => {
       const listingId = params.get('listing');
       const shouldRestoreScroll = this.facade.hasLoadedListing(listingId);
@@ -276,6 +309,7 @@ export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestro
   }
 
   ngAfterViewInit(): void {
+    this.viewportWidth.set(window.innerWidth);
     this.tryInitPanzoom();
     window.addEventListener('resize', this.onWindowResize);
   }
@@ -297,6 +331,7 @@ export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestro
     queueMicrotask(() => {
       this.updateProductGroupPosition();
       requestAnimationFrame(() => {
+        if (this.isSmallMobile()) return;
         this.focusFirstProductCardForRoute(routeId);
       });
     });
@@ -440,8 +475,8 @@ export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestro
     }
 
     // Fallback por constantes si el nodo aún no existe en DOM.
-    const initialFocusX = this.mapAnchorX + VALUE_SECTOR_MAP_LAYOUT.centerX + this.INITIAL_DATA_FOCUS_OFFSET_X;
-    const initialFocusY = this.mapAnchorY + VALUE_SECTOR_MAP_LAYOUT.centerY + this.INITIAL_DATA_FOCUS_OFFSET_Y;
+    const initialFocusX = this.mapAnchorX() + VALUE_SECTOR_MAP_LAYOUT.centerX + this.INITIAL_DATA_FOCUS_OFFSET_X;
+    const initialFocusY = this.mapAnchorY() + VALUE_SECTOR_MAP_LAYOUT.centerY + this.INITIAL_DATA_FOCUS_OFFSET_Y;
     this.focusPoint(initialFocusX, initialFocusY, this.INITIAL_DATA_FOCUS_SCALE, false);
   }
 
@@ -643,8 +678,8 @@ export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestro
 
     const mapCenterNode = content.querySelector<HTMLElement>('[data-focus-id="map-center"]');
     const nodeCenter = mapCenterNode ? this.resolveCenterInContent(content, mapCenterNode) : null;
-    const initialFocusX = (nodeCenter?.x ?? this.mapAnchorX + VALUE_SECTOR_MAP_LAYOUT.centerX) + this.INITIAL_DATA_FOCUS_OFFSET_X;
-    const initialFocusY = (nodeCenter?.y ?? this.mapAnchorY + VALUE_SECTOR_MAP_LAYOUT.centerY) + this.INITIAL_DATA_FOCUS_OFFSET_Y;
+    const initialFocusX = (nodeCenter?.x ?? this.mapAnchorX() + VALUE_SECTOR_MAP_LAYOUT.centerX) + this.INITIAL_DATA_FOCUS_OFFSET_X;
+    const initialFocusY = (nodeCenter?.y ?? this.mapAnchorY() + VALUE_SECTOR_MAP_LAYOUT.centerY) + this.INITIAL_DATA_FOCUS_OFFSET_Y;
     const expectedPanX = viewport.clientWidth / 2 - initialFocusX * this.INITIAL_DATA_FOCUS_SCALE;
     const expectedPanY = viewport.clientHeight / 2 - initialFocusY * this.INITIAL_DATA_FOCUS_SCALE;
     const bounded = this.clampPan(expectedPanX, expectedPanY, this.INITIAL_DATA_FOCUS_SCALE);
@@ -777,12 +812,12 @@ export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestro
   }
 
   private clampWithinSceneX(value: number, elementSize: number, min: number): number {
-    const sceneMax = this.sceneWidth - elementSize - 24;
+    const sceneMax = this.sceneWidth() - elementSize - 24;
     return Math.max(min, Math.min(sceneMax, value));
   }
 
   private clampWithinSceneY(value: number, elementSize: number, min: number): number {
-    const sceneMax = this.sceneHeight - elementSize - 24;
+    const sceneMax = this.sceneHeight() - elementSize - 24;
     return Math.max(min, Math.min(sceneMax, value));
   }
 
