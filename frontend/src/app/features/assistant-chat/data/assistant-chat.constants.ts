@@ -1,4 +1,4 @@
-import { ComplexityLevel, MarketPotential } from '../models/assistant-chat.model';
+import { ComplexityLevel, MarketPotential, UrgenciaLevel } from '../models/assistant-chat.model';
 
 export interface ChatQuickSuggestion {
   readonly id: string;
@@ -10,7 +10,7 @@ export const ASSISTANT_CHAT_COPY = {
   subtitle:
     'Descubre oportunidades de valorización en una conversación guiada y accionable.',
   greeting:
-    'Hola, soy Eco. Te ayudaré a descubrir oportunidades a partir de tus residuos.',
+    'Hola, soy tu asistente de valorización. Te ayudaré a descubrir oportunidades a partir de tus residuos.',
   firstQuestion: '¿Qué residuo piensas convertir hoy?',
   loadingMessage: 'Analizando residuo...',
   resultsPrefix: 'Encontré estas posibles rutas de valorización para',
@@ -53,5 +53,23 @@ export const POTENTIAL_STYLES: Record<MarketPotential, string> = {
   low: 'bg-slate-100 text-slate-700',
   medium: 'bg-indigo-100 text-indigo-700',
   high: 'bg-emerald-100 text-emerald-700'
+};
+
+export const URGENCIA_LABELS: Record<UrgenciaLevel, string> = {
+  baja: 'Prioridad baja',
+  media: 'Prioridad media',
+  alta: '¡Prioridad alta!'
+};
+
+export const URGENCIA_STYLES: Record<UrgenciaLevel, string> = {
+  baja: 'bg-slate-100 text-slate-600 border-slate-200',
+  media: 'bg-amber-50 text-amber-700 border-amber-200',
+  alta: 'bg-red-50 text-red-700 border-red-200'
+};
+
+export const URGENCIA_ICONS: Record<UrgenciaLevel, string> = {
+  baja: '📋',
+  media: '⚡',
+  alta: '🚨'
 };
 

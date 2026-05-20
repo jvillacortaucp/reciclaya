@@ -4,7 +4,10 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import {
   ASSISTANT_CHAT_COPY,
-  ASSISTANT_QUICK_SUGGESTIONS
+  ASSISTANT_QUICK_SUGGESTIONS,
+  URGENCIA_LABELS,
+  URGENCIA_STYLES,
+  URGENCIA_ICONS
 } from '../data/assistant-chat.constants';
 import { AssistantChatFacade } from '../application/assistant-chat.facade';
 import { AssistantChatHttpService } from '../infrastructure/assistant-chat.http.service';
@@ -15,7 +18,8 @@ import { ChatMessageBubbleComponent } from './components/chat-message-bubble.com
 import { ProductSuggestionCardsComponent } from './components/product-suggestion-cards.component';
 import { QuickSuggestionChipsComponent } from './components/quick-suggestion-chips.component';
 import { TypingIndicatorComponent } from './components/typing-indicator.component';
-import { LucideTrash2 } from '@lucide/angular';
+import { QuickLinksCardComponent } from './components/quick-links-card.component';
+import { LucideTrash2, LucideVolume2, LucideVolumeOff } from '@lucide/angular';
 
 @Component({
   selector: 'app-assistant-chat-page',
@@ -23,12 +27,15 @@ import { LucideTrash2 } from '@lucide/angular';
   providers: [AssistantChatHttpService, AssistantChatFacade, DatePipe],
   imports: [
     LucideTrash2,
+    LucideVolume2,
+    LucideVolumeOff,
     ReactiveFormsModule,
     ChatMessageBubbleComponent,
     TypingIndicatorComponent,
     ProductSuggestionCardsComponent,
     QuickSuggestionChipsComponent,
-    ChatInputComponent
+    ChatInputComponent,
+    QuickLinksCardComponent
   ],
   templateUrl: './assistant-chat.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -43,8 +50,13 @@ export class AssistantChatPageComponent {
 
   protected readonly copy = ASSISTANT_CHAT_COPY;
   protected readonly quickSuggestions = ASSISTANT_QUICK_SUGGESTIONS;
+  protected readonly urgenciaLabels = URGENCIA_LABELS;
+  protected readonly urgenciaStyles = URGENCIA_STYLES;
+  protected readonly urgenciaIcons = URGENCIA_ICONS;
   protected readonly messages = this.facade.messages;
   protected readonly typing = this.facade.typing;
+  protected readonly ttsEnabled = this.facade.ttsEnabled;
+  protected readonly isSpeaking = this.facade.isSpeaking;
   protected readonly selectedSuggestionId = this.facade.selectedSuggestionId;
   protected readonly hasSelection = this.facade.hasSelection;
   protected readonly selectedSuggestion = computed(() => {
@@ -103,6 +115,10 @@ export class AssistantChatPageComponent {
     this.facade.clearConversation();
     this.facade.initializeConversation();
     this.form.reset({ input: '' });
+  }
+
+  protected toggleTts(): void {
+    this.facade.toggleTts();
   }
 
   protected onProductSelected(suggestion: ProductSuggestion): void {

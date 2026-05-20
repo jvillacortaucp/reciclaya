@@ -66,6 +66,9 @@
         },
         "serve": {
           "builder": "@angular/build:dev-server",
+          "options": {
+            "allowedHosts": [".trycloudflare.com", ".loca.lt", ".lhr.life"]
+          },
           "configurations": {
             "production": {
               "buildTarget": "frontend:build:production"

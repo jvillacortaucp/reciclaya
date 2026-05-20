@@ -51,10 +51,6 @@
         />
 
         <article class="rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <header class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-4 py-3 md:px-5">
-            <h3 class="text-xl font-semibold text-slate-900 md:text-2xl">{{ copy.technicalSectionTitle }}</h3>
-            <a href="#" class="inline-flex h-9 items-center text-sm font-semibold text-emerald-700 hover:text-emerald-800">Descargar reporte lab</a>
-          </header>
           <div class="grid sm:grid-cols-2 lg:grid-cols-3">
             @for (spec of detail()!.technicalSpecs; track spec.key) {
               <div class="min-w-0 border-b border-r border-slate-100 p-4 md:p-5 last:border-r-0">

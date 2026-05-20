@@ -6,7 +6,18 @@ import { RouterLink } from '@angular/router';
   standalone: true,
   imports: [RouterLink],
   template: `
-    <nav class="flex" aria-label="Breadcrumb">
+    <nav class="flex flex-wrap items-center gap-2" aria-label="Breadcrumb">
+      <button
+        type="button"
+        (click)="back.emit()"
+        class="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 cursor-pointer"
+        aria-label="Volver al marketplace">
+        <svg class="h-4 w-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+          <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m15 19-7-7 7-7"/>
+        </svg>
+        Volver
+      </button>
+
       <ol class="inline-flex items-center space-x-1 md:space-x-2">
         <li class="inline-flex items-center">
           <a [routerLink]="['/marketplace']" class="inline-flex items-center text-sm font-medium text-slate-600 hover:text-emerald-700">

@@ -98,6 +98,15 @@ export const SIDEBAR_NAV_ITEMS: readonly SidebarNavItem[] = [
   //   permissions: [PERMISSIONS.VIEW_RECOMMENDATIONS],
   //   roles: ['buyer', 'seller']
   // },
+  {
+    label: 'Ideas guardadas',
+    group: 'Intelligence',
+    icon: 'sparkles',
+    route: APP_ROUTES.recommendationsHistory,
+    exact: true,
+    permissions: [PERMISSIONS.VIEW_RECOMMENDATIONS],
+    roles: ['buyer', 'seller', 'admin']
+  },
   // {
   //   label: 'Sector de valor',
   //   group: 'Intelligence',

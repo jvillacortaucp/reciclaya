@@ -11,7 +11,12 @@ export class ToastService {
   });
 
   success(message: string): void {
-    this.notyf.success(message);
+    this.notyf.open({
+      type: 'success',
+      message,
+      background: '#16a34a',
+      icon: false
+    });
   }
 
   error(message: string): void {

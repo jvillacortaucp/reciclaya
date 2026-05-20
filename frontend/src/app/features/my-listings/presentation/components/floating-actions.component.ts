@@ -6,7 +6,6 @@ import {
   Output,
   signal
 } from '@angular/core';
-import { FALLBACK_IMAGE_URL } from '../../../../core/constants/media.constants';
 import { LucideBot } from '@lucide/angular';
 
 @Component({
@@ -22,13 +21,13 @@ import { LucideBot } from '@lucide/angular';
         data-tour="bot-guide-button"
         (click)="onGuideRequested()"
       >
-        @if (imageError()) {
+        @if (!botImageUrl || imageError()) {
           <span class="inline-flex h-full w-full items-center justify-center">
             <svg lucideBot size="22"></svg>
           </span>
         } @else {
           <img
-            [src]="botImageUrl || fallbackImage"
+            [src]="botImageUrl"
             alt="Bot guía"
             class="h-full w-full object-cover"
             (error)="imageError.set(true)"
@@ -40,12 +39,10 @@ import { LucideBot } from '@lucide/angular';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class FloatingActionsComponent {
-  @Input() botImageUrl = 'assets/images/bot-guide.jpg';
+  @Input() botImageUrl = '';
   @Output() readonly guideRequested = new EventEmitter<void>();
 
   protected readonly imageError = signal(false);
-
-  protected readonly fallbackImage = FALLBACK_IMAGE_URL;
 
   protected onGuideRequested(): void {
     this.guideRequested.emit();

@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, HostListener, Input, Output } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { LucideShieldCheck, LucideX } from '@lucide/angular';
 import { SimulatedPaymentCard } from '../../models/pre-order.model';
 
@@ -51,6 +51,10 @@ export interface CardPaymentConfirmation {
               <input
                 type="text"
                 formControlName="cardNumber"
+                inputmode="numeric"
+                maxlength="19"
+                placeholder="1234-5678-9012-3456"
+                (input)="onCardNumberInput()"
                 class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-base text-slate-900 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200"
               />
             </div>
@@ -59,24 +63,42 @@ export interface CardPaymentConfirmation {
               <input
                 type="text"
                 formControlName="holderName"
+                maxlength="80"
+                (input)="onHolderNameInput()"
                 class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-base text-slate-900 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200"
               />
             </div>
             <div class="grid grid-cols-2 gap-3">
               <div class="space-y-1.5">
-                  <label class="text-sm text-slate-700">Vencimiento</label>
-                  <input
-                    type="month"
-                    formControlName="expiryDate"
-                    class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-base text-slate-900 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200"
-                  />
+                <label class="text-sm text-slate-700">Vencimiento</label>
+                <div class="grid grid-cols-2 gap-2">
+                  <select
+                    formControlName="expiryMonth"
+                    class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-base text-slate-900 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200">
+                    <option value="">Mes</option>
+                    @for (month of expiryMonths; track month.value) {
+                      <option [value]="month.value">{{ month.label }}</option>
+                    }
+                  </select>
+                  <select
+                    formControlName="expiryYear"
+                    class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-base text-slate-900 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200">
+                    <option value="">Año</option>
+                    @for (year of expiryYears; track year) {
+                      <option [value]="year">{{ year }}</option>
+                    }
+                  </select>
                 </div>
+              </div>
               <div class="space-y-1.5">
                 <label class="text-sm text-slate-700">CVV / CCV</label>
                 <input
                   type="password"
                   formControlName="cvv"
-                  maxlength="4"
+                  inputmode="numeric"
+                  maxlength="3"
+                  placeholder="123"
+                  (input)="onCvvInput()"
                   class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-base text-slate-900 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200"
                 />
               </div>
@@ -104,6 +126,7 @@ export interface CardPaymentConfirmation {
               </button>
               <button
                 type="submit"
+                [disabled]="form.invalid"
                 class="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
               >
                 <svg lucideShieldCheck class="h-4 w-4"></svg>
@@ -119,6 +142,11 @@ export interface CardPaymentConfirmation {
 })
 export class CardPaymentModalComponent {
   private readonly fb = new FormBuilder();
+  protected readonly expiryMonths = Array.from({ length: 12 }, (_, index) => {
+    const value = String(index + 1).padStart(2, '0');
+    return { value, label: value };
+  });
+  protected readonly expiryYears = this.buildExpiryYears();
 
   @Input() open = false;
   @Input() mockCard: SimulatedPaymentCard | null = null;
@@ -127,22 +155,25 @@ export class CardPaymentModalComponent {
   @Output() readonly closed = new EventEmitter<void>();
 
   protected readonly form = this.fb.nonNullable.group({
-    cardNumber: ['', [Validators.required, Validators.minLength(19)]],
-    holderName: ['', [Validators.required, Validators.minLength(3)]],
-    expiryDate: ['', [Validators.required]],
-    cvv: ['', [Validators.required, Validators.pattern(/^\d{3,4}$/)]],
+    cardNumber: ['', [Validators.required, Validators.pattern(/^\d{4}-\d{4}-\d{4}-\d{4}$/)]],
+    holderName: ['', [Validators.required, Validators.minLength(3), Validators.pattern(/^[A-Za-zÀ-ÿ\s]+$/)]],
+    expiryMonth: ['', [Validators.required]],
+    expiryYear: ['', [Validators.required]],
+    expiryDate: [''],
+    cvv: ['', [Validators.required, Validators.pattern(/^\d{3}$/)]],
     useForSimulation: [true]
-  });
+  }, { validators: [this.expiryFutureValidator.bind(this)] });
 
   ngOnChanges(): void {
     if (this.open && this.mockCard) {
       this.form.patchValue({
-        cardNumber: this.mockCard.cardNumber,
-        holderName: this.mockCard.holderName,
-        expiryDate: this.normalizeMockExpiryToMonthInput(this.mockCard.expiryDate),
-        cvv: this.mockCard.cvv,
+        cardNumber: this.formatCardNumber(this.mockCard.cardNumber),
+        holderName: this.normalizeHolder(this.mockCard.holderName),
+        ...this.parseMockExpiry(this.mockCard.expiryDate),
+        cvv: this.normalizeDigits(this.mockCard.cvv, 3),
         useForSimulation: true
       });
+      this.form.updateValueAndValidity();
     }
   }
 
@@ -170,10 +201,11 @@ export class CardPaymentModalComponent {
     }
 
     const raw = this.form.getRawValue();
-    const normalizedExpiry = this.normalizeExpiryForEmit(raw.expiryDate);
+    const normalizedExpiry = this.normalizeExpiryForEmit(raw.expiryMonth, raw.expiryYear);
+    this.form.controls.expiryDate.setValue(normalizedExpiry);
 
     this.confirmed.emit({
-      holderName: raw.holderName,
+      holderName: this.normalizeHolder(raw.holderName),
       cardNumber: raw.cardNumber,
       expiryDate: normalizedExpiry,
       cvv: raw.cvv,
@@ -181,37 +213,92 @@ export class CardPaymentModalComponent {
     });
   }
 
-  private normalizeMockExpiryToMonthInput(expiry: string): string {
-    // Accept either MM/YY or YYYY-MM; convert MM/YY -> YYYY-MM
-    if (!expiry) return '';
-    const mmyy = expiry.match(/^(\d{2})\/(\d{2})$/);
-    if (mmyy) {
-      const mm = mmyy[1];
-      const yy = mmyy[2];
-      const yyyy = Number(yy) > 50 ? `19${yy}` : `20${yy}`;
-      return `${yyyy}-${mm}`;
-    }
-    // if already YYYY-MM, return as is
-    const ymmm = expiry.match(/^(\d{4})-(\d{2})$/);
-    if (ymmm) {
-      return expiry;
-    }
-    return '';
+  protected onCardNumberInput(): void {
+    const formatted = this.formatCardNumber(this.form.controls.cardNumber.value);
+    this.form.controls.cardNumber.setValue(formatted, { emitEvent: false });
   }
 
-  private normalizeExpiryForEmit(value: string): string {
-    // value expected from input type=month as YYYY-MM
-    const m = value?.match(/^(\d{4})-(\d{2})$/);
-    if (m) {
-      const yyyy = m[1];
-      const mm = m[2];
-      const yy = yyyy.slice(-2);
-      return `${mm}/${yy}`;
+  protected onHolderNameInput(): void {
+    const holder = this.normalizeHolder(this.form.controls.holderName.value);
+    this.form.controls.holderName.setValue(holder, { emitEvent: false });
+  }
+
+  protected onCvvInput(): void {
+    const cvv = this.normalizeDigits(this.form.controls.cvv.value, 3);
+    this.form.controls.cvv.setValue(cvv, { emitEvent: false });
+  }
+
+  private buildExpiryYears(): string[] {
+    const nowYear = new Date().getFullYear();
+    return Array.from({ length: 15 }, (_, index) => String(nowYear + index));
+  }
+
+  private expiryFutureValidator(control: AbstractControl): ValidationErrors | null {
+    const group = control as typeof this.form;
+    const month = group.controls.expiryMonth.value;
+    const year = group.controls.expiryYear.value;
+    if (!month || !year) {
+      return null;
     }
-    // fallback: if already MM/YY, return
-    if (value?.match(/^\d{2}\/\d{2}$/)) {
-      return value;
+
+    const monthNumber = Number(month);
+    const yearNumber = Number(year);
+    if (!Number.isInteger(monthNumber) || monthNumber < 1 || monthNumber > 12) {
+      return { expiryInvalid: true };
     }
-    return value ?? '';
+
+    const now = new Date();
+    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const selectedMonthStart = new Date(yearNumber, monthNumber - 1, 1);
+    if (selectedMonthStart <= currentMonthStart) {
+      return { expiryPast: true };
+    }
+
+    return null;
+  }
+
+  private parseMockExpiry(expiry: string): { expiryMonth: string; expiryYear: string } {
+    if (!expiry) {
+      return { expiryMonth: '', expiryYear: '' };
+    }
+
+    const mmyy = expiry.match(/^(\d{2})\/(\d{2})$/);
+    if (mmyy) {
+      const month = mmyy[1];
+      const yy = Number(mmyy[2]);
+      const baseCentury = yy >= 70 ? 1900 : 2000;
+      return { expiryMonth: month, expiryYear: String(baseCentury + yy) };
+    }
+
+    const yymm = expiry.match(/^(\d{4})-(\d{2})$/);
+    if (yymm) {
+      return { expiryMonth: yymm[2], expiryYear: yymm[1] };
+    }
+
+    return { expiryMonth: '', expiryYear: '' };
+  }
+
+  private normalizeExpiryForEmit(month: string, year: string): string {
+    if (!month || !year) {
+      return '';
+    }
+    const yy = year.slice(-2);
+    return `${month}/${yy}`;
+  }
+
+  private formatCardNumber(value: string): string {
+    const digits = this.normalizeDigits(value, 16);
+    return digits.replace(/(\d{4})(?=\d)/g, '$1-');
+  }
+
+  private normalizeDigits(value: string, maxLength: number): string {
+    return (value ?? '').replace(/\D/g, '').slice(0, maxLength);
+  }
+
+  private normalizeHolder(value: string): string {
+    return (value ?? '')
+      .replace(/[^A-Za-zÀ-ÿ\s]/g, '')
+      .replace(/\s{2,}/g, ' ')
+      .trimStart();
   }
 }

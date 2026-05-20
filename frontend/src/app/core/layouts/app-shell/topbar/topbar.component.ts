@@ -1,15 +1,15 @@
-import { ChangeDetectionStrategy, Component, computed, inject, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
 import { FALLBACK_IMAGE_URL } from '../../../constants/media.constants';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { LucideMenu, LucideBell } from '@lucide/angular';
+import { LucideMenu, LucideBell, LucideLogIn } from '@lucide/angular';
 import { APP_ROUTES } from '../../../../core/constants/app.constants';
 import { AuthFacade } from '../../../../features/auth/services/auth.facade';
 
 @Component({
   selector: 'app-topbar',
   standalone: true,
-  imports: [ReactiveFormsModule, LucideMenu, LucideBell],
+  imports: [ReactiveFormsModule, LucideMenu, LucideBell, LucideLogIn],
   templateUrl: './topbar.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -18,10 +18,13 @@ export class TopbarComponent {
   private readonly fb = inject(FormBuilder);
   private readonly router = inject(Router);
 
+  canToggleSidebar = input<boolean>(true);
   toggleSidebar = output<void>();
   protected readonly searchForm = this.fb.nonNullable.group({
     query: ['']
   });
+
+  protected readonly currentUrl = signal(this.normalizeUrl(this.router.url));
 
   protected readonly isAuthenticated = this.authFacade.isAuthenticated;
   protected readonly displayName = computed(() => this.authFacade.user()?.fullName ?? 'Usuario');
@@ -59,5 +62,16 @@ export class TopbarComponent {
     if (img.src === this.fallbackImage) return;
     img.src = this.fallbackImage;
     this.avatarLoaded = true;
+  }
+
+  onLogin(): void {
+    const returnUrl = this.currentUrl();
+    void this.router.navigate(['/auth/login'], {
+      queryParams: { returnUrl }
+    });
+  }
+
+  private normalizeUrl(url: string): string {
+    return url.split('?')[0].split('#')[0].replace(/\/$/, '') || '/';
   }
 }

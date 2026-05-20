@@ -1,15 +1,16 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
-import { LucideCircleAlert, LucideDownload, LucideWalletCards } from '@lucide/angular';
+import { LucideCircleAlert, LucideDownload, LucideWalletCards, LucideLoaderCircle } from '@lucide/angular';
 import { PreOrderPricingSummary, SimulatedPaymentStatus } from '../../../models/pre-order.model';
+import { NgIf } from '@angular/common';
 
 @Component({
   selector: 'app-pre-order-economic-summary',
   standalone: true,
-  imports: [LucideWalletCards, LucideDownload, LucideCircleAlert],
+  imports: [LucideWalletCards, LucideDownload, LucideCircleAlert, LucideLoaderCircle, NgIf],
   template: `
     @if (summary) {
       <aside class="rounded-3xl border border-slate-200 bg-white p-5 md:p-6 shadow-sm">
-        <h3 class="text-2xl font-semibold text-slate-900 md:text-3xl">Resumen de Pre-orden</h3>
+        <h3 class="text-2xl font-semibold text-slate-900 md:text-3xl">Resumen de la Orden</h3>
 
         <div class="mt-5 space-y-3">
           <div class="flex items-center justify-between">
@@ -51,12 +52,18 @@ import { PreOrderPricingSummary, SimulatedPaymentStatus } from '../../../models/
 
         <button
           type="button"
-          [disabled]="!preOrderCreated"
+          [disabled]="!preOrderCreated || downloadingQuotation"
           class="mt-3 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-3 text-base font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
           (click)="downloadReceipt.emit()"
         >
-          <svg lucideDownload size="16"></svg>
-          Descargar constancia
+          <ng-container *ngIf="!downloadingQuotation; else loading">
+            <svg lucideDownload size="16"></svg>
+            Descargar constancia
+          </ng-container>
+          <ng-template #loading>
+            <svg lucideLoaderCircle class="animate-spin" size="16"></svg>
+            Descargando...
+          </ng-template>
         </button>
 
         <p class="mt-4 text-center text-sm text-slate-500">

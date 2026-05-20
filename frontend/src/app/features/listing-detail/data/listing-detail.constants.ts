@@ -7,7 +7,7 @@ export const LISTING_DETAIL_COPY = {
   primaryAction: 'Generar Orden',
   secondaryAction: 'Solicitar información',
   back: 'Volver',
-  technicalSectionTitle: 'Especificaciones Técnicas',
+  // technicalSectionTitle: 'Especificaciones Técnicas',
   businessSectionTitle: 'Datos de negocio',
   relatedSectionTitle: 'Listado similares'
 } as const;

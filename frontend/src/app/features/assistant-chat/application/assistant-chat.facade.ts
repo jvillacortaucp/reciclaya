@@ -7,7 +7,9 @@ import { SessionStorageService } from '../../../core/services/session-storage.se
 import {
   AssistantChatState,
   ChatMessage,
-  ProductSuggestion
+  ProductSuggestion,
+  QuickLinks,
+  UrgenciaLevel
 } from '../models/assistant-chat.model';
 
 const STORAGE_KEY = 'reciclaya_assistant_chat_state';
@@ -23,6 +25,11 @@ export class AssistantChatFacade {
   });
   private sessionId = '';
   private currentScope = 'guest';
+
+  /** Whether TTS (text-to-speech) is enabled for bot responses. */
+  readonly ttsEnabled = signal(true);
+  /** Whether the bot is currently speaking aloud. */
+  readonly isSpeaking = signal(false);
 
   readonly messages = computed(() => this.state().messages);
   readonly typing = computed(() => this.state().typing);
@@ -51,6 +58,9 @@ export class AssistantChatFacade {
     const residue = input.trim();
     if (!residue) return;
 
+    // Stop any ongoing TTS when user sends a new message
+    this.stopSpeaking();
+
     this.pushUserText(residue);
     this.setTyping(true);
 
@@ -68,13 +78,26 @@ export class AssistantChatFacade {
 
         if (response.replyText) {
           this.pushAssistantText(response.replyText);
+          // Speak the response if TTS is enabled
+          this.speak(response.replyText);
         }
 
         if (response.suggestions && response.suggestions.length > 0) {
-          this.pushSuggestionMessage(response.suggestions);
+          this.pushSuggestionMessage(response.suggestions, response.urgencia);
         } else if (!response.replyText) {
           // Fallback if n8n returned nothing
           this.pushAssistantText('Recibí tu mensaje, pero no tengo sugerencias en este momento.');
+        }
+
+        // Show tips as a separate message if provided
+        if (response.tips) {
+          this.pushAssistantText(response.tips);
+          this.speak(response.tips);
+        }
+
+        // Show quick links if provided
+        if (response.quickLinks && Object.values(response.quickLinks).some(v => v != null)) {
+          this.pushQuickLinksMessage(response.quickLinks);
         }
       });
   }
@@ -90,14 +113,32 @@ export class AssistantChatFacade {
     this.pushAssistantText(ASSISTANT_CHAT_COPY.selectionMessage);
   }
 
-  private pushSuggestionMessage(suggestions: readonly ProductSuggestion[]): void {
+  private pushSuggestionMessage(suggestions: readonly ProductSuggestion[], urgencia?: UrgenciaLevel): void {
     const message: ChatMessage = {
       id: this.nextMessageId(),
       role: 'assistant',
       content: 'Sugerencias de productos',
       createdAt: new Date().toISOString(),
       type: 'product_suggestions',
-      suggestions
+      suggestions,
+      urgencia: urgencia ?? 'media'
+    };
+
+    this.state.update((prev) => {
+      const newState = { ...prev, messages: [...prev.messages, message] };
+      this.saveState(newState.messages);
+      return newState;
+    });
+  }
+
+  private pushQuickLinksMessage(quickLinks: QuickLinks): void {
+    const message: ChatMessage = {
+      id: this.nextMessageId(),
+      role: 'assistant',
+      content: 'Enlaces útiles',
+      createdAt: new Date().toISOString(),
+      type: 'quick_links',
+      quickLinks
     };
 
     this.state.update((prev) => {
@@ -228,4 +269,100 @@ export class AssistantChatFacade {
   private getSessionKey(): string {
     return `${SESSION_KEY}_${this.currentScope}`;
   }
+
+  // ─── TTS (Text-to-Speech) ────────────────────────────────────────
+
+  /** Toggle TTS on/off. */
+  toggleTts(): void {
+    const next = !this.ttsEnabled();
+    this.ttsEnabled.set(next);
+    if (!next) {
+      this.stopSpeaking();
+    }
+  }
+
+  /** Cancel any ongoing speech. */
+  stopSpeaking(): void {
+    if (globalThis.window !== undefined && globalThis.speechSynthesis) {
+      globalThis.speechSynthesis.cancel();
+    }
+    this.isSpeaking.set(false);
+  }
+
+  /** Speak the given text using browser TTS (only if enabled). */
+  private speak(text: string): void {
+    if (!this.ttsEnabled()) return;
+    if (globalThis.window === undefined || !globalThis.speechSynthesis) {
+      console.warn('[TTS] speechSynthesis not available');
+      return;
+    }
+
+    console.log('[TTS] Speaking:', text.substring(0, 60) + '...');
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'es-PE'; // Peruvian Spanish
+    utterance.rate = 1.05;
+    utterance.pitch = 1;
+
+    // Assign a Spanish voice if available
+    const assignVoice = () => {
+      const voices = globalThis.speechSynthesis.getVoices();
+      console.log('[TTS] Available voices:', voices.length);
+      const spanishVoice = voices.find(v => v.lang.startsWith('es-')) ??
+        voices.find(v => v.lang.startsWith('es'));
+      if (spanishVoice) {
+        utterance.voice = spanishVoice;
+        console.log('[TTS] Using voice:', spanishVoice.name, spanishVoice.lang);
+      }
+    };
+
+    // Voices may not be loaded yet — handle async loading
+    const voices = globalThis.speechSynthesis.getVoices();
+    if (voices.length > 0) {
+      assignVoice();
+      this.doSpeak(utterance);
+    } else {
+      // Voices load asynchronously in some browsers
+      globalThis.speechSynthesis.onvoiceschanged = () => {
+        assignVoice();
+        this.doSpeak(utterance);
+      };
+      // Fallback: speak without voice selection after a short delay
+      setTimeout(() => {
+        if (!this.isSpeaking()) {
+          console.log('[TTS] Fallback: attempting to speak with default system voice');
+          this.doSpeak(utterance);
+        }
+      }, 500);
+    }
+  }
+
+  private doSpeak(utterance: SpeechSynthesisUtterance): void {
+    utterance.onstart = () => {
+      console.log('[TTS] ▶ Started speaking');
+      this.isSpeaking.set(true);
+    };
+    utterance.onend = () => {
+      console.log('[TTS] ⏹ Finished speaking');
+      this.isSpeaking.set(false);
+    };
+    utterance.onerror = (e) => {
+      // synthesis-failed is common on Linux dev environments without speech-dispatcher.
+      // End users on iOS/Android/Windows/Mac will not see this error.
+      if (e.error === 'synthesis-failed') {
+        console.warn('[TTS] Voice synthesis skipped (expected on Linux dev environments without voice packages). End users on Mobile/Windows/Mac will hear the voice normally.');
+      } else {
+        console.warn('[TTS] ❌ Error:', e.error);
+      }
+      this.isSpeaking.set(false);
+    };
+
+    try {
+      globalThis.speechSynthesis.speak(utterance);
+    } catch (e) {
+      console.warn('[TTS] Catch error on speak:', e);
+      this.isSpeaking.set(false);
+    }
+  }
 }
+

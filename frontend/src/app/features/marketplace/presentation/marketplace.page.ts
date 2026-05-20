@@ -30,16 +30,22 @@ import { MarketplaceFacade } from '../application/marketplace.facade';
 import { MarketplaceFiltersComponent } from './components/marketplace-filters/marketplace-filters.component';
 import { RecommendedListingCardComponent } from './components/recommended-listing-card/recommended-listing-card.component';
 import { MarketplaceProductCardComponent } from './components/marketplace-product-card/marketplace-product-card.component';
+import { DefaultChatBubbleComponent } from '../../../shared/ui/default-chat-bubble/default-chat-bubble.component';
+import { AssistantChatHttpService } from '../../assistant-chat/infrastructure/assistant-chat.http.service';
+import { MarketplaceEcoChatFacade } from '../application/marketplace-eco-chat.facade';
+import { AuthFacade } from '../../auth/services/auth.facade';
 
 @Component({
   selector: 'app-marketplace-page',
   standalone: true,
+  providers: [AssistantChatHttpService, MarketplaceEcoChatFacade],
   imports: [
     ReactiveFormsModule,
     EmptyStateComponent,
     MarketplaceFiltersComponent,
     RecommendedListingCardComponent,
     MarketplaceProductCardComponent,
+    DefaultChatBubbleComponent,
     LucideSlidersHorizontal,
     LucidePlus,
     LucideInfo
@@ -49,6 +55,8 @@ import { MarketplaceProductCardComponent } from './components/marketplace-produc
 })
 export class MarketplacePageComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly facade = inject(MarketplaceFacade);
+  private readonly ecoChatFacade = inject(MarketplaceEcoChatFacade);
+  private readonly authFacade = inject(AuthFacade);
   private readonly protectedActions = inject(ProtectedActionService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
@@ -77,6 +85,11 @@ export class MarketplacePageComponent implements OnInit, AfterViewInit, OnDestro
   protected readonly toastMessage = this.facade.toastMessage;
   protected readonly chips = this.facade.activeFilterChips;
   protected readonly sortValue = this.facade.search;
+  protected readonly ecoMessages = this.ecoChatFacade.messages;
+  protected readonly ecoTyping = this.ecoChatFacade.typing;
+  protected readonly ecoShowGoToMainChatCta = this.ecoChatFacade.showGoToMainChatCta;
+  protected readonly ecoDisabledInput = this.ecoChatFacade.disabledInput;
+  protected readonly isAuthenticated = this.authFacade.isAuthenticated;
 
   protected readonly filtersForm = this.fb.nonNullable.group({
     query: [''],
@@ -189,6 +202,27 @@ export class MarketplacePageComponent implements OnInit, AfterViewInit, OnDestro
 
   protected loadMore(): void {
     this.facade.loadMore();
+  }
+
+  protected openEcoChat(): void {
+    void this.router.navigateByUrl(APP_ROUTES.assistantChat);
+  }
+
+  protected openEcoChatWithMessage(message: string): void {
+    const trimmed = message.trim();
+    if (!trimmed) {
+      void this.router.navigateByUrl(APP_ROUTES.assistantChat);
+      return;
+    }
+
+    this.ecoChatFacade.submitMessage(trimmed);
+  }
+
+  protected goToMainEcoChat(): void {
+    const draft = this.ecoChatFacade.lastUserMessage().trim();
+    void this.router.navigate([APP_ROUTES.assistantChat], {
+      queryParams: draft ? { draft } : undefined
+    });
   }
 
   private setupInfiniteObserver(): void {
