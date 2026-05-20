@@ -67,7 +67,7 @@ export const REGISTER_VALIDATION_MESSAGES = {
   required: 'Este campo es obligatorio.',
   invalidEmail: 'Ingresa un correo electrónico válido.',
   passwordMismatch: 'Las contraseñas no coinciden.',
-  invalidRuc: 'El RUC debe tener 12 dígitos.',
+  invalidRuc: 'El RUC debe tener 11 dígitos.',
   invalidDocument: 'El documento debe tener entre 8 y 12 digitos.',
   invalidPhone: 'Ingresa un teléfono válido de 9 dígitos.',
   invalidPostalCode: 'El código postal debe tener entre 5 y 6 dígitos.',

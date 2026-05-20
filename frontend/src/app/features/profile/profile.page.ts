@@ -1,9 +1,18 @@
-import { ChangeDetectionStrategy, Component, inject, OnDestroy, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { FALLBACK_IMAGE_URL } from '../../core/constants/media.constants';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { catchError, EMPTY, finalize } from 'rxjs';
 import { getErrorMessage } from '../../core/http/api-response.helpers';
 import { MediaHttpRepository } from '../../core/media/media-http.repository';
+import { RegulatoryComplianceStore } from '../../core/regulatory/regulatory-compliance.store';
+import {
+  evaluateBuyerCompliance,
+  evaluateSellerCompliance,
+  getLevelBadgeClasses,
+  getMaxEligibleBuyerLevel,
+  getMaxEligibleSellerLevel
+} from '../../core/regulatory/regulatory.rules';
+import { SellerComplianceFlags } from '../../core/regulatory/regulatory.models';
 import { CardComponent } from '../../shared/ui/card/card.component';
 import { SectionHeaderComponent } from '../../shared/ui/section-header/section-header.component';
 import { AuthFacade } from '../auth/services/auth.facade';
@@ -80,37 +89,22 @@ import { ProfileHttpRepository } from './profile-http.repository';
           <section class="grid gap-4 md:grid-cols-2">
             <label class="block">
               <span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Nombre visible</span>
-              <input
-                class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
-                formControlName="fullName"
-              />
+              <input class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100" formControlName="fullName" />
             </label>
 
             <label class="block">
               <span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Email</span>
-              <input
-                class="w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-500"
-                [value]="profile()!.email"
-                disabled
-              />
+              <input class="w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-500" [value]="profile()!.email" disabled />
             </label>
 
             <label class="block">
               <span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Rol</span>
-              <input
-                class="w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-500"
-                [value]="profile()!.role"
-                disabled
-              />
+              <input class="w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-500" [value]="profile()!.role" disabled />
             </label>
 
             <label class="block">
               <span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Tipo de perfil</span>
-              <input
-                class="w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-500"
-                [value]="profile()!.profileType"
-                disabled
-              />
+              <input class="w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-500" [value]="profile()!.profileType" disabled />
             </label>
           </section>
 
@@ -211,12 +205,73 @@ import { ProfileHttpRepository } from './profile-http.repository';
             </section>
           }
 
+          <section class="space-y-4 border-t border-slate-100 pt-5">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h3 class="text-lg font-semibold text-slate-900">Regularización y cumplimiento</h3>
+                <p class="text-sm text-slate-500">Agregamos el control normativo sin rehacer el perfil actual.</p>
+              </div>
+              <div class="flex flex-wrap gap-2">
+                <span class="rounded-full px-3 py-1 text-xs font-semibold" [class]="statusClasses(maxSellerLevel())">Seller nivel {{ maxSellerLevel() }}</span>
+                <span class="rounded-full px-3 py-1 text-xs font-semibold" [class]="statusClasses(maxBuyerLevel())">Buyer nivel {{ maxBuyerLevel() }}</span>
+              </div>
+            </div>
+
+            <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Checklist seller</p>
+                  <p class="mt-1 text-sm text-slate-600">Marca los documentos y controles que ya manejas para publicar residuos con mejor control legal.</p>
+                </div>
+                <span class="rounded-full px-3 py-1 text-xs font-semibold" [class]="sellerEvaluation().eligible ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'">
+                  {{ sellerEvaluation().eligible ? 'Cumplimiento sólido' : 'Faltan requisitos' }}
+                </span>
+              </div>
+
+              <div class="mt-4 grid gap-3 md:grid-cols-2">
+                @for (item of sellerRequirementsView(); track item.code) {
+                  <label class="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                    <div class="flex items-start gap-3">
+                      <input type="checkbox" class="mt-1 h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-200" [checked]="sellerFlagValue(item.code)" (change)="toggleSellerCompliance(item.code, $any($event.target).checked)" />
+                      <div class="min-w-0">
+                        <div class="flex flex-wrap items-center gap-2">
+                          <span class="text-sm font-semibold text-slate-800">{{ item.label }}</span>
+                          <span class="rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide" [class]="item.required ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-600'">
+                            {{ item.required ? 'Obligatorio' : 'Recomendable' }}
+                          </span>
+                        </div>
+                        <p class="mt-1 text-xs text-slate-500">{{ regulatoryNote(item.code) }}</p>
+                      </div>
+                    </div>
+                  </label>
+                }
+              </div>
+
+              @if (sellerEvaluation().missingRequired.length) {
+                <div class="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+                  <p class="text-xs font-semibold uppercase tracking-wide text-amber-700">Faltantes obligatorios</p>
+                  <ul class="mt-2 space-y-1 text-sm text-amber-800">
+                    @for (item of sellerEvaluation().missingRequired; track item.code) {
+                      <li>• {{ item.label }}</li>
+                    }
+                  </ul>
+                </div>
+              }
+            </div>
+
+            <div class="rounded-2xl border border-slate-200 bg-white p-4">
+              <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Resumen buyer</p>
+              <p class="mt-1 text-sm text-slate-600">Las capacidades del comprador se completan desde <strong>Preferencias de compra</strong>. Aquí te mostramos el nivel máximo actual y los faltantes principales.</p>
+              <div class="mt-4 grid gap-2 sm:grid-cols-2">
+                @for (item of buyerEvaluation().missingRequired.slice(0, 6); track item.code) {
+                  <div class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">{{ item.label }}</div>
+                }
+              </div>
+            </div>
+          </section>
+
           <div class="flex justify-end border-t border-slate-100 pt-5">
-            <button
-              type="submit"
-              class="rounded-xl bg-emerald-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
-              [disabled]="saving()"
-            >
+            <button type="submit" class="rounded-xl bg-emerald-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60" [disabled]="saving()">
               {{ saving() ? 'Guardando...' : 'Guardar cambios' }}
             </button>
           </div>
@@ -233,6 +288,7 @@ export class ProfilePageComponent implements OnInit, OnDestroy {
   private readonly repository = inject(ProfileHttpRepository);
   private readonly mediaRepository = inject(MediaHttpRepository);
   private readonly authFacade = inject(AuthFacade);
+  private readonly regulatoryStore = inject(RegulatoryComplianceStore);
   private avatarPreviewObjectUrl: string | null = null;
   private logoPreviewObjectUrl: string | null = null;
 
@@ -245,6 +301,28 @@ export class ProfilePageComponent implements OnInit, OnDestroy {
   protected readonly logoPreviewUrl = signal<string | null>(null);
   protected readonly avatarUploading = signal(false);
   protected readonly logoUploading = signal(false);
+  protected readonly statusClasses = getLevelBadgeClasses;
+  protected readonly regulatoryNotes: Record<string, string> = {
+    municipalLicense: 'Licencia municipal o permiso local vigente.',
+    sanitaryPermit: 'Permiso sanitario aplicable a la operación.',
+    storageAuthorization: 'Autorización del espacio de almacenamiento.',
+    originDeclaration: 'Declaración documentada del origen del residuo.',
+    wasteClassification: 'Clasificación técnica o comercial del residuo.',
+    commercialRegistration: 'Constancia o formalidad comercial activa.',
+    internalInventory: 'Control interno de lotes, inventario o trazabilidad.',
+    manifest: 'Manifiestos de traslado o control documental.',
+    managementPlan: 'Plan de manejo o gestión del residuo.',
+    safetyProtocols: 'Protocolos y medidas de seguridad operativa.'
+  };
+
+  protected readonly complianceRecord = computed(() => this.regulatoryStore.getRecord(this.profile()?.id ?? this.authFacade.user()?.id));
+  protected readonly sellerEvaluation = computed(() => evaluateSellerCompliance(4, this.profile(), this.complianceRecord().seller));
+  protected readonly buyerEvaluation = computed(() => evaluateBuyerCompliance(4, this.profile(), this.complianceRecord().buyer));
+  protected readonly maxSellerLevel = computed(() => getMaxEligibleSellerLevel(this.profile(), this.complianceRecord().seller));
+  protected readonly maxBuyerLevel = computed(() => getMaxEligibleBuyerLevel(this.profile(), this.complianceRecord().buyer));
+  protected readonly sellerRequirementsView = computed(() =>
+    this.sellerEvaluation().allRequirements.filter((item) => !['identity_or_ruc', 'address', 'company_ruc', 'commercial_ruc_if_volume'].includes(item.code))
+  );
 
   protected readonly form = this.fb.nonNullable.group({
     fullName: ['', [Validators.required]],
@@ -408,6 +486,20 @@ export class ProfilePageComponent implements OnInit, OnDestroy {
         this.logoPreviewUrl.set(asset.url);
         this.toastMessage.set('Logo de empresa actualizado correctamente.');
       });
+  }
+
+  protected toggleSellerCompliance(key: string, checked: boolean): void {
+    const userId = this.profile()?.id ?? this.authFacade.user()?.id;
+    this.regulatoryStore.saveSeller(userId, { [key]: checked } as Partial<SellerComplianceFlags>);
+    this.toastMessage.set('Estado de regularización seller actualizado.');
+  }
+
+  protected sellerFlagValue(key: string): boolean {
+    return Boolean(this.complianceRecord().seller[key as keyof SellerComplianceFlags]);
+  }
+
+  protected regulatoryNote(code: string): string {
+    return this.regulatoryNotes[code] ?? 'Requisito regulatorio según el nivel del residuo.';
   }
 
   private loadProfile(): void {

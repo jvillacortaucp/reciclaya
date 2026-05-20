@@ -25,6 +25,17 @@ import {
   LucideArrowLeft
 } from '@lucide/angular';
 import { PendingChangesAware } from '../../core/models/pending-changes.model';
+import { RegulatoryComplianceStore } from '../../core/regulatory/regulatory-compliance.store';
+import {
+  classifyRegulatoryLevel,
+  evaluateSellerCompliance,
+  getLevelBadgeClasses,
+  getRegulatoryRule
+} from '../../core/regulatory/regulatory.rules';
+import { RegulatoryLevel } from '../../core/regulatory/regulatory.models';
+import { AuthFacade } from '../auth/services/auth.facade';
+import { Profile } from '../profile/profile.models';
+import { ProfileHttpRepository } from '../profile/profile-http.repository';
 import {
   longTextValidator,
   safeAddressValidator,
@@ -76,10 +87,14 @@ export class WasteSellPageComponent implements OnInit, OnDestroy, PendingChanges
   private readonly facade = inject(WasteSellFacade);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly authFacade = inject(AuthFacade);
+  private readonly profileRepository = inject(ProfileHttpRepository);
+  private readonly regulatoryStore = inject(RegulatoryComplianceStore);
 
   private readonly patching = signal(false);
   private readonly createdObjectUrls = new Set<string>();
   private readonly subscriptions = new Subscription();
+  private readonly profile = signal<Profile | null>(null);
   protected readonly isEditing = signal(false);
 
   protected readonly copy = WASTE_SELL_COPY;
@@ -108,6 +123,26 @@ export class WasteSellPageComponent implements OnInit, OnDestroy, PendingChanges
   protected readonly valorizationIdeas = this.facade.valorizationIdeas;
   protected readonly valorizationIdeasGenerated = this.facade.valorizationIdeasGenerated;
   protected readonly valorizationIdeasStale = this.facade.valorizationIdeasStale;
+  protected readonly levelBadgeClasses = getLevelBadgeClasses;
+  protected readonly regulatoryLevel = computed<RegulatoryLevel>(() =>
+    classifyRegulatoryLevel({
+      residueType: this.formSnapshot().residueType,
+      sector: this.formSnapshot().sector,
+      productType: this.formSnapshot().productType,
+      specificResidue: this.formSnapshot().specificResidue,
+      description: this.formSnapshot().shortDescription,
+      restrictions: this.formSnapshot().restrictionsNotes,
+      quantity: this.formSnapshot().quantity,
+      unit: this.formSnapshot().unit
+    })
+  );
+  protected readonly regulatoryRule = computed(() => getRegulatoryRule(this.regulatoryLevel()));
+  protected readonly sellerComplianceEvaluation = computed(() =>
+    evaluateSellerCompliance(this.regulatoryLevel(), this.profile(), this.regulatoryStore.getRecord(this.profile()?.id ?? this.authFacade.user()?.id).seller, {
+      quantity: this.formSnapshot().quantity,
+      unit: this.formSnapshot().unit
+    })
+  );
 
   protected readonly form = this.fb.nonNullable.group({
     residueType: ['organic'],
@@ -180,6 +215,7 @@ export class WasteSellPageComponent implements OnInit, OnDestroy, PendingChanges
   }
 
   ngOnInit(): void {
+    this.loadProfile();
     this.subscriptions.add(
       this.route.queryParamMap.subscribe((params) => {
         const editId = params.get('edit');
@@ -214,6 +250,13 @@ export class WasteSellPageComponent implements OnInit, OnDestroy, PendingChanges
   protected publish(): void {
     this.form.markAllAsTouched();
     if (this.form.invalid) {
+      return;
+    }
+
+    if (!this.sellerComplianceEvaluation().eligible) {
+      this.facade.toastMessage.set(
+        `Faltan requisitos obligatorios para publicar este residuo nivel ${this.regulatoryLevel()}: ${this.sellerComplianceEvaluation().missingRequired.map((item) => item.label).join(', ')}.`
+      );
       return;
     }
 
@@ -452,5 +495,12 @@ export class WasteSellPageComponent implements OnInit, OnDestroy, PendingChanges
     }
 
     return null;
+  }
+
+  private loadProfile(): void {
+    this.profileRepository.getProfile().subscribe({
+      next: (profile) => this.profile.set(profile),
+      error: () => this.profile.set(null)
+    });
   }
 }

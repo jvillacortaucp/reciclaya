@@ -19,6 +19,40 @@
     </div>
 
     <form class="mt-6 space-y-4" [formGroup]="orderForm">
+      <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Validación regulatoria</p>
+            <p class="mt-1 text-sm text-slate-600">{{ regulatoryRule().riskLabel }} · {{ regulatoryRule().traceabilityLabel }}</p>
+          </div>
+          <span class="rounded-full px-3 py-1 text-xs font-semibold" [class]="levelBadgeClasses(regulatoryLevel())">
+            {{ regulatoryRule().shortLabel }}
+          </span>
+        </div>
+
+        <div class="mt-4 grid gap-2">
+          @for (item of buyerComplianceEvaluation().allRequirements; track item.code) {
+            <div class="flex items-start gap-2 rounded-xl bg-white px-3 py-2 text-sm">
+              <span
+                class="mt-0.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full text-[10px] font-bold"
+                [class]="item.status === 'complete' ? 'bg-emerald-100 text-emerald-700' : item.required ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'">
+                {{ item.status === 'complete' ? 'OK' : item.required ? '!' : 'i' }}
+              </span>
+              <div class="min-w-0">
+                <p class="font-medium text-slate-800">{{ item.label }}</p>
+                <p class="text-xs text-slate-500">{{ item.required ? 'Obligatorio' : 'Recomendable' }}</p>
+              </div>
+            </div>
+          }
+        </div>
+
+        @if (!canProceedWithCheckout()) {
+          <div class="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+            Antes de crear la orden debes completar: {{ buyerComplianceEvaluation().missingRequired.map((item) => item.label).join(', ') }}.
+          </div>
+        }
+      </div>
+
       <label class="flex flex-col gap-2">
         <span class="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Cantidad</span>
         <input class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none" type="number" formControlName="quantity" />
@@ -37,7 +71,7 @@
       <button
         type="button"
         class="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
-        [disabled]="createLoading()"
+        [disabled]="createLoading() || !canProceedWithCheckout()"
         (click)="submitOrder()"
       >
         @if (createLoading()) { <svg lucideLoaderCircle size="16" class="animate-spin"></svg> }
@@ -122,7 +156,7 @@
             <button
               type="button"
               class="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
-              [disabled]="paymentLoading()"
+              [disabled]="paymentLoading() || !canProceedWithCheckout()"
               (click)="submitPayment()"
             >
               @if (paymentLoading()) { <svg lucideLoaderCircle size="16" class="animate-spin"></svg> }
