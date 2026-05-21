@@ -4,7 +4,13 @@
       <div class="min-w-0 flex-1">
         <p class="text-sm font-semibold text-slate-800">{{ requirement.uploadedFileName }}</p>
         <p class="mt-1 text-xs text-slate-500">
-          {{ requirement.uploadedFileKind === 'image' ? 'Imagen de evidencia' : 'Documento PDF' }}
+          {{
+            requirement.uploadedFileKind === 'image'
+              ? 'Imagen de evidencia'
+              : requirement.uploadedFileKind === 'pdf'
+                ? 'Documento PDF'
+                : 'Documento (Word/PDF)'
+          }}
         </p>
       </div>
 
@@ -32,16 +38,16 @@
         [alt]="requirement.title"
         class="mt-3 h-36 w-full rounded-2xl border border-slate-200 object-cover"
       />
-    } @else if (requirement.uploadedFileKind === 'pdf') {
+    } @else if (requirement.uploadedFileKind === 'pdf' || requirement.uploadedFileKind === 'document') {
       <div class="mt-3 rounded-2xl border border-dashed border-slate-200 bg-white px-4 py-6 text-center text-sm text-slate-500">
-        PDF listo para futura validación en backend.
+        Documento cargado y enviado para revision.
       </div>
     }
   </div>
 } @else {
   <div class="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4">
-    <p class="text-sm font-semibold text-slate-800">Aún no subiste un archivo</p>
-    <p class="mt-1 text-xs text-slate-500">Formatos aceptados: PDF, JPG, PNG. Se conserva localmente por ahora.</p>
+    <p class="text-sm font-semibold text-slate-800">Aun no subiste un archivo</p>
+    <p class="mt-1 text-xs text-slate-500">Formatos aceptados: PDF, DOC, DOCX, JPG, PNG, WEBP.</p>
     <label
       class="mt-4 inline-flex cursor-pointer items-center rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-100"
     >

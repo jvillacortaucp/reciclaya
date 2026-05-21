@@ -264,6 +264,30 @@ export class AuthFacade {
     this.authSuccessTargetUrl.set(returnUrl ?? APP_ROUTES.dashboard);
   }
 
+  private navigateAfterAuth(): void {
+    const returnUrl = this.extractReturnUrl();
+    void this.router.navigateByUrl(returnUrl ?? APP_ROUTES.dashboard);
+  }
+
+  private mapGoogleError(errorCode: string | null): string {
+    if (!errorCode) {
+      return 'No se pudo completar la autenticacion con Google.';
+    }
+
+    switch (errorCode) {
+      case 'INVALID_OAUTH_STATE':
+        return 'La sesion de Google expiro. Intenta nuevamente.';
+      case 'GOOGLE_EMAIL_NOT_VERIFIED':
+        return 'Tu correo de Google no esta verificado.';
+      case 'GOOGLE_PROFILE_INCOMPLETE':
+        return 'Google no devolvio un perfil completo.';
+      case 'GOOGLE_OAUTH_FAILED':
+        return 'Fallo la autenticacion con Google. Reintenta en unos minutos.';
+      default:
+        return 'No se pudo completar la autenticacion con Google.';
+    }
+  }
+
   private extractReturnUrl(): string | null {
     const queryParams = this.router.parseUrl(this.router.url).queryParams;
     const returnUrl = queryParams['returnUrl'];

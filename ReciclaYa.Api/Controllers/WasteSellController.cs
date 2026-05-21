@@ -4,13 +4,17 @@ using Microsoft.AspNetCore.Mvc;
 using ReciclaYa.Api.Responses;
 using ReciclaYa.Application.Listings.Dtos;
 using ReciclaYa.Application.Listings.Services;
+using ReciclaYa.Application.Regulation.Dtos;
+using ReciclaYa.Application.Regulation.Services;
 
 namespace ReciclaYa.Api.Controllers;
 
 [ApiController]
 [Authorize]
 [Route("api/waste-sell")]
-public sealed class WasteSellController(IListingService listingService) : ControllerBase
+public sealed class WasteSellController(
+    IListingService listingService,
+    IRegulationService regulationService) : ControllerBase
 {
     [HttpPut("draft")]
     public async Task<IActionResult> SaveDraft(
@@ -46,6 +50,25 @@ public sealed class WasteSellController(IListingService listingService) : Contro
         if (!TryGetUserId(out var userId))
         {
             return InvalidToken();
+        }
+
+        var validation = await regulationService.ValidateOperationAsync(
+            userId,
+            User.FindFirst("role")?.Value ?? string.Empty,
+            new RegulationValidateOperationRequestDto(
+                Action: "publish",
+                Actor: "seller",
+                ResidueType: request.FormValue.ResidueType,
+                Sector: request.FormValue.Sector,
+                ProductType: request.FormValue.ProductType,
+                SpecificResidue: request.FormValue.SpecificResidue,
+                Quantity: request.FormValue.Volume.Quantity,
+                Unit: request.FormValue.Volume.Unit),
+            cancellationToken);
+
+        if (!validation.Allowed)
+        {
+            return RegulatoryBlocked(validation);
         }
 
         await listingService.PublishAsync(userId, request, listingId, cancellationToken);
@@ -91,5 +114,16 @@ public sealed class WasteSellController(IListingService listingService) : Contro
         return StatusCode(
             StatusCodes.Status403Forbidden,
             ApiResponse<object>.Fail("Forbidden.", ["FORBIDDEN"]));
+    }
+
+    private IActionResult RegulatoryBlocked(RegulationValidationResultDto validation)
+    {
+        return StatusCode(StatusCodes.Status403Forbidden, new
+        {
+            success = false,
+            data = validation,
+            message = validation.BlockingMessage,
+            errors = new[] { validation.BlockingReasonCode ?? "REGULATION_BLOCKED" }
+        });
     }
 }

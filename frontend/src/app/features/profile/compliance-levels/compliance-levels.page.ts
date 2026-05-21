@@ -30,23 +30,29 @@ export class ComplianceLevelsPageComponent implements OnInit, OnDestroy {
   protected readonly saving = signal(false);
   protected readonly toastMessage = signal<string | null>(null);
   protected readonly expandedLevels = signal<Record<number, boolean>>({
-    1: false,
-    2: true,
+    1: true,
+    2: false,
     3: false,
     4: false
   });
 
   protected readonly levels = this.facade.levels;
   protected readonly overview = this.facade.overview;
+  protected readonly showLevel0Banner = computed(() => this.facade.currentRegulationLevel() === 0);
+  protected readonly canTransact = this.facade.canTransact;
   protected readonly helpMessage =
-    'Gestiona tus evidencias por nivel. La subida es local por ahora, pero la estructura ya queda lista para conectar validación real y storage.';
-  protected readonly currentLevelLabel = computed(
-    () => this.levels().find((level) => level.id === this.overview().currentLevel)?.title ?? 'Nivel 1'
+    'Gestiona tus evidencias por nivel. Los archivos se suben a storage y se guardan en tu perfil regulatorio.';
+  protected readonly currentLevelLabel = computed(() =>
+    this.overview().currentLevel === 0
+      ? 'Nivel 0 - Solo exploracion'
+      : this.levels().find((level) => level.id === this.overview().currentLevel)?.title ?? 'Nivel 1'
   );
   protected readonly nextLevelLabel = computed(() =>
     this.overview().nextLevel
       ? this.levels().find((level) => level.id === this.overview().nextLevel)?.title ?? `Nivel ${this.overview().nextLevel}`
-      : 'Máximo nivel alcanzado'
+      : this.overview().currentLevel === 0
+        ? 'Nivel 1'
+        : 'Maximo nivel alcanzado'
   );
 
   ngOnInit(): void {
@@ -72,12 +78,12 @@ export class ComplianceLevelsPageComponent implements OnInit, OnDestroy {
   protected saveDraft(): void {
     this.facade.saveDraft();
     this.saving.set(false);
-    this.toastMessage.set('Cambios guardados localmente. Luego podremos conectarlo a API y storage.');
+    this.toastMessage.set('Cambios guardados correctamente.');
   }
 
   protected onFileSelected(requirementId: string, file: File): void {
     this.facade.attachFile(requirementId, file);
-    this.toastMessage.set('Archivo adjuntado localmente.');
+    this.toastMessage.set('Subiendo archivo...');
   }
 
   protected onRemoveFile(requirementId: string): void {

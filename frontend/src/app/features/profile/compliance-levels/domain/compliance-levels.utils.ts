@@ -57,8 +57,8 @@ export function buildComplianceOverview(levels: readonly ComplianceLevel[]): Com
   const pendingRequirements = Math.max(totalRequirements - completedRequirements, 0);
   const currentCompletedLevel = [...levels]
     .reverse()
-    .find((level) => level.status === 'completed')?.id ?? 1;
-  const nextLevel = currentCompletedLevel < 4 ? ((currentCompletedLevel + 1) as RegulatoryLevel) : null;
+    .find((level) => level.status === 'completed')?.id ?? 0;
+  const nextLevel = currentCompletedLevel < 4 ? ((Math.max(1, currentCompletedLevel + 1)) as RegulatoryLevel) : null;
   const activeRequirements = levels.reduce(
     (sum, level) =>
       sum + level.requirementsForUpload.filter((requirement) => ACTIVE_STATUSES.includes(requirement.currentStatus)).length,

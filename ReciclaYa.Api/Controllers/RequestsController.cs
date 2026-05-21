@@ -2,15 +2,22 @@ using System.IdentityModel.Tokens.Jwt;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ReciclaYa.Api.Responses;
+using ReciclaYa.Application.Abstractions.Persistence;
 using ReciclaYa.Application.CommercialRequests.Dtos;
 using ReciclaYa.Application.CommercialRequests.Services;
+using ReciclaYa.Application.Regulation.Dtos;
+using ReciclaYa.Application.Regulation.Services;
+using Microsoft.EntityFrameworkCore;
 
 namespace ReciclaYa.Api.Controllers;
 
 [ApiController]
 [Authorize]
 [Route("api/requests")]
-public sealed class RequestsController(ICommercialRequestService commercialRequestService) : ControllerBase
+public sealed class RequestsController(
+    ICommercialRequestService commercialRequestService,
+    IRegulationService regulationService,
+    IAuthDbContext dbContext) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> GetRequests(CancellationToken cancellationToken)
@@ -55,6 +62,31 @@ public sealed class RequestsController(ICommercialRequestService commercialReque
             return StatusCode(
                 StatusCodes.Status403Forbidden,
                 ApiResponse<object>.Fail("Forbidden.", ["FORBIDDEN"]));
+        }
+
+        var listingContext = await dbContext.Listings
+            .AsNoTracking()
+            .Where(item => item.Id == request.ListingId)
+            .Select(item => new { item.WasteType, item.Sector, item.ProductType, item.SpecificResidue, item.Quantity, item.Unit })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        var validation = await regulationService.ValidateOperationAsync(
+            userId,
+            role,
+            new RegulationValidateOperationRequestDto(
+                Action: "negotiate",
+                Actor: "buyer",
+                ResidueType: listingContext?.WasteType,
+                Sector: listingContext?.Sector,
+                ProductType: listingContext?.ProductType,
+                SpecificResidue: listingContext?.SpecificResidue,
+                Quantity: listingContext?.Quantity,
+                Unit: listingContext?.Unit),
+            cancellationToken);
+
+        if (!validation.Allowed)
+        {
+            return RegulatoryBlocked(validation);
         }
 
         try
@@ -183,5 +215,16 @@ public sealed class RequestsController(ICommercialRequestService commercialReque
 
         return Guid.TryParse(subject, out userId)
             && !string.IsNullOrWhiteSpace(role);
+    }
+
+    private IActionResult RegulatoryBlocked(RegulationValidationResultDto validation)
+    {
+        return StatusCode(StatusCodes.Status403Forbidden, new
+        {
+            success = false,
+            data = validation,
+            message = validation.BlockingMessage,
+            errors = new[] { validation.BlockingReasonCode ?? "REGULATION_BLOCKED" }
+        });
     }
 }

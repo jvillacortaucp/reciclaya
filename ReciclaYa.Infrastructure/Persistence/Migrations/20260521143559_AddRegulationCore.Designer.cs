@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using ReciclaYa.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using ReciclaYa.Infrastructure.Persistence;
 namespace ReciclaYa.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(ReciclaYaDbContext))]
-    partial class ReciclaYaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260521143559_AddRegulationCore")]
+    partial class AddRegulationCore
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1100,26 +1103,6 @@ namespace ReciclaYa.Infrastructure.Persistence.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("refresh_tokens", (string)null);
-                });
-
-            modelBuilder.Entity("ReciclaYa.Domain.Entities.RegulationLevelCatalog", b =>
-                {
-                    b.Property<int>("Level")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("PayloadJson")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Level");
-
-                    b.ToTable("regulation_level_catalogs", (string)null);
                 });
 
             modelBuilder.Entity("ReciclaYa.Domain.Entities.RegulationOperationAudit", b =>

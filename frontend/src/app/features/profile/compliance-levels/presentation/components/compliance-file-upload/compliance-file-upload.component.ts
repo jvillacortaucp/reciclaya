@@ -13,7 +13,7 @@ export class ComplianceFileUploadComponent {
   @Output() fileSelected = new EventEmitter<File>();
   @Output() removeFile = new EventEmitter<void>();
 
-  protected readonly accept = '.pdf,image/*';
+  protected readonly accept = '.pdf,.doc,.docx,image/*';
 
   protected onFileChange(event: Event): void {
     const input = event.target as HTMLInputElement;

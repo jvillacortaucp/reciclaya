@@ -2,7 +2,6 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { ApiResponse } from '../models/app.models';
 
 const DEFAULT_ERROR_MESSAGE = 'No se pudo completar la operacion.';
-const FORBIDDEN_MESSAGE = 'No tienes permisos para esta accion.';
 
 export function unwrapApiResponse<T>(response: ApiResponse<T>): T {
   if (!response.success || response.data === null || response.data === undefined) {
@@ -14,10 +13,6 @@ export function unwrapApiResponse<T>(response: ApiResponse<T>): T {
 
 export function normalizeHttpError(error: unknown, fallback = DEFAULT_ERROR_MESSAGE): Error {
   if (error instanceof HttpErrorResponse) {
-    if (error.status === 403) {
-      return new Error(FORBIDDEN_MESSAGE);
-    }
-
     return new Error(resolveApiMessage(error.error) ?? fallback);
   }
 
