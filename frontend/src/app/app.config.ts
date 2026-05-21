@@ -1,11 +1,12 @@
 import { ApplicationConfig, ErrorHandler, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
-import { provideRouter, withComponentInputBinding, withViewTransitions } from '@angular/router';
+import { provideRouter, RouteReuseStrategy, withComponentInputBinding, withViewTransitions } from '@angular/router';
 import { appRoutes } from './app.routes';
 import { authTokenInterceptor } from './core/interceptors/auth-token.interceptor';
 import { errorHandlingInterceptor } from './core/interceptors/error-handling.interceptor';
 import { mockLatencyInterceptor } from './core/interceptors/mock-latency.interceptor';
 import { requestLoggingInterceptor } from './core/interceptors/request-logging.interceptor';
+import { SelectiveRouteReuseStrategy } from './core/router/selective-route-reuse.strategy';
 import { GlobalErrorHandler } from './core/services/global-error-handler.service';
 
 export const appConfig: ApplicationConfig = {
@@ -23,6 +24,10 @@ export const appConfig: ApplicationConfig = {
     {
       provide: ErrorHandler,
       useClass: GlobalErrorHandler
+    },
+    {
+      provide: RouteReuseStrategy,
+      useClass: SelectiveRouteReuseStrategy
     }
   ]
 };

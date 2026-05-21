@@ -2,6 +2,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { inject, Injectable, signal } from '@angular/core';
 import { catchError, EMPTY, finalize } from 'rxjs';
 import { getErrorMessage } from '../../../core/http/api-response.helpers';
+import { RouteReuseCacheService } from '../../../core/router/route-reuse-cache.service';
 import { PreOrder as LegacyPreOrder } from '../../../core/models/app.models';
 import {
   PaymentMethodType,
@@ -15,6 +16,7 @@ import { PreOrdersHttpRepository } from '../infrastructure/pre-orders-http.repos
 @Injectable({ providedIn: 'root' })
 export class PreOrdersFacade {
   private readonly repository = inject(PreOrdersHttpRepository);
+  private readonly routeReuseCache = inject(RouteReuseCacheService);
 
   readonly loading = signal(false);
   readonly screenLoading = signal(false);
@@ -143,6 +145,7 @@ export class PreOrdersFacade {
       .subscribe((result) => {
         this.createdPreOrder.set(result);
         this.paymentStatus.set('success');
+        this.routeReuseCache.invalidate('pre-orders', 'orders');
         this.toastMessage.set('Pre-orden generada correctamente.');
         this.load();
       });

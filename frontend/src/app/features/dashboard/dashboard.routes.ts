@@ -5,6 +5,9 @@ export const DASHBOARD_ROUTES: Route[] = [
     path: '',
     loadComponent: () => import('./dashboard.page').then((m) => m.DashboardPageComponent),
     data: {
+      reuseView: true,
+      reuseKey: 'dashboard',
+      cacheTtlMs: 180000,
       meta: {
         title: 'Dashboard de impacto',
         breadcrumb: 'Dashboard de impacto',

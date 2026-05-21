@@ -3,6 +3,7 @@ import { Router } from '@angular/router';
 import { catchError, EMPTY, finalize } from 'rxjs';
 import { APP_ROUTES } from '../../../core/constants/app.constants';
 import { getErrorMessage } from '../../../core/http/api-response.helpers';
+import { RouteReuseCacheService } from '../../../core/router/route-reuse-cache.service';
 import {
   CheckoutOrder,
   CreateCheckoutFromListingPayload,
@@ -16,6 +17,7 @@ import { PaymentsHttpRepository } from '../infrastructure/payments-http.reposito
 export class CheckoutFacade {
   private readonly checkoutRepository = inject(CheckoutHttpRepository);
   private readonly paymentsRepository = inject(PaymentsHttpRepository);
+  private readonly routeReuseCache = inject(RouteReuseCacheService);
   private readonly router = inject(Router);
 
   readonly createLoading = signal(false);
@@ -55,6 +57,9 @@ export class CheckoutFacade {
       )
       .subscribe((result) => {
         this.paymentResult.set(result);
+        if (result.status === 'approved') {
+          this.routeReuseCache.invalidate('pre-orders', 'orders');
+        }
         this.toastMessage.set(result.status === 'approved' ? 'Pago aprobado.' : 'Pago rechazado.');
       });
   }

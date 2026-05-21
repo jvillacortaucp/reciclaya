@@ -89,8 +89,16 @@ export class MarketplacePageComponent implements OnInit, AfterViewInit, OnDestro
 
   ngOnInit(): void {
     const initialQuery = this.route.snapshot.queryParamMap.get('q') ?? '';
-    this.filtersForm.patchValue({ query: initialQuery }, { emitEvent: false });
     this.facade.loadMarketplace(initialQuery);
+    this.filtersForm.patchValue(
+      {
+        query: this.facade.search().query,
+        wasteType: this.facade.filters().wasteType,
+        sector: this.facade.filters().sector,
+        exchangeType: this.facade.filters().exchangeType
+      },
+      { emitEvent: false }
+    );
 
     this.subscriptions.add(
       this.filtersForm.valueChanges.subscribe((value) => {

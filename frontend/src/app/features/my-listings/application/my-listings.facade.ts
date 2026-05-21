@@ -1,6 +1,9 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { catchError, EMPTY, finalize } from 'rxjs';
+import { VIEW_CACHE_KEYS } from '../../../core/cache/view-cache.keys';
+import { ViewCacheService } from '../../../core/cache/view-cache.service';
 import { getErrorMessage } from '../../../core/http/api-response.helpers';
+import { RouteReuseCacheService } from '../../../core/router/route-reuse-cache.service';
 import { MY_LISTINGS_COPY, MY_LISTINGS_DEFAULT_FILTERS } from '../data/my-listings.constants';
 import {
   ListingActionFeedback,
@@ -15,6 +18,8 @@ import { MarketplaceListing } from '../../marketplace/domain/marketplace.models'
 @Injectable({ providedIn: 'root' })
 export class MyListingsFacade {
   private readonly repository = inject(MyListingsRepository);
+  private readonly routeReuseCache = inject(RouteReuseCacheService);
+  private readonly viewCache = inject(ViewCacheService);
 
   readonly loading = signal(false);
   readonly actionLoadingId = signal<string | null>(null);
@@ -89,6 +94,8 @@ export class MyListingsFacade {
         this.listings.update((items) =>
           items.map((item) => (item.id === id ? { ...item, status: 'inactive' } : item))
         );
+        this.routeReuseCache.invalidate('marketplace');
+        this.viewCache.invalidate(VIEW_CACHE_KEYS.marketplaceView, VIEW_CACHE_KEYS.marketplaceDataset);
         this.toast.set({ type: 'info', message: MY_LISTINGS_COPY.deactivatedSuccess });
       });
   }
@@ -99,6 +106,8 @@ export class MyListingsFacade {
       this.actionLoadingId.set(null);
       this.listings.update((items) => items.map((item) => (item.id === id ? { ...item, status: 'active' } : item)));
       this.activeTab.set('active');
+      this.routeReuseCache.invalidate('marketplace');
+      this.viewCache.invalidate(VIEW_CACHE_KEYS.marketplaceView, VIEW_CACHE_KEYS.marketplaceDataset);
       this.toast.set({ type: 'info', message: MY_LISTINGS_COPY.restoredSuccess });
     });
   }

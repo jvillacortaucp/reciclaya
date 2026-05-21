@@ -18,6 +18,9 @@ export const PROFILE_ROUTES: Route[] = [
     path: '',
     loadComponent: () => import('./profile.page').then((m) => m.ProfilePageComponent),
     data: {
+      reuseView: true,
+      reuseKey: 'profile',
+      cacheTtlMs: 180000,
       meta: {
         title: 'Perfil',
         breadcrumb: 'Perfil',
