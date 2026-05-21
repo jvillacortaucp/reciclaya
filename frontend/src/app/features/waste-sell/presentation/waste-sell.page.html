@@ -35,6 +35,44 @@
   </div>
 }
 
+<ui-modal title="Nivel insuficiente para publicar" [open]="insufficientLevelModalOpen()">
+  <p class="text-sm leading-relaxed text-slate-600">
+    No cuentas con el nivel suficiente para publicar este tipo de residuo. Completa tu regularización para continuar con residuos de mayor control.
+  </p>
+
+  <div class="mt-4 grid gap-3 sm:grid-cols-2">
+    <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+      <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Tu nivel actual</p>
+      <p class="mt-2 text-lg font-bold text-slate-900">Nivel {{ currentUserLevel() }}</p>
+    </div>
+    <div class="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3">
+      <p class="text-[11px] font-semibold uppercase tracking-wider text-rose-500">Nivel requerido</p>
+      <p class="mt-2 text-lg font-bold text-rose-700">Nivel {{ requiredRegulatoryLevel() }}</p>
+    </div>
+  </div>
+
+  <p class="mt-4 rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
+    Sube la documentación correspondiente para desbloquear este nivel y volver a intentar la publicación.
+  </p>
+
+  <div class="mt-5 flex flex-wrap justify-end gap-3">
+    <button
+      type="button"
+      class="inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+      (click)="closeInsufficientLevelModal()"
+    >
+      Entendido
+    </button>
+    <button
+      type="button"
+      class="inline-flex items-center rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-emerald-700"
+      (click)="goToComplianceLevels()"
+    >
+      Subir de nivel
+    </button>
+  </div>
+</ui-modal>
+
 <section class="mt-6 grid w-full max-w-full min-w-0 grid-cols-1 gap-6 pb-20 lg:grid-cols-[minmax(0,1fr)_340px]">
   <form class="min-w-0 space-y-6" [formGroup]="form">
     <!-- Información General -->
@@ -79,6 +117,78 @@
         <span class="text-[11px] text-slate-400">{{ form.controls.shortDescription.value.length }}/500</span>
       </label>
       @if (fieldError('shortDescription')) { <p class="text-xs text-red-500 mt-1 ml-1">{{ fieldError('shortDescription') }}</p> }
+    </article>
+
+    <article class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm transition-all hover:shadow-md animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <header class="flex flex-wrap items-start justify-between gap-3 mb-4">
+        <div>
+          <h3 class="text-lg font-bold text-slate-800">Regularización del residuo</h3>
+          <p class="mt-1 text-sm text-slate-500">Evaluamos el nivel regulatorio sin cambiar tu formulario actual.</p>
+        </div>
+        <span class="rounded-full px-3 py-1 text-xs font-semibold" [class]="levelBadgeClasses(regulatoryLevel())">
+          {{ regulatoryRule().shortLabel }}
+        </span>
+      </header>
+
+      <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+          <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Riesgo y trazabilidad</p>
+          <p class="mt-2 text-base font-semibold text-slate-900">{{ regulatoryRule().riskLabel }}</p>
+          <p class="mt-1 text-sm text-slate-600">{{ regulatoryRule().traceabilityLabel }}</p>
+          <p class="mt-4 text-xs font-semibold uppercase tracking-wider text-slate-500">Estado del listing</p>
+          <p class="mt-2 text-sm text-slate-700">{{ regulatoryRule().listingStatusLabel }}</p>
+        </div>
+
+        <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+          <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Requisitos seller</p>
+          <div class="mt-3 space-y-2">
+            @for (item of sellerComplianceEvaluation().allRequirements; track item.code) {
+              <div class="flex items-start gap-2 rounded-xl bg-white px-3 py-2 text-sm">
+                <span
+                  class="mt-0.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full text-[10px] font-bold"
+                  [class]="item.status === 'complete' ? 'bg-emerald-100 text-emerald-700' : item.required ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'">
+                  {{ item.status === 'complete' ? 'OK' : item.required ? '!' : 'i' }}
+                </span>
+                <div class="min-w-0">
+                  <p class="font-medium text-slate-800">{{ item.label }}</p>
+                  <p class="text-xs text-slate-500">{{ item.required ? 'Obligatorio' : 'Recomendable' }}</p>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-4 grid gap-4 lg:grid-cols-2">
+        <div class="rounded-2xl border border-slate-200 bg-white p-4">
+          <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Restricciones clave</p>
+          <ul class="mt-3 space-y-2 text-sm text-slate-700">
+            @for (item of regulatoryRule().restrictions; track item) {
+              <li>• {{ item }}</li>
+            }
+          </ul>
+        </div>
+        <div class="rounded-2xl border border-slate-200 bg-white p-4">
+          <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Normativa y control</p>
+          <ul class="mt-3 space-y-2 text-sm text-slate-700">
+            @for (item of regulatoryRule().relatedNorms; track item) {
+              <li>• {{ item }}</li>
+            }
+          </ul>
+        </div>
+      </div>
+
+      @if (sellerComplianceEvaluation().missingRequired.length) {
+        <div class="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+          No podrás publicar este residuo hasta completar: {{ sellerComplianceEvaluation().missingRequired.map((item) => item.label).join(', ') }}.
+        </div>
+      }
+
+      @if (insufficientLevelReason()) {
+        <div class="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          {{ insufficientLevelReason() }} Sube de nivel desde tu módulo de regularización para poder continuar.
+        </div>
+      }
     </article>
 
     <!-- Volumen y Generación -->
