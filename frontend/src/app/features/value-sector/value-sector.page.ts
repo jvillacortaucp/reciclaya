@@ -14,7 +14,6 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { LucideLeaf, LucideLoaderCircle, LucideWandSparkles } from '@lucide/angular';
 import { ValueSectorFacade } from './application/value-sector.facade';
 import { VALUE_SECTOR_TEXT } from './data/value-sector.constants';
-import { TourGuideService } from '../../core/services/tour-guide.service';
 import { ValueSectorAccordionComponent } from './presentation/components/value-sector-accordion/value-sector-accordion.component';
 import { ValueSectorSummaryComponent } from './presentation/components/value-sector-summary/value-sector-summary.component';
 
@@ -41,7 +40,6 @@ export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestro
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
-  private readonly tourGuide = inject(TourGuideService);
   private readonly subscriptions = new Subscription();
   private observer: IntersectionObserver | null = null;
 
@@ -64,7 +62,6 @@ export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestro
   protected readonly text = VALUE_SECTOR_TEXT;
 
   ngOnInit(): void {
-    this.tourGuide.init();
     this.route.queryParamMap
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((params) => {
@@ -105,12 +102,10 @@ export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestro
 
   protected onRouteToggled(routeId: string): void {
     this.facade.toggleExpandedRoute(routeId);
-    this.tourGuide.notifyValueSectorSelected(routeId);
   }
 
   protected onProductSelected(payload: { routeId: string; productId: string }): void {
     this.facade.selectProduct(payload.routeId, payload.productId);
-    this.tourGuide.notifyValueProductSelected(payload.routeId, payload.productId);
   }
 
   protected onProcessRequested(): void {
@@ -139,8 +134,6 @@ export class ValueSectorPageComponent implements OnInit, AfterViewInit, OnDestro
       return;
     }
     this.facade.rememberScrollPosition(window.scrollY);
-
-    this.tourGuide.notifyRecommendationRouteChosen(tab, productId);
 
     void this.router.navigate(['/app/recommendations', productId], {
       queryParams: {

@@ -24,6 +24,7 @@ export class AuthFacade {
   readonly emailLoginLoading = signal(false);
   readonly socialLoginLoading = signal(false);
   readonly authError = signal<string | null>(null);
+  readonly authSuccessTargetUrl = signal<string | null>(null);
 
   readonly session = this.sessionStorage.session;
   readonly user = computed(() => this.session()?.user ?? null);
@@ -49,7 +50,7 @@ export class AuthFacade {
         finalize(() => this.emailLoginLoading.set(false))
       )
       .subscribe(() => {
-        this.navigateAfterAuth();
+        this.queueNavigationAfterAuth();
       });
   }
 
@@ -114,7 +115,7 @@ export class AuthFacade {
       .subscribe({
         next: (session) => {
           this.persistSession(session, true);
-          this.navigateAfterAuth();
+          this.queueNavigationAfterAuth();
         },
         error: (error: unknown) => this.authError.set(getErrorMessage(error, 'No se pudo completar el registro de empresa.'))
       });
@@ -130,7 +131,7 @@ export class AuthFacade {
       .subscribe({
         next: (session) => {
           this.persistSession(session, true);
-          this.navigateAfterAuth();
+          this.queueNavigationAfterAuth();
         },
         error: (error: unknown) =>
           this.authError.set(getErrorMessage(error, 'No se pudo completar el registro de persona natural.'))
@@ -252,22 +253,15 @@ export class AuthFacade {
     return getErrorMessage(error, LOGIN_VALIDATION_MESSAGES.invalidCredentials);
   }
 
-  private mapGoogleError(errorCode: string | null): string {
-    switch ((errorCode ?? '').trim()) {
-      case 'GOOGLE_EMAIL_NOT_VERIFIED':
-        return 'Tu correo de Google no esta verificado.';
-      case 'INVALID_OAUTH_STATE':
-        return 'No se pudo validar el inicio de sesion. Intenta nuevamente.';
-      case 'GOOGLE_PROFILE_INCOMPLETE':
-        return 'Google no devolvio informacion de perfil suficiente.';
-      default:
-        return 'No se pudo iniciar sesion con Google.';
-    }
+  consumeAuthSuccessTargetUrl(): string | null {
+    const url = this.authSuccessTargetUrl();
+    this.authSuccessTargetUrl.set(null);
+    return url;
   }
 
-  private navigateAfterAuth(): void {
+  private queueNavigationAfterAuth(): void {
     const returnUrl = this.extractReturnUrl();
-    void this.router.navigateByUrl(returnUrl ?? APP_ROUTES.dashboard);
+    this.authSuccessTargetUrl.set(returnUrl ?? APP_ROUTES.dashboard);
   }
 
   private extractReturnUrl(): string | null {

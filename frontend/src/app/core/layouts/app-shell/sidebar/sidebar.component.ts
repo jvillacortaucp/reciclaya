@@ -60,6 +60,13 @@ export class SidebarComponent {
   closeSidebar = output<void>();
   protected readonly currentUrl = signal(this.normalizeUrl(this.router.url));
   protected readonly isAuthenticated = this.authFacade.isAuthenticated;
+  protected readonly containerReady = signal(false);
+  protected readonly sidebarReady = signal(false);
+  protected readonly activeSweepKey = signal('');
+  protected readonly reduceMotion =
+    typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+      ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      : false;
 
   protected readonly navItems = computed(() =>
     SIDEBAR_NAV_ITEMS.filter((item) => {
@@ -82,10 +89,25 @@ export class SidebarComponent {
   );
 
   constructor() {
+    this.activeSweepKey.set('');
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        this.containerReady.set(true);
+        const entryDelay = this.reduceMotion ? 0 : 360;
+        setTimeout(() => {
+          this.sidebarReady.set(true);
+          this.activeSweepKey.set(`${this.currentUrl()}-${Date.now()}`);
+        }, entryDelay);
+      });
+    });
     const subscription = this.router.events
       .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
       .subscribe(() => {
-        this.currentUrl.set(this.normalizeUrl(this.router.url));
+        const normalized = this.normalizeUrl(this.router.url);
+        this.currentUrl.set(normalized);
+        this.activeSweepKey.set('');
+        const sweepDelay = this.containerReady() ? 40 : 380;
+        setTimeout(() => this.activeSweepKey.set(`${normalized}-${Date.now()}`), sweepDelay);
       });
 
     this.destroyRef.onDestroy(() => subscription.unsubscribe());
@@ -118,6 +140,23 @@ export class SidebarComponent {
 
       return url === normalizedPath || url.startsWith(`${normalizedPath}/`);
     });
+  }
+
+  protected iconDelayMs(index: number, account = false): number {
+    if (this.reduceMotion) {
+      return 0;
+    }
+
+    const offset = account ? this.mainNavItems().length : 0;
+    return 60 + (index + offset) * 60;
+  }
+
+  protected labelDelayMs(index: number, account = false): number {
+    return this.iconDelayMs(index, account) + (this.reduceMotion ? 0 : 90);
+  }
+
+  protected shouldSweep(item: SidebarNavItem): boolean {
+    return this.isRouteActive(item) && !!this.activeSweepKey();
   }
 
   private normalizeUrl(url: string): string {

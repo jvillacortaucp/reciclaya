@@ -1,7 +1,6 @@
-import { computed, ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { computed, ChangeDetectionStrategy, Component, effect, inject, signal } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import {
   LucideAlertCircle,
   LucideArrowRight,
@@ -23,6 +22,7 @@ import {
 } from '../data/login.constants';
 import { AuthProvider } from '../domain/login-screen.models';
 import { AuthFacade } from '../services/auth.facade';
+import { AuthTransitionService } from '../services/auth-transition.service';
 
 @Component({
   selector: 'app-login-page',
@@ -47,7 +47,8 @@ import { AuthFacade } from '../services/auth.facade';
 export class LoginPageComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly authFacade = inject(AuthFacade);
-  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly authTransition = inject(AuthTransitionService);
 
   protected readonly copy = LOGIN_SCREEN_COPY;
   protected readonly featureItems = LOGIN_FEATURE_ITEMS;
@@ -57,8 +58,13 @@ export class LoginPageComponent implements OnInit {
   protected readonly emailLoading = this.authFacade.emailLoginLoading;
   protected readonly socialLoading = this.authFacade.socialLoginLoading;
   protected readonly authError = this.authFacade.authError;
+  protected readonly isTransitioning = this.authTransition.isPlaying;
 
   protected readonly showPassword = signal(false);
+  protected readonly reduceMotion =
+    typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+      ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      : false;
 
   protected readonly form = this.fb.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],
@@ -72,12 +78,37 @@ export class LoginPageComponent implements OnInit {
 
   protected readonly hasSocialOptions = computed(() => this.socialOptions.some((option) => option.enabled));
 
-  ngOnInit(): void {
-    const query = this.route.snapshot.queryParamMap;
-    const auth = query.get('auth');
-    const ticket = query.get('ticket');
-    const code = query.get('code');
-    this.authFacade.processGoogleCallback(ticket, auth, code);
+  constructor() {
+    effect(() => {
+      const targetUrl = this.authFacade.authSuccessTargetUrl();
+      if (!targetUrl) {
+        return;
+      }
+
+      const target = this.authFacade.consumeAuthSuccessTargetUrl();
+      if (!target) {
+        return;
+      }
+
+      if (this.reduceMotion) {
+        void this.router.navigateByUrl(target);
+        return;
+      }
+
+      this.authTransition.startPrepared(target);
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          this.authTransition.startOpening();
+        });
+      });
+
+      setTimeout(() => {
+        this.authTransition.markNavigating();
+        void this.router.navigateByUrl(target).catch(() => {
+          this.authTransition.reset();
+        });
+      }, this.authTransition.NAVIGATION_TRIGGER_MS);
+    });
   }
 
   protected togglePasswordVisibility(): void {
@@ -85,7 +116,7 @@ export class LoginPageComponent implements OnInit {
   }
 
   protected submit(): void {
-    if (this.emailLoading() || this.socialLoading()) {
+    if (this.emailLoading() || this.socialLoading() || this.isTransitioning()) {
       return;
     }
 
@@ -100,7 +131,7 @@ export class LoginPageComponent implements OnInit {
   }
 
   protected continueWithGoogle(): void {
-    if (!this.googleOption()?.enabled) {
+    if (!this.googleOption()?.enabled || this.isTransitioning()) {
       return;
     }
 
