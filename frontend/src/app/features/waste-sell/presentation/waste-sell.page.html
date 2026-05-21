@@ -35,6 +35,44 @@
   </div>
 }
 
+<ui-modal title="Nivel insuficiente para publicar" [open]="insufficientLevelModalOpen()">
+  <p class="text-sm leading-relaxed text-slate-600">
+    No cuentas con el nivel suficiente para publicar este tipo de residuo. Completa tu regularización para continuar con residuos de mayor control.
+  </p>
+
+  <div class="mt-4 grid gap-3 sm:grid-cols-2">
+    <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+      <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Tu nivel actual</p>
+      <p class="mt-2 text-lg font-bold text-slate-900">Nivel {{ currentUserLevel() }}</p>
+    </div>
+    <div class="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3">
+      <p class="text-[11px] font-semibold uppercase tracking-wider text-rose-500">Nivel requerido</p>
+      <p class="mt-2 text-lg font-bold text-rose-700">Nivel {{ requiredRegulatoryLevel() }}</p>
+    </div>
+  </div>
+
+  <p class="mt-4 rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
+    Sube la documentación correspondiente para desbloquear este nivel y volver a intentar la publicación.
+  </p>
+
+  <div class="mt-5 flex flex-wrap justify-end gap-3">
+    <button
+      type="button"
+      class="inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+      (click)="closeInsufficientLevelModal()"
+    >
+      Entendido
+    </button>
+    <button
+      type="button"
+      class="inline-flex items-center rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-emerald-700"
+      (click)="goToComplianceLevels()"
+    >
+      Subir de nivel
+    </button>
+  </div>
+</ui-modal>
+
 <section class="mt-6 grid w-full max-w-full min-w-0 grid-cols-1 gap-6 pb-20 lg:grid-cols-[minmax(0,1fr)_340px]">
   <form class="min-w-0 space-y-6" [formGroup]="form">
     <!-- Información General -->
@@ -143,6 +181,12 @@
       @if (sellerComplianceEvaluation().missingRequired.length) {
         <div class="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
           No podrás publicar este residuo hasta completar: {{ sellerComplianceEvaluation().missingRequired.map((item) => item.label).join(', ') }}.
+        </div>
+      }
+
+      @if (insufficientLevelReason()) {
+        <div class="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          {{ insufficientLevelReason() }} Sube de nivel desde tu módulo de regularización para poder continuar.
         </div>
       }
     </article>

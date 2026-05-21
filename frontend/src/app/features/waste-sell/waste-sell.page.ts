@@ -25,6 +25,9 @@ import {
   LucideArrowLeft
 } from '@lucide/angular';
 import { PendingChangesAware } from '../../core/models/pending-changes.model';
+import { APP_ROUTES } from '../../core/constants/app.constants';
+import { ComplianceLevelsStore } from '../../core/regulatory/compliance-levels.store';
+import { canOperateComplianceLevel, resolveRequiredComplianceLevel } from '../../core/regulatory/compliance-levels.helpers';
 import { RegulatoryComplianceStore } from '../../core/regulatory/regulatory-compliance.store';
 import {
   classifyRegulatoryLevel,
@@ -42,6 +45,7 @@ import {
   safeBusinessNameValidator,
   sanitizeInputValue
 } from '../../shared/helpers/validators';
+import { ModalComponent } from '../../shared/ui/modal/modal.component';
 import { SectionHeaderComponent } from '../../shared/ui/section-header/section-header.component';
 import { WasteSellFacade } from './application/waste-sell.facade';
 import {
@@ -66,6 +70,7 @@ import { WasteUploadZoneComponent } from './presentation/components/waste-upload
   imports: [
     ReactiveFormsModule,
     SectionHeaderComponent,
+    ModalComponent,
     WasteUploadZoneComponent,
     WastePreviewCardComponent,
     LucideSendHorizontal,
@@ -90,11 +95,13 @@ export class WasteSellPageComponent implements OnInit, OnDestroy, PendingChanges
   private readonly authFacade = inject(AuthFacade);
   private readonly profileRepository = inject(ProfileHttpRepository);
   private readonly regulatoryStore = inject(RegulatoryComplianceStore);
+  private readonly complianceLevelsStore = inject(ComplianceLevelsStore);
 
   private readonly patching = signal(false);
   private readonly createdObjectUrls = new Set<string>();
   private readonly subscriptions = new Subscription();
   private readonly profile = signal<Profile | null>(null);
+  protected readonly insufficientLevelModalOpen = signal(false);
   protected readonly isEditing = signal(false);
 
   protected readonly copy = WASTE_SELL_COPY;
@@ -136,6 +143,37 @@ export class WasteSellPageComponent implements OnInit, OnDestroy, PendingChanges
       unit: this.formSnapshot().unit
     })
   );
+  protected readonly currentUserLevel = computed<RegulatoryLevel>(() =>
+    this.complianceLevelsStore.getCurrentLevel(this.profile()?.id ?? this.authFacade.user()?.id)
+  );
+  protected readonly requiredRegulatoryLevel = computed<RegulatoryLevel>(() =>
+    resolveRequiredComplianceLevel({
+      residueType: this.formSnapshot().residueType,
+      sector: this.formSnapshot().sector,
+      productType: this.formSnapshot().productType,
+      specificResidue: this.formSnapshot().specificResidue,
+      description: this.formSnapshot().shortDescription,
+      restrictions: this.formSnapshot().restrictionsNotes,
+      quantity: this.formSnapshot().quantity,
+      unit: this.formSnapshot().unit
+    })
+  );
+  protected readonly canPublishByLevel = computed(() =>
+    canOperateComplianceLevel(this.currentUserLevel(), this.requiredRegulatoryLevel())
+  );
+  protected readonly hasLevelClassificationData = computed(() => {
+    const snapshot = this.formSnapshot();
+    return [snapshot.residueType, snapshot.sector, snapshot.productType, snapshot.specificResidue].every((value) =>
+      value?.toString().trim()
+    );
+  });
+  protected readonly insufficientLevelReason = computed(() => {
+    if (!this.hasLevelClassificationData() || this.canPublishByLevel()) {
+      return null;
+    }
+
+    return `Tu nivel actual es Nivel ${this.currentUserLevel()} y este residuo requiere al menos Nivel ${this.requiredRegulatoryLevel()}.`;
+  });
   protected readonly regulatoryRule = computed(() => getRegulatoryRule(this.regulatoryLevel()));
   protected readonly sellerComplianceEvaluation = computed(() =>
     evaluateSellerCompliance(this.regulatoryLevel(), this.profile(), this.regulatoryStore.getRecord(this.profile()?.id ?? this.authFacade.user()?.id).seller, {
@@ -260,6 +298,11 @@ export class WasteSellPageComponent implements OnInit, OnDestroy, PendingChanges
       return;
     }
 
+    if (!this.canPublishByLevel()) {
+      this.insufficientLevelModalOpen.set(true);
+      return;
+    }
+
     const nextState = this.state();
     if (!nextState) {
       return;
@@ -311,6 +354,15 @@ export class WasteSellPageComponent implements OnInit, OnDestroy, PendingChanges
 
   protected dismissToast(): void {
     this.facade.clearToast();
+  }
+
+  protected closeInsufficientLevelModal(): void {
+    this.insufficientLevelModalOpen.set(false);
+  }
+
+  protected goToComplianceLevels(): void {
+    this.insufficientLevelModalOpen.set(false);
+    void this.router.navigateByUrl(APP_ROUTES.profileComplianceLevels);
   }
 
   protected onFilesAdded(files: readonly File[]): void {
