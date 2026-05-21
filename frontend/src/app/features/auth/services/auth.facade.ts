@@ -55,7 +55,45 @@ export class AuthFacade {
   }
 
   loginWithGoogle(): void {
-    this.authError.set(LOGIN_VALIDATION_MESSAGES.socialDisabled);
+    if (this.socialLoginLoading() || this.emailLoginLoading()) {
+      return;
+    }
+
+    this.authError.set(null);
+    this.socialLoginLoading.set(true);
+
+    const returnUrl = this.extractReturnUrl() ?? APP_ROUTES.dashboard;
+    const url = this.authRepository.buildGoogleStartUrl(returnUrl);
+    window.location.assign(url);
+  }
+
+  processGoogleCallback(ticket: string | null, authStatus: string | null, errorCode: string | null): void {
+    if (authStatus !== 'success' || !ticket) {
+      if (authStatus === 'error') {
+        this.authError.set(this.mapGoogleError(errorCode));
+      }
+      this.socialLoginLoading.set(false);
+      return;
+    }
+
+    this.authError.set(null);
+    this.socialLoginLoading.set(true);
+
+    this.authRepository
+      .exchangeGoogleSession(ticket)
+      .pipe(
+        tap((session) => {
+          this.persistSession(session, true);
+        }),
+        catchError((error: unknown) => {
+          this.authError.set(getErrorMessage(error, 'No se pudo completar la sesion con Google.'));
+          return EMPTY;
+        }),
+        finalize(() => this.socialLoginLoading.set(false))
+      )
+      .subscribe(() => {
+        this.navigateAfterAuth();
+      });
   }
 
   register(payload: RegisterPayload): void {

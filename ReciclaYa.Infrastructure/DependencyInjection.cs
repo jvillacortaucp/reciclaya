@@ -7,8 +7,11 @@ using ReciclaYa.Application.Abstractions.Persistence;
 using ReciclaYa.Application.Media.Options;
 using ReciclaYa.Application.Media.Services;
 using ReciclaYa.Application.Recommendations.Services;
+using ReciclaYa.Application.Auth.Models;
+using ReciclaYa.Application.Auth.Services;
 using ReciclaYa.Application.ValueSectors.Services;
 using ReciclaYa.Application.ValorizationIdeas.Services;
+using ReciclaYa.Infrastructure.Auth;
 using ReciclaYa.Infrastructure.AI;
 using ReciclaYa.Infrastructure.Options;
 using ReciclaYa.Infrastructure.Persistence;
@@ -34,6 +37,21 @@ public static class DependencyInjection
             options.UseNpgsql(connectionString);
         });
         services.AddScoped<IAuthDbContext>(provider => provider.GetRequiredService<ReciclaYaDbContext>());
+        services.AddSingleton<IOptions<GoogleAuthSettings>>(_ =>
+        {
+            var section = configuration.GetSection("GoogleAuth");
+            var options = new GoogleAuthSettings
+            {
+                ClientId = section["ClientId"] ?? string.Empty,
+                ClientSecret = section["ClientSecret"] ?? string.Empty,
+                BackendCallbackUrl = section["BackendCallbackUrl"] ?? string.Empty,
+                FrontendSuccessUrl = section["FrontendSuccessUrl"] ?? string.Empty,
+                FrontendErrorUrl = section["FrontendErrorUrl"] ?? string.Empty,
+                Scopes = section["Scopes"] ?? "openid email profile"
+            };
+
+            return Microsoft.Extensions.Options.Options.Create(options);
+        });
         services.AddSingleton<IOptions<SupabaseOptions>>(_ =>
         {
             var section = configuration.GetSection("Supabase");
@@ -132,6 +150,7 @@ public static class DependencyInjection
                 deepSeekOptions,
                 provider.GetRequiredService<ILogger<DeepSeekValueSectorGenerator>>());
         });
+        services.AddScoped<IGoogleIdentityService, GoogleIdentityService>();
 
         return services;
     }

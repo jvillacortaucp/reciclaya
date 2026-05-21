@@ -15,4 +15,11 @@ public interface IAuthService
     Task<AuthResult<AuthSessionDto>> RefreshAsync(RefreshTokenRequest request, CancellationToken cancellationToken = default);
 
     Task<AuthResult<MeDto>> GetMeAsync(Guid userId, CancellationToken cancellationToken = default);
+
+    string BuildGoogleStartUrl(string? returnUrl = null);
+
+    Task<AuthResult<AuthSessionDto>> LoginWithGoogleCodeAsync(
+        string code,
+        string? state,
+        CancellationToken cancellationToken = default);
 }

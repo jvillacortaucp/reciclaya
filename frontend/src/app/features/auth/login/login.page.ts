@@ -44,7 +44,7 @@ import { AuthTransitionService } from '../services/auth-transition.service';
   templateUrl: './login.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class LoginPageComponent {
+export class LoginPageComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly authFacade = inject(AuthFacade);
   private readonly router = inject(Router);
