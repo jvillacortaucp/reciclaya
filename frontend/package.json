@@ -40,6 +40,7 @@
     "flowbite": "^4.0.1",
     "ng-apexcharts": "^2.4.0",
     "notyf": "^3.10.0",
+    "ol": "^10.9.0",
     "rete": "^2.0.6",
     "rete-angular-plugin": "^2.6.0",
     "rete-area-plugin": "^2.1.5",

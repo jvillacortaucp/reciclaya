@@ -1,0 +1,146 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Perú",
+        "NAME": "Perú",
+        "ADMIN": "Perú",
+        "ISO_A3": "PER",
+        "ADM0_A3": "PER"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-81.5, -18.6],
+          [-68.5, -18.6],
+          [-68.5, -0.1],
+          [-81.5, -0.1],
+          [-81.5, -18.6]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Colombia",
+        "NAME": "Colombia",
+        "ADMIN": "Colombia",
+        "ISO_A3": "COL",
+        "ADM0_A3": "COL"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-79.2, 12.8],
+          [-66.7, 12.8],
+          [-66.7, -4.5],
+          [-79.2, -4.5],
+          [-79.2, 12.8]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Ecuador",
+        "NAME": "Ecuador",
+        "ADMIN": "Ecuador",
+        "ISO_A3": "ECU",
+        "ADM0_A3": "ECU"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-81.4, 1.7],
+          [-75.0, 1.7],
+          [-75.0, -5.2],
+          [-81.4, -5.2],
+          [-81.4, 1.7]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Chile",
+        "NAME": "Chile",
+        "ADMIN": "Chile",
+        "ISO_A3": "CHL",
+        "ADM0_A3": "CHL"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-76.0, -56.0],
+          [-66.0, -56.0],
+          [-66.0, -17.0],
+          [-76.0, -17.0],
+          [-76.0, -56.0]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Brasil",
+        "NAME": "Brasil",
+        "ADMIN": "Brasil",
+        "ISO_A3": "BRA",
+        "ADM0_A3": "BRA"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-74.5, 5.5],
+          [-34.8, 5.5],
+          [-34.8, -34.0],
+          [-74.5, -34.0],
+          [-74.5, 5.5]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "México",
+        "NAME": "México",
+        "ADMIN": "México",
+        "ISO_A3": "MEX",
+        "ADM0_A3": "MEX"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-118.5, 32.8],
+          [-86.5, 32.8],
+          [-86.5, 14.3],
+          [-118.5, 14.3],
+          [-118.5, 32.8]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Estados Unidos",
+        "NAME": "United States of America",
+        "ADMIN": "United States of America",
+        "NAME_ES": "Estados Unidos",
+        "ISO_A3": "USA",
+        "ADM0_A3": "USA"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-124.9, 49.5],
+          [-66.8, 49.5],
+          [-66.8, 24.3],
+          [-124.9, 24.3],
+          [-124.9, 49.5]
+        ]]
+      }
+    }
+  ]
+}
