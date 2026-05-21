@@ -11,8 +11,10 @@ using ReciclaYa.Application.Auth.Models;
 using ReciclaYa.Application.Auth.Services;
 using ReciclaYa.Application.ValueSectors.Services;
 using ReciclaYa.Application.ValorizationIdeas.Services;
+using ReciclaYa.Application.Regulation.Options;
 using ReciclaYa.Infrastructure.Auth;
 using ReciclaYa.Infrastructure.AI;
+using ReciclaYa.Infrastructure.BackgroundServices;
 using ReciclaYa.Infrastructure.Options;
 using ReciclaYa.Infrastructure.Persistence;
 using ReciclaYa.Infrastructure.Storage;
@@ -25,6 +27,22 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
+        services.AddSingleton<IOptions<RegulationReviewOptions>>(_ =>
+        {
+            var section = configuration.GetSection(RegulationReviewOptions.SectionName);
+            var options = new RegulationReviewOptions
+            {
+                PendingReviewDeadlineHours = int.TryParse(section["PendingReviewDeadlineHours"], out var deadlineHours)
+                    ? deadlineHours
+                    : 72,
+                SweepIntervalMinutes = int.TryParse(section["SweepIntervalMinutes"], out var sweepMinutes)
+                    ? sweepMinutes
+                    : 15
+            };
+
+            return Microsoft.Extensions.Options.Options.Create(options);
+        });
+
         var connectionString = configuration.GetConnectionString("DefaultConnection");
 
         if (string.IsNullOrWhiteSpace(connectionString))
@@ -151,6 +169,7 @@ public static class DependencyInjection
                 provider.GetRequiredService<ILogger<DeepSeekValueSectorGenerator>>());
         });
         services.AddScoped<IGoogleIdentityService, GoogleIdentityService>();
+        services.AddHostedService<RegulationReviewDeadlineHostedService>();
 
         return services;
     }

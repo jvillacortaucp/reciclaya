@@ -6,6 +6,7 @@ using ReciclaYa.Application.Media.Models;
 using ReciclaYa.Application.Media.Options;
 using ReciclaYa.Application.Media.Services;
 using ReciclaYa.Application.Regulation.Dtos;
+using ReciclaYa.Application.Regulation.Options;
 using ReciclaYa.Domain.Entities;
 using ReciclaYa.Domain.Enums;
 using System.IO;
@@ -17,6 +18,7 @@ public sealed class RegulationService(
     IAuthDbContext dbContext,
     IStorageService storageService,
     IOptions<SupabaseOptions> supabaseOptions,
+    IOptions<RegulationReviewOptions> regulationReviewOptions,
     ILogger<RegulationService> logger) : IRegulationService
 {
     private const long MaxEvidenceFileSizeBytes = 10 * 1024 * 1024;
@@ -67,6 +69,7 @@ public sealed class RegulationService(
     ];
 
     private readonly SupabaseOptions _supabaseOptions = supabaseOptions.Value;
+    private readonly RegulationReviewOptions _regulationReviewOptions = regulationReviewOptions.Value;
 
     public async Task<RegulationMeDto> GetMeAsync(Guid userId, CancellationToken cancellationToken)
     {
@@ -440,6 +443,8 @@ public sealed class RegulationService(
 
         var query = dbContext.UserRegulationRequirements
             .AsNoTracking()
+            .Include(item => item.User)
+            .ThenInclude(user => user.Company)
             .Where(item => item.Status == "uploaded" || item.Status == "in_review")
             .OrderByDescending(item => item.UpdatedAt);
 
@@ -452,18 +457,7 @@ public sealed class RegulationService(
         var items = new List<RegulationRequirementReviewItemDto>(records.Count);
         foreach (var record in records)
         {
-            var definition = await FindRequirementDefinitionAsync(record.RequirementCode, cancellationToken);
-            items.Add(new RegulationRequirementReviewItemDto(
-                RequirementRecordId: record.Id,
-                UserId: record.UserId,
-                LevelId: record.Level,
-                RequirementCode: record.RequirementCode,
-                RequirementTitle: definition?.Requirement.Title ?? record.RequirementCode,
-                CurrentStatus: record.Status,
-                EvidenceUrl: record.EvidenceUrl,
-                Notes: record.Notes,
-                CreatedAt: record.CreatedAt,
-                UpdatedAt: record.UpdatedAt));
+            items.Add(await BuildReviewItemDtoAsync(record, cancellationToken));
         }
 
         return new RegulationRequirementReviewPageDto(
@@ -511,9 +505,11 @@ public sealed class RegulationService(
             throw new InvalidOperationException("REJECT_REQUIRES_NOTES");
         }
 
+        var normalizedNotes = string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim();
+
         requirement.Status = targetStatus;
-        requirement.Notes = request.Notes?.Trim();
-        requirement.ExpiresAt = request.ExpiresAt;
+        requirement.Notes = normalizedNotes;
+        requirement.ExpiresAt = targetStatus == "approved" ? request.ExpiresAt : null;
         requirement.UpdatedAt = DateTime.UtcNow;
 
         dbContext.RegulationOperationAudits.Add(new RegulationOperationAudit
@@ -525,7 +521,12 @@ public sealed class RegulationService(
             Allowed = targetStatus == "approved",
             RequiredMinLevel = requirement.Level,
             ActorCurrentLevel = requirement.Level,
-            BlockingReasonCode = targetStatus == "approved" ? "REVIEW_APPROVED" : "REVIEW_REJECTED",
+              BlockingReasonCode = targetStatus switch
+              {
+                  "approved" => "REVIEW_APPROVED",
+                  "rejected" => "REVIEW_REJECTED",
+                  _ => "REVIEW_IN_REVIEW"
+              },
             ContextResidueType = requirement.RequirementCode,
             ContextSector = "regulation",
             ContextProductType = null,
@@ -553,7 +554,7 @@ public sealed class RegulationService(
                 UploadedFileName: ExtractFileName(requirement.EvidenceUrl),
                 UploadedFileUrl: requirement.EvidenceUrl,
                 UploadedFileKind: InferFileKindFromPath(ExtractFileName(requirement.EvidenceUrl)) ?? "document",
-                Notes: requirement.Notes);
+                  Notes: requirement.Notes);
         }
 
         return definition.Value.Requirement with
@@ -562,8 +563,8 @@ public sealed class RegulationService(
             UploadedFileName = ExtractFileName(requirement.EvidenceUrl),
             UploadedFileUrl = requirement.EvidenceUrl,
             UploadedFileKind = InferFileKindFromPath(ExtractFileName(requirement.EvidenceUrl)) ?? "document",
-            Notes = requirement.Notes
-        };
+              Notes = requirement.Notes
+          };
     }
 
     public async Task<DownloadedFileResult> DownloadRequirementEvidenceAsync(
@@ -604,6 +605,8 @@ public sealed class RegulationService(
         var normalizedStatus = status?.Trim().ToLowerInvariant();
         var query = dbContext.UserRegulationRequirements
             .AsNoTracking()
+            .Include(item => item.User)
+            .ThenInclude(user => user.Company)
             .Where(item => item.Status == "approved" || item.Status == "rejected");
 
         if (!string.IsNullOrWhiteSpace(normalizedStatus))
@@ -621,18 +624,7 @@ public sealed class RegulationService(
         var items = new List<RegulationRequirementReviewItemDto>(records.Count);
         foreach (var record in records)
         {
-            var definition = await FindRequirementDefinitionAsync(record.RequirementCode, cancellationToken);
-            items.Add(new RegulationRequirementReviewItemDto(
-                RequirementRecordId: record.Id,
-                UserId: record.UserId,
-                LevelId: record.Level,
-                RequirementCode: record.RequirementCode,
-                RequirementTitle: definition?.Requirement.Title ?? record.RequirementCode,
-                CurrentStatus: record.Status,
-                EvidenceUrl: record.EvidenceUrl,
-                Notes: record.Notes,
-                CreatedAt: record.CreatedAt,
-                UpdatedAt: record.UpdatedAt));
+            items.Add(await BuildReviewItemDtoAsync(record, cancellationToken));
         }
 
         return new RegulationRequirementReviewPageDto(items, page, pageSize, total, (page * pageSize) < total);
@@ -974,6 +966,118 @@ public sealed class RegulationService(
         }
 
         return null;
+    }
+
+    private async Task<RegulationRequirementReviewItemDto> BuildReviewItemDtoAsync(
+        UserRegulationRequirement record,
+        CancellationToken cancellationToken)
+    {
+        var definition = await FindRequirementDefinitionAsync(record.RequirementCode, cancellationToken);
+        var signedEvidenceUrl = await BuildSignedEvidenceUrlAsync(record.EvidenceUrl, cancellationToken);
+        var uploadedFileName = ResolveUploadedFileName(record);
+        var uploadedFileKind = InferFileKindFromPath(uploadedFileName);
+        var reviewDeadlineAt = ResolveReviewDeadlineAt(record);
+        var now = DateTime.UtcNow;
+        var requesterName = ResolveRequesterName(record);
+        var companyName = ResolveCompanyName(record, requesterName);
+
+        return new RegulationRequirementReviewItemDto(
+            RequirementRecordId: record.Id,
+            UserId: record.UserId,
+            RequesterName: requesterName,
+            CompanyName: companyName,
+            Ruc: record.User.Company?.Ruc,
+            LevelId: record.Level,
+            RequirementCode: record.RequirementCode,
+            RequirementTitle: definition?.Requirement.Title ?? record.RequirementCode,
+            ActorType: definition?.Requirement.ActorType ?? "both",
+            CurrentStatus: record.Status,
+            UploadedFileName: uploadedFileName,
+            UploadedFileKind: uploadedFileKind,
+            EvidenceUrl: signedEvidenceUrl,
+            Notes: record.Notes,
+            ReviewDeadlineAt: reviewDeadlineAt,
+            IsOverdue: reviewDeadlineAt.HasValue
+                && reviewDeadlineAt.Value <= now
+                && (string.Equals(record.Status, "uploaded", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(record.Status, "in_review", StringComparison.OrdinalIgnoreCase)),
+            ApprovalExpiresAt: record.ExpiresAt,
+            CreatedAt: record.CreatedAt,
+            UpdatedAt: record.UpdatedAt);
+    }
+
+    private async Task<string?> BuildSignedEvidenceUrlAsync(string? evidenceUrl, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(evidenceUrl))
+        {
+            return null;
+        }
+
+        if (!TryParseStorageLocation(evidenceUrl, out var bucket, out var storagePath))
+        {
+            return evidenceUrl;
+        }
+
+        try
+        {
+            return await storageService.CreateSignedUrlAsync(bucket, storagePath, 3600, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to create signed URL for regulation review evidence. EvidenceUrl={EvidenceUrl}", evidenceUrl);
+            return evidenceUrl;
+        }
+    }
+
+    private DateTime? ResolveReviewDeadlineAt(UserRegulationRequirement record)
+    {
+        if (!string.Equals(record.Status, "uploaded", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(record.Status, "in_review", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        var deadlineHours = Math.Clamp(_regulationReviewOptions.PendingReviewDeadlineHours, 1, 24 * 30);
+        return record.UpdatedAt.AddHours(deadlineHours);
+    }
+
+    private static string ResolveRequesterName(UserRegulationRequirement record)
+    {
+        return string.IsNullOrWhiteSpace(record.User.FullName)
+            ? "Solicitante sin nombre"
+            : record.User.FullName.Trim();
+    }
+
+    private static string ResolveCompanyName(UserRegulationRequirement record, string requesterName)
+    {
+        if (!string.IsNullOrWhiteSpace(record.User.Company?.BusinessName))
+        {
+            return record.User.Company.BusinessName.Trim();
+        }
+
+        return requesterName;
+    }
+
+    private static string ResolveUploadedFileName(UserRegulationRequirement record)
+    {
+        var fileName = ExtractFileName(record.EvidenceUrl);
+        if (!string.IsNullOrWhiteSpace(fileName))
+        {
+            return fileName;
+        }
+
+        const string prefix = "Archivo cargado:";
+        if (!string.IsNullOrWhiteSpace(record.Notes)
+            && record.Notes.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+        {
+            var fromNotes = record.Notes[prefix.Length..].Trim();
+            if (!string.IsNullOrWhiteSpace(fromNotes))
+            {
+                return fromNotes;
+            }
+        }
+
+        return "Archivo adjunto";
     }
 
     private static T? Deserialize<T>(string json)
