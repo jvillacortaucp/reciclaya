@@ -7,6 +7,9 @@ export const PURCHASE_PREFERENCES_ROUTES: Route[] = [
     loadComponent: () => import('./purchase-preferences.page').then((m) => m.PurchasePreferencesPageComponent),
     canDeactivate: [pendingChangesGuard],
     data: {
+      reuseView: true,
+      reuseKey: 'purchase-preferences',
+      cacheTtlMs: 180000,
       meta: {
         title: 'Preferencias de compra',
         breadcrumb: 'Preferencias',

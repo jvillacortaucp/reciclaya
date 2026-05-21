@@ -1,5 +1,7 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { catchError, EMPTY, finalize } from 'rxjs';
+import { VIEW_CACHE_KEYS } from '../../../core/cache/view-cache.keys';
+import { ViewCacheService } from '../../../core/cache/view-cache.service';
 import { getErrorMessage } from '../../../core/http/api-response.helpers';
 import { ListingDetail } from '../../../core/models/app.models';
 import { DEFAULT_FILTER_STATE, MARKETPLACE_MESSAGES } from '../data/marketplace.constants';
@@ -13,9 +15,22 @@ import {
 } from '../domain/marketplace.models';
 import { MarketplaceRepository } from '../infrastructure/marketplace.repository';
 
+interface MarketplaceViewCacheSnapshot {
+  readonly dataset: MarketplaceDataset;
+  readonly listings: readonly MarketplaceListing[];
+  readonly filters: MarketplaceFilterState;
+  readonly search: SearchState;
+  readonly currentPage: number;
+  readonly total: number;
+  readonly hasMore: boolean;
+}
+
+const MARKETPLACE_CACHE_POLICY = { ttlMs: 3 * 60 * 1000 } as const;
+
 @Injectable({ providedIn: 'root' })
 export class MarketplaceFacade {
   private readonly repository = inject(MarketplaceRepository);
+  private readonly viewCache = inject(ViewCacheService);
 
   readonly loading = signal(false);
   readonly isLoadingMore = signal(false);
@@ -76,11 +91,14 @@ export class MarketplaceFacade {
   });
 
   loadMarketplace(initialQuery = ''): void {
-    this.search.update((current) => ({ ...current, query: initialQuery.trim() }));
-    this.repository
-      .getDataset()
-      .pipe(catchError(() => EMPTY))
-      .subscribe((dataset) => this.dataset.set(dataset));
+    const normalizedQuery = initialQuery.trim();
+
+    if (this.restoreCachedState(normalizedQuery)) {
+      return;
+    }
+
+    this.search.update((current) => ({ ...current, query: normalizedQuery }));
+    this.loadDatasetIfNeeded();
     this.reloadFromStart();
   }
 
@@ -132,6 +150,10 @@ export class MarketplaceFacade {
 
   clearToast(): void {
     this.toastMessage.set(null);
+  }
+
+  invalidateCache(): void {
+    this.viewCache.invalidate(VIEW_CACHE_KEYS.marketplaceView, VIEW_CACHE_KEYS.marketplaceDataset);
   }
 
   loadDetail(id: string): void {
@@ -191,6 +213,7 @@ export class MarketplaceFacade {
 
         if (mode === 'replace') {
           this.listings.set(response.items);
+          this.cacheCurrentState();
           return;
         }
 
@@ -202,7 +225,62 @@ export class MarketplaceFacade {
           }
         });
         this.listings.set(merged);
+        this.cacheCurrentState();
       });
+  }
+
+  private loadDatasetIfNeeded(): void {
+    const cachedDataset = this.viewCache.getFresh<MarketplaceDataset>(
+      VIEW_CACHE_KEYS.marketplaceDataset,
+      MARKETPLACE_CACHE_POLICY
+    );
+
+    if (cachedDataset) {
+      this.dataset.set(cachedDataset);
+      return;
+    }
+
+    this.repository
+      .getDataset()
+      .pipe(catchError(() => EMPTY))
+      .subscribe((dataset) => {
+        this.dataset.set(dataset);
+        this.viewCache.set(VIEW_CACHE_KEYS.marketplaceDataset, dataset);
+        this.cacheCurrentState();
+      });
+  }
+
+  private restoreCachedState(initialQuery: string): boolean {
+    const cachedState = this.viewCache.getFresh<MarketplaceViewCacheSnapshot>(
+      VIEW_CACHE_KEYS.marketplaceView,
+      MARKETPLACE_CACHE_POLICY
+    );
+
+    if (!cachedState || cachedState.search.query !== initialQuery) {
+      return false;
+    }
+
+    this.dataset.set(cachedState.dataset);
+    this.listings.set(cachedState.listings);
+    this.filters.set(cachedState.filters);
+    this.search.set(cachedState.search);
+    this.currentPage.set(cachedState.currentPage);
+    this.total.set(cachedState.total);
+    this.hasMore.set(cachedState.hasMore);
+
+    return true;
+  }
+
+  private cacheCurrentState(): void {
+    this.viewCache.set<MarketplaceViewCacheSnapshot>(VIEW_CACHE_KEYS.marketplaceView, {
+      dataset: this.dataset(),
+      listings: this.listings(),
+      filters: this.filters(),
+      search: this.search(),
+      currentPage: this.currentPage(),
+      total: this.total(),
+      hasMore: this.hasMore()
+    });
   }
 
   private mapSectorLabel(value: MarketplaceFilterState['sector']): string {

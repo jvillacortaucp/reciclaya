@@ -1,8 +1,11 @@
 import { computed, effect, inject, Injectable, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { catchError, EMPTY, finalize, firstValueFrom } from 'rxjs';
+import { VIEW_CACHE_KEYS } from '../../../core/cache/view-cache.keys';
+import { ViewCacheService } from '../../../core/cache/view-cache.service';
 import { getErrorMessage } from '../../../core/http/api-response.helpers';
 import { MediaHttpRepository } from '../../../core/media/media-http.repository';
+import { RouteReuseCacheService } from '../../../core/router/route-reuse-cache.service';
 import { SessionStorageService } from '../../../core/services/session-storage.service';
 import { MarketplaceListing } from '../../marketplace/domain/marketplace.models';
 import { MyListingsRepository } from '../../my-listings/my-listings.repository';
@@ -19,7 +22,9 @@ export class WasteSellFacade {
   private readonly valorizationIdeasRepository = inject(ValorizationIdeasHttpRepository);
   private readonly mediaRepository = inject(MediaHttpRepository);
   private readonly myListingsRepository = inject(MyListingsRepository);
+  private readonly routeReuseCache = inject(RouteReuseCacheService);
   private readonly sessionStorage = inject(SessionStorageService);
+  private readonly viewCache = inject(ViewCacheService);
   private lastUserId: string | null | undefined = undefined;
   private readonly pendingFiles = new Map<string, File>();
   private currentListingId: string | null = null;
@@ -116,6 +121,8 @@ export class WasteSellFacade {
         this.state.set(mergedState);
         this.toastMessage.set('Listado publicado correctamente.');
         this.refreshPreview();
+        this.routeReuseCache.invalidate('my-listings', 'marketplace');
+        this.viewCache.invalidate(VIEW_CACHE_KEYS.marketplaceView, VIEW_CACHE_KEYS.marketplaceDataset);
         void this.syncListingMediaForCurrentState();
         void this.router.navigateByUrl('/app/my-listings');
       });
