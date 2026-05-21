@@ -39,5 +39,13 @@ public interface IAuthDbContext
 
     DbSet<MediaAsset> MediaAssets { get; }
 
+    DbSet<UserRegulationProfile> UserRegulationProfiles { get; }
+
+    DbSet<UserRegulationRequirement> UserRegulationRequirements { get; }
+
+    DbSet<RegulationOperationAudit> RegulationOperationAudits { get; }
+
+    DbSet<RegulationLevelCatalog> RegulationLevelCatalogs { get; }
+
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

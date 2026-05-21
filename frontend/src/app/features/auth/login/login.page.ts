@@ -1,4 +1,4 @@
-import { computed, ChangeDetectionStrategy, Component, effect, inject, signal } from '@angular/core';
+import { computed, ChangeDetectionStrategy, Component, effect, inject, OnInit, signal } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import {
@@ -44,7 +44,7 @@ import { AuthTransitionService } from '../services/auth-transition.service';
   templateUrl: './login.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class LoginPageComponent {
+export class LoginPageComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly authFacade = inject(AuthFacade);
   private readonly router = inject(Router);
@@ -109,6 +109,17 @@ export class LoginPageComponent {
         });
       }, this.authTransition.NAVIGATION_TRIGGER_MS);
     });
+  }
+
+  ngOnInit(): void {
+    const queryParams = this.router.parseUrl(this.router.url).queryParams;
+    const authStatus = typeof queryParams['auth'] === 'string' ? queryParams['auth'] : null;
+    const errorCode = typeof queryParams['code'] === 'string' ? queryParams['code'] : null;
+    const ticket = typeof queryParams['ticket'] === 'string' ? queryParams['ticket'] : null;
+
+    if (authStatus === 'success' || authStatus === 'error') {
+      this.authFacade.processGoogleCallback(ticket, authStatus, errorCode);
+    }
   }
 
   protected togglePasswordVisibility(): void {

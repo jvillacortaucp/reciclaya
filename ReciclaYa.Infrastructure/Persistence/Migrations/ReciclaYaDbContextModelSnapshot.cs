@@ -1102,6 +1102,97 @@ namespace ReciclaYa.Infrastructure.Persistence.Migrations
                     b.ToTable("refresh_tokens", (string)null);
                 });
 
+            modelBuilder.Entity("ReciclaYa.Domain.Entities.RegulationLevelCatalog", b =>
+                {
+                    b.Property<int>("Level")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("PayloadJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Level");
+
+                    b.ToTable("regulation_level_catalogs", (string)null);
+                });
+
+            modelBuilder.Entity("ReciclaYa.Domain.Entities.RegulationOperationAudit", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("Actor")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<int>("ActorCurrentLevel")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("Allowed")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("BlockingReasonCode")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<string>("ContextProductType")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<decimal?>("ContextQuantity")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("ContextResidueType")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("ContextSector")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("ContextSpecificResidue")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("ContextUnit")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("ManualReviewRequired")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("RequiredMinLevel")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Allowed");
+
+                    b.HasIndex("Action", "CreatedAt");
+
+                    b.HasIndex("UserId", "CreatedAt");
+
+                    b.ToTable("regulation_operation_audits", (string)null);
+                });
+
             modelBuilder.Entity("ReciclaYa.Domain.Entities.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1155,6 +1246,85 @@ namespace ReciclaYa.Infrastructure.Persistence.Migrations
                     b.HasIndex("Status");
 
                     b.ToTable("users", (string)null);
+                });
+
+            modelBuilder.Entity("ReciclaYa.Domain.Entities.UserRegulationProfile", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CurrentLevel")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CurrentLevel");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("user_regulation_profiles", (string)null);
+                });
+
+            modelBuilder.Entity("ReciclaYa.Domain.Entities.UserRegulationRequirement", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("EvidenceUrl")
+                        .HasMaxLength(1200)
+                        .HasColumnType("character varying(1200)");
+
+                    b.Property<DateTime?>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Level")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("RequirementCode")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("UserId", "Level");
+
+                    b.HasIndex("UserId", "Level", "RequirementCode")
+                        .IsUnique();
+
+                    b.ToTable("user_regulation_requirements", (string)null);
                 });
 
             modelBuilder.Entity("ReciclaYa.Domain.Entities.ValorizationIdea", b =>
@@ -1505,6 +1675,39 @@ namespace ReciclaYa.Infrastructure.Persistence.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("ReciclaYa.Domain.Entities.RegulationOperationAudit", b =>
+                {
+                    b.HasOne("ReciclaYa.Domain.Entities.User", "User")
+                        .WithMany("RegulationOperationAudits")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("ReciclaYa.Domain.Entities.UserRegulationProfile", b =>
+                {
+                    b.HasOne("ReciclaYa.Domain.Entities.User", "User")
+                        .WithOne("RegulationProfile")
+                        .HasForeignKey("ReciclaYa.Domain.Entities.UserRegulationProfile", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("ReciclaYa.Domain.Entities.UserRegulationRequirement", b =>
+                {
+                    b.HasOne("ReciclaYa.Domain.Entities.User", "User")
+                        .WithMany("RegulationRequirements")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("ReciclaYa.Domain.Entities.ValorizationIdea", b =>
                 {
                     b.HasOne("ReciclaYa.Domain.Entities.Listing", "Listing")
@@ -1578,6 +1781,12 @@ namespace ReciclaYa.Infrastructure.Persistence.Migrations
                     b.Navigation("PurchasePreferences");
 
                     b.Navigation("RefreshTokens");
+
+                    b.Navigation("RegulationOperationAudits");
+
+                    b.Navigation("RegulationProfile");
+
+                    b.Navigation("RegulationRequirements");
 
                     b.Navigation("SellerCommercialRequests");
 

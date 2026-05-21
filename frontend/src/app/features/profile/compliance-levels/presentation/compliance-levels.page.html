@@ -50,6 +50,28 @@
   </div>
 </ui-card>
 
+@if (showLevel0Banner()) {
+  <ui-card class="mb-4 block border border-amber-300 bg-amber-50">
+    <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-wide text-amber-700">Estado regulatorio actual</p>
+        <p class="mt-1 text-lg font-semibold text-amber-900">Nivel 0 - Solo exploracion</p>
+        <p class="mt-2 text-sm text-amber-800">
+          Puedes navegar y ver productos, pero aun no puedes publicar, negociar ni confirmar compras.
+        </p>
+        <p class="mt-1 text-sm text-amber-800">
+          Completa los requisitos del Nivel 1 para habilitar operaciones.
+        </p>
+      </div>
+      <div class="rounded-xl border border-amber-300 bg-white px-4 py-3 text-sm text-amber-900">
+        <p><strong>Requisitos:</strong> {{ overview().completedRequirements }}/{{ overview().totalRequirements }}</p>
+        <p><strong>Pendientes:</strong> {{ overview().pendingRequirements }}</p>
+        <p><strong>Operacion:</strong> {{ canTransact() ? 'Habilitada' : 'Bloqueada' }}</p>
+      </div>
+    </div>
+  </ui-card>
+}
+
 <section class="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
   <div class="space-y-4">
     <div class="grid gap-4 md:grid-cols-2 2xl:grid-cols-4">

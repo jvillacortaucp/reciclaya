@@ -43,7 +43,7 @@ export const DEFAULT_BUYER_COMPLIANCE: BuyerComplianceFlags = {
   operationalMonitoring: false
 };
 
-const sellerRequirementsByLevel: Record<RegulatoryLevel, readonly RegulatoryRequirementDefinition[]> = {
+const sellerRequirementsByLevel: Record<1 | 2 | 3 | 4, readonly RegulatoryRequirementDefinition[]> = {
   1: [
     { code: 'identity_or_ruc', label: 'Identidad válida o RUC activo', actor: 'seller', required: true },
     { code: 'address', label: 'Dirección operativa identificable', actor: 'seller', required: true },
@@ -79,7 +79,7 @@ const sellerRequirementsByLevel: Record<RegulatoryLevel, readonly RegulatoryRequ
   ]
 };
 
-const buyerRequirementsByLevel: Record<RegulatoryLevel, readonly RegulatoryRequirementDefinition[]> = {
+const buyerRequirementsByLevel: Record<1 | 2 | 3 | 4, readonly RegulatoryRequirementDefinition[]> = {
   1: [
     { code: 'company_ruc', label: 'RUC activo del comprador', actor: 'buyer', required: true },
     { code: 'municipalLicense', label: 'Licencia municipal vigente', actor: 'buyer', required: true },
@@ -115,7 +115,7 @@ const buyerRequirementsByLevel: Record<RegulatoryLevel, readonly RegulatoryRequi
   ]
 };
 
-export const REGULATORY_LEVEL_RULES: Record<RegulatoryLevel, RegulatoryLevelRule> = {
+export const REGULATORY_LEVEL_RULES: Record<1 | 2 | 3 | 4, RegulatoryLevelRule> = {
   1: {
     level: 1,
     title: 'Nivel 1 · Materiales libres',
@@ -266,7 +266,7 @@ export function classifyRegulatoryLevel(input: RegulatoryClassifyInput): Regulat
 }
 
 export function getRegulatoryRule(level: RegulatoryLevel): RegulatoryLevelRule {
-  return REGULATORY_LEVEL_RULES[level];
+  return REGULATORY_LEVEL_RULES[(level === 0 ? 1 : level) as 1 | 2 | 3 | 4];
 }
 
 export function getLevelBadgeClasses(level: RegulatoryLevel): string {

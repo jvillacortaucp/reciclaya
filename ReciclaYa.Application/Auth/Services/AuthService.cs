@@ -6,6 +6,9 @@ using ReciclaYa.Application.Auth.Models;
 using ReciclaYa.Application.Auth.Requests;
 using ReciclaYa.Domain.Entities;
 using ReciclaYa.Domain.Enums;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
 
 namespace ReciclaYa.Application.Auth.Services;
 
@@ -13,9 +16,12 @@ public sealed class AuthService(
     IAuthDbContext dbContext,
     IJwtTokenService jwtTokenService,
     IPermissionService permissionService,
-    IOptions<JwtSettings> jwtOptions) : IAuthService
+    IGoogleIdentityService googleIdentityService,
+    IOptions<JwtSettings> jwtOptions,
+    IOptions<GoogleAuthSettings> googleOptions) : IAuthService
 {
     private readonly JwtSettings _jwtSettings = jwtOptions.Value;
+    private readonly GoogleAuthSettings _googleSettings = googleOptions.Value;
 
     public async Task<AuthResult<AuthSessionDto>> LoginAsync(
         LoginRequest request,
@@ -259,6 +265,107 @@ public sealed class AuthService(
         return AuthResult<MeDto>.Ok(data);
     }
 
+    public string BuildGoogleStartUrl(string? returnUrl = null)
+    {
+        if (string.IsNullOrWhiteSpace(_googleSettings.ClientId)
+            || string.IsNullOrWhiteSpace(_googleSettings.BackendCallbackUrl))
+        {
+            throw new InvalidOperationException("GoogleAuth settings are not configured.");
+        }
+
+        var state = BuildState(returnUrl);
+        var scopes = string.IsNullOrWhiteSpace(_googleSettings.Scopes) ? "openid email profile" : _googleSettings.Scopes;
+
+        return "https://accounts.google.com/o/oauth2/v2/auth"
+            + $"?client_id={Uri.EscapeDataString(_googleSettings.ClientId)}"
+            + $"&redirect_uri={Uri.EscapeDataString(_googleSettings.BackendCallbackUrl)}"
+            + $"&response_type=code"
+            + $"&scope={Uri.EscapeDataString(scopes)}"
+            + "&access_type=offline"
+            + "&include_granted_scopes=true"
+            + $"&state={Uri.EscapeDataString(state)}";
+    }
+
+    public async Task<AuthResult<AuthSessionDto>> LoginWithGoogleCodeAsync(
+        string code,
+        string? state,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(code))
+        {
+            return AuthResult<AuthSessionDto>.Fail(400, "Invalid google code.", "GOOGLE_OAUTH_FAILED");
+        }
+
+        if (!TryValidateState(state, out _))
+        {
+            return AuthResult<AuthSessionDto>.Fail(400, "Invalid oauth state.", "INVALID_OAUTH_STATE");
+        }
+
+        GoogleUserInfo? googleUser;
+        try
+        {
+            googleUser = await googleIdentityService.ExchangeCodeForUserAsync(code, cancellationToken);
+        }
+        catch
+        {
+            return AuthResult<AuthSessionDto>.Fail(401, "Google oauth failed.", "GOOGLE_OAUTH_FAILED");
+        }
+
+        if (googleUser is null || string.IsNullOrWhiteSpace(googleUser.Email))
+        {
+            return AuthResult<AuthSessionDto>.Fail(400, "Google profile is incomplete.", "GOOGLE_PROFILE_INCOMPLETE");
+        }
+
+        if (!googleUser.EmailVerified)
+        {
+            return AuthResult<AuthSessionDto>.Fail(403, "Google email is not verified.", "GOOGLE_EMAIL_NOT_VERIFIED");
+        }
+
+        var email = Normalize(googleUser.Email);
+        var user = await dbContext.Users.FirstOrDefaultAsync(item => item.Email == email, cancellationToken);
+
+        if (user is null)
+        {
+            var now = DateTimeOffset.UtcNow;
+            user = new User
+            {
+                Id = Guid.NewGuid(),
+                Email = email,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(Guid.NewGuid().ToString("N")),
+                FullName = string.IsNullOrWhiteSpace(googleUser.Name) ? email : googleUser.Name.Trim(),
+                AvatarUrl = string.IsNullOrWhiteSpace(googleUser.PictureUrl) ? null : googleUser.PictureUrl.Trim(),
+                Role = UserRole.Buyer,
+                ProfileType = ProfileType.Person,
+                Status = UserStatus.Active,
+                CreatedAt = now,
+                UpdatedAt = now
+            };
+            dbContext.Users.Add(user);
+        }
+        else
+        {
+            if (!string.IsNullOrWhiteSpace(googleUser.Name) && !string.Equals(user.FullName, googleUser.Name, StringComparison.Ordinal))
+            {
+                user.FullName = googleUser.Name.Trim();
+            }
+
+            if (!string.IsNullOrWhiteSpace(googleUser.PictureUrl) && !string.Equals(user.AvatarUrl, googleUser.PictureUrl, StringComparison.Ordinal))
+            {
+                user.AvatarUrl = googleUser.PictureUrl.Trim();
+            }
+
+            user.UpdatedAt = DateTimeOffset.UtcNow;
+        }
+
+        if (user.Status != UserStatus.Active)
+        {
+            return AuthResult<AuthSessionDto>.Fail(403, "User is not active.", "USER_NOT_ACTIVE");
+        }
+
+        var session = await CreateSessionAsync(user, cancellationToken);
+        return AuthResult<AuthSessionDto>.Ok(session);
+    }
+
     private async Task<AuthSessionDto> CreateSessionAsync(User user, CancellationToken cancellationToken)
     {
         var accessToken = jwtTokenService.GenerateAccessToken(user);
@@ -362,4 +469,79 @@ public sealed class AuthService(
             errors.Add(value);
         }
     }
+
+    private string BuildState(string? returnUrl)
+    {
+        var nonce = Guid.NewGuid().ToString("N");
+        var expiresUnix = DateTimeOffset.UtcNow.AddMinutes(10).ToUnixTimeSeconds();
+        var safeReturnUrl = string.IsNullOrWhiteSpace(returnUrl) ? "/" : returnUrl.Trim();
+        if (!safeReturnUrl.StartsWith('/'))
+        {
+            safeReturnUrl = "/";
+        }
+
+        var payload = JsonSerializer.Serialize(new GoogleStatePayload(nonce, expiresUnix, safeReturnUrl));
+        var payloadB64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(payload));
+        var signature = ComputeStateSignature(payloadB64);
+        return $"{payloadB64}.{signature}";
+    }
+
+    private bool TryValidateState(string? state, out string returnUrl)
+    {
+        returnUrl = "/";
+        if (string.IsNullOrWhiteSpace(state))
+        {
+            return false;
+        }
+
+        var parts = state.Split('.', 2);
+        if (parts.Length != 2)
+        {
+            return false;
+        }
+
+        var payloadB64 = parts[0];
+        var providedSignature = parts[1];
+        var expectedSignature = ComputeStateSignature(payloadB64);
+        if (!CryptographicOperations.FixedTimeEquals(
+                Encoding.UTF8.GetBytes(expectedSignature),
+                Encoding.UTF8.GetBytes(providedSignature)))
+        {
+            return false;
+        }
+
+        GoogleStatePayload? payload;
+        try
+        {
+            payload = JsonSerializer.Deserialize<GoogleStatePayload>(Encoding.UTF8.GetString(Convert.FromBase64String(payloadB64)));
+        }
+        catch
+        {
+            return false;
+        }
+
+        if (payload is null)
+        {
+            return false;
+        }
+
+        if (DateTimeOffset.UtcNow.ToUnixTimeSeconds() > payload.ExpiresAtUnix)
+        {
+            return false;
+        }
+
+        returnUrl = string.IsNullOrWhiteSpace(payload.ReturnUrl) || !payload.ReturnUrl.StartsWith('/')
+            ? "/"
+            : payload.ReturnUrl;
+        return true;
+    }
+
+    private string ComputeStateSignature(string payloadB64)
+    {
+        using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(_jwtSettings.Secret));
+        var bytes = hmac.ComputeHash(Encoding.UTF8.GetBytes(payloadB64));
+        return Convert.ToBase64String(bytes);
+    }
+
+    private sealed record GoogleStatePayload(string Nonce, long ExpiresAtUnix, string ReturnUrl);
 }

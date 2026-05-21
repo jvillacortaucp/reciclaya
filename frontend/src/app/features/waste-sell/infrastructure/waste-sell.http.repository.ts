@@ -1,8 +1,10 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { catchError, map, Observable, of, throwError } from 'rxjs';
+import { switchMap } from 'rxjs/operators';
 import { normalizeHttpError, unwrapApiResponse } from '../../../core/http/api-response.helpers';
 import { ApiResponse } from '../../../core/models/app.models';
+import { RegulationHttpService } from '../../../core/regulatory/regulation-http.service';
 import { environment } from '../../../../environments/environment';
 import { EMPTY_WASTE_SELL_STATE } from '../data/waste-sell.constants';
 import { ListingPreviewSummary, WasteSellPageState } from '../domain/waste-sell.models';
@@ -13,6 +15,7 @@ import { MyListingsRepository } from '../../my-listings/my-listings.repository';
 export class WasteSellHttpRepository implements WasteSellRepository {
   private readonly http = inject(HttpClient);
   private readonly myListingsRepository = inject(MyListingsRepository);
+  private readonly regulationHttpService = inject(RegulationHttpService);
 
   getInitialState(listingId?: string | null): Observable<WasteSellPageState> {
     if (!listingId) {
@@ -32,11 +35,27 @@ export class WasteSellHttpRepository implements WasteSellRepository {
   }
 
   publish(state: WasteSellPageState, listingId?: string | null): Observable<WasteSellPageState> {
-    return this.http
-      .post<ApiResponse<unknown>>(`${environment.apiBaseUrl}/waste-sell/publish`, this.toRequestState(state), {
-        params: listingId ? { listingId } : undefined
+    return this.regulationHttpService
+      .validateOperation({
+        action: 'publish',
+        actor: 'seller',
+        residueType: state.formValue.residueType,
+        sector: state.formValue.sector,
+        productType: state.formValue.productType,
+        specificResidue: state.formValue.specificResidue,
+        quantity: state.formValue.volume.quantity,
+        unit: state.formValue.volume.unit
       })
       .pipe(
+        switchMap((validation) => {
+          if (!validation.allowed) {
+            throw new Error(validation.blockingMessage || validation.upgradeCallToAction || 'No cumples el nivel regulatorio requerido.');
+          }
+
+          return this.http.post<ApiResponse<unknown>>(`${environment.apiBaseUrl}/waste-sell/publish`, this.toRequestState(state), {
+            params: listingId ? { listingId } : undefined
+          });
+        }),
         map((response) => {
           unwrapApiResponse(response);
           return {

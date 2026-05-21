@@ -41,6 +41,14 @@ public sealed class ReciclaYaDbContext(DbContextOptions<ReciclaYaDbContext> opti
 
     public DbSet<MediaAsset> MediaAssets => Set<MediaAsset>();
 
+    public DbSet<UserRegulationProfile> UserRegulationProfiles => Set<UserRegulationProfile>();
+
+    public DbSet<UserRegulationRequirement> UserRegulationRequirements => Set<UserRegulationRequirement>();
+
+    public DbSet<RegulationOperationAudit> RegulationOperationAudits => Set<RegulationOperationAudit>();
+
+    public DbSet<RegulationLevelCatalog> RegulationLevelCatalogs => Set<RegulationLevelCatalog>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ReciclaYaDbContext).Assembly);

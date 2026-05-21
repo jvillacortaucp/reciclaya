@@ -2,15 +2,22 @@ using System.IdentityModel.Tokens.Jwt;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ReciclaYa.Api.Responses;
+using ReciclaYa.Application.Abstractions.Persistence;
 using ReciclaYa.Application.Checkout.Dtos;
 using ReciclaYa.Application.Checkout.Services;
+using ReciclaYa.Application.Regulation.Dtos;
+using ReciclaYa.Application.Regulation.Services;
+using Microsoft.EntityFrameworkCore;
 
 namespace ReciclaYa.Api.Controllers;
 
 [ApiController]
 [Authorize]
 [Route("api/checkout")]
-public sealed class CheckoutController(ICheckoutService checkoutService) : ControllerBase
+public sealed class CheckoutController(
+    ICheckoutService checkoutService,
+    IRegulationService regulationService,
+    IAuthDbContext dbContext) : ControllerBase
 {
     [HttpPost("from-listing/{listingId:guid}")]
     public async Task<IActionResult> FromListing(
@@ -26,6 +33,31 @@ public sealed class CheckoutController(ICheckoutService checkoutService) : Contr
         if (!CanCheckout(role))
         {
             return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail("Forbidden.", ["FORBIDDEN"]));
+        }
+
+        var listingContext = await dbContext.Listings
+            .AsNoTracking()
+            .Where(item => item.Id == listingId)
+            .Select(item => new { item.WasteType, item.Sector, item.ProductType, item.SpecificResidue, item.Quantity, item.Unit })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        var validation = await regulationService.ValidateOperationAsync(
+            userId,
+            role,
+            new RegulationValidateOperationRequestDto(
+                Action: "confirm_purchase",
+                Actor: "buyer",
+                ResidueType: listingContext?.WasteType,
+                Sector: listingContext?.Sector,
+                ProductType: listingContext?.ProductType,
+                SpecificResidue: listingContext?.SpecificResidue,
+                Quantity: listingContext?.Quantity,
+                Unit: listingContext?.Unit),
+            cancellationToken);
+
+        if (!validation.Allowed)
+        {
+            return RegulatoryBlocked(validation);
         }
 
         try
@@ -56,6 +88,35 @@ public sealed class CheckoutController(ICheckoutService checkoutService) : Contr
         if (!CanCheckout(role))
         {
             return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail("Forbidden.", ["FORBIDDEN"]));
+        }
+
+        var listingContext = await dbContext.PreOrders
+            .AsNoTracking()
+            .Where(item => item.Id == preOrderId)
+            .Join(
+                dbContext.Listings.AsNoTracking(),
+                preOrder => preOrder.ListingId,
+                listing => listing.Id,
+                (preOrder, listing) => new { listing.WasteType, listing.Sector, listing.ProductType, listing.SpecificResidue, listing.Quantity, listing.Unit })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        var validation = await regulationService.ValidateOperationAsync(
+            userId,
+            role,
+            new RegulationValidateOperationRequestDto(
+                Action: "confirm_purchase",
+                Actor: "buyer",
+                ResidueType: listingContext?.WasteType,
+                Sector: listingContext?.Sector,
+                ProductType: listingContext?.ProductType,
+                SpecificResidue: listingContext?.SpecificResidue,
+                Quantity: listingContext?.Quantity,
+                Unit: listingContext?.Unit),
+            cancellationToken);
+
+        if (!validation.Allowed)
+        {
+            return RegulatoryBlocked(validation);
         }
 
         try
@@ -101,5 +162,16 @@ public sealed class CheckoutController(ICheckoutService checkoutService) : Contr
         role = User.FindFirst("role")?.Value ?? string.Empty;
 
         return Guid.TryParse(subject, out userId);
+    }
+
+    private IActionResult RegulatoryBlocked(RegulationValidationResultDto validation)
+    {
+        return StatusCode(StatusCodes.Status403Forbidden, new
+        {
+            success = false,
+            data = validation,
+            message = validation.BlockingMessage,
+            errors = new[] { validation.BlockingReasonCode ?? "REGULATION_BLOCKED" }
+        });
     }
 }

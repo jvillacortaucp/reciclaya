@@ -77,4 +77,20 @@ export class AuthHttpRepository {
         catchError((error: unknown) => throwError(() => normalizeHttpError(error, 'No se pudo cargar la sesion.')))
       );
   }
+
+  buildGoogleStartUrl(returnUrl?: string | null): string {
+    const safeReturnUrl = returnUrl && returnUrl.startsWith('/') ? returnUrl : '/app/dashboard';
+    return `${environment.apiBaseUrl}/auth/google/start?returnUrl=${encodeURIComponent(safeReturnUrl)}`;
+  }
+
+  exchangeGoogleSession(ticket: string): Observable<AuthSession> {
+    return this.http
+      .post<ApiResponse<AuthSession>>(`${environment.apiBaseUrl}/auth/google/exchange`, { ticket })
+      .pipe(
+        map(unwrapApiResponse),
+        catchError((error: unknown) =>
+          throwError(() => normalizeHttpError(error, 'No se pudo completar la sesion con Google.'))
+        )
+      );
+  }
 }
