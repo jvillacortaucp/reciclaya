@@ -1,0 +1,65 @@
+.product-panel-enter {
+  animation: panel-enter 300ms ease-out;
+}
+
+.actions-expand-enter {
+  animation: actions-enter 300ms ease-in-out;
+}
+
+.mobile-sheet-enter {
+  animation: mobile-sheet-enter 240ms ease-out;
+}
+
+.skeleton-block {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(90deg, #edf2f7 0%, #f8fafc 50%, #edf2f7 100%);
+  background-size: 200% 100%;
+  animation: value-sector-skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes panel-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes actions-enter {
+  from {
+    opacity: 0;
+    max-height: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    max-height: 220px;
+    transform: translateY(0);
+  }
+}
+
+@keyframes mobile-sheet-enter {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes value-sector-skeleton-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
+}

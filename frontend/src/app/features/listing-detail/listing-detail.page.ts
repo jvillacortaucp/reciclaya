@@ -9,6 +9,8 @@ import {
 } from '@lucide/angular';
 import { EmptyStateComponent } from '../../shared/ui/empty-state/empty-state.component';
 import { APP_ROUTES, PERMISSIONS } from '../../core/constants/app.constants';
+import { classifyRegulatoryLevel, getLevelBadgeClasses, getRegulatoryRule } from '../../core/regulatory/regulatory.rules';
+import { RegulatoryLevel } from '../../core/regulatory/regulatory.models';
 import { AuthFacade } from '../auth/services/auth.facade';
 import { ProtectedActionService } from '../../core/services/protected-action.service';
 import { LISTING_DETAIL_COPY, LISTING_DETAIL_MESSAGES, buildDeliveryModeLabel, buildExchangeTypeLabel } from './data/listing-detail.constants';
@@ -59,6 +61,26 @@ export class ListingDetailPageComponent implements OnInit, OnDestroy {
   protected readonly canCreatePreOrder = computed(() => this.authFacade.hasPermission(PERMISSIONS.CREATE_PRE_ORDER));
   protected readonly canOpenMessages = computed(() => this.authFacade.hasPermission(PERMISSIONS.VIEW_MESSAGES));
   protected readonly canBuyNow = computed(() => this.user()?.role === 'buyer');
+  protected readonly regulatoryLevel = computed<RegulatoryLevel>(() => {
+    const detail = this.detail();
+    if (!detail) {
+      return 2;
+    }
+
+    return classifyRegulatoryLevel({
+      residueType: detail.wasteType,
+      sector: detail.sector,
+      productType: detail.productType,
+      specificResidue: detail.specificResidueType,
+      title: detail.title,
+      description: detail.description,
+      restrictions: detail.restrictions,
+      quantity: detail.volume.amount,
+      unit: detail.volume.unit
+    });
+  });
+  protected readonly regulatoryRule = computed(() => getRegulatoryRule(this.regulatoryLevel()));
+  protected readonly levelBadgeClasses = getLevelBadgeClasses;
   protected readonly valorizationSectionTitle = computed(() => {
     const role = this.user()?.role;
     if (role === 'buyer') {

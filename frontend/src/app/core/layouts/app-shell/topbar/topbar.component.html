@@ -24,8 +24,7 @@
         <svg lucideBell class="w-6 h-6"></svg>
       </button>
       <button type="button" class="flex items-center space-x-3 ml-2 group" id="user-menu-button">
-        <div
-          class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-700 font-bold text-xs border border-slate-200 overflow-hidden group-hover:bg-slate-200 transition-colors">
+        <div [class]="avatarClasses()">
           @if (avatarUrl()) {
           <div class="relative h-full w-full">
             @if (!avatarLoaded) {
@@ -39,7 +38,10 @@
           {{ initials() }}
           }
         </div>
-        <span class="hidden md:block text-sm font-medium text-slate-700">{{ displayName() }}</span>
+        <span class="hidden md:flex flex-col leading-tight">
+          <span class="text-sm font-medium text-slate-700">{{ displayName() }}</span>
+          <span class="text-[11px] font-medium text-slate-400">{{ currentComplianceLevelLabel() }}</span>
+        </span>
       </button>
     </div>
     } @else {

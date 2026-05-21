@@ -36,6 +36,7 @@ export const APP_ROUTES = {
   orders: '/app/orders',
   checkout: '/app/checkout',
   profile: '/app/profile',
+  profileComplianceLevels: '/app/profile/compliance-levels',
   settings: '/app/settings',
   admin: '/app/admin',
   valueSector: '/app/value-sector'

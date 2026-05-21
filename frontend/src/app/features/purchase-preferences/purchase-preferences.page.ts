@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   effect,
   inject,
   OnDestroy,
@@ -8,7 +9,7 @@ import {
   signal
 } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Subscription } from 'rxjs';
+import { catchError, EMPTY, Subscription } from 'rxjs';
 import {
   LucideBell,
   LucideCircleDollarSign,
@@ -21,6 +22,12 @@ import {
   LucideTruck
 } from '@lucide/angular';
 import { PendingChangesAware } from '../../core/models/pending-changes.model';
+import { RegulatoryComplianceStore } from '../../core/regulatory/regulatory-compliance.store';
+import { evaluateBuyerCompliance, getLevelBadgeClasses, getMaxEligibleBuyerLevel } from '../../core/regulatory/regulatory.rules';
+import { BuyerComplianceFlags } from '../../core/regulatory/regulatory.models';
+import { AuthFacade } from '../auth/services/auth.facade';
+import { Profile } from '../profile/profile.models';
+import { ProfileHttpRepository } from '../profile/profile-http.repository';
 import { PurchasePreferencesFacade } from './application/purchase-preferences.facade';
 import {
   ACCEPTED_EXCHANGE_OPTIONS,
@@ -69,8 +76,12 @@ import { ActiveSummaryCardComponent } from './presentation/components/active-sum
 export class PurchasePreferencesPageComponent implements OnInit, OnDestroy, PendingChangesAware {
   private readonly fb = inject(FormBuilder);
   private readonly facade = inject(PurchasePreferencesFacade);
+  private readonly regulatoryStore = inject(RegulatoryComplianceStore);
+  private readonly authFacade = inject(AuthFacade);
+  private readonly profileRepository = inject(ProfileHttpRepository);
   private readonly patching = signal(false);
   private readonly subscriptions = new Subscription();
+  private readonly profile = signal<Profile | null>(null);
 
   protected readonly copy = PURCHASE_PREFERENCES_COPY;
   protected readonly messages = PURCHASE_PREFERENCES_MESSAGES;
@@ -93,6 +104,32 @@ export class PurchasePreferencesPageComponent implements OnInit, OnDestroy, Pend
   protected readonly previewLoading = this.facade.previewLoading;
   protected readonly activateLoading = this.facade.activateLoading;
   protected readonly toastMessage = this.facade.toastMessage;
+  protected readonly statusClasses = getLevelBadgeClasses;
+  protected readonly buyerRegulatoryOptions = [
+    { key: 'municipalLicense', label: 'Licencia municipal' },
+    { key: 'formalOperationEvidence', label: 'Evidencia de operación formal' },
+    { key: 'collectionCenter', label: 'Centro de acopio identificado' },
+    { key: 'sanitaryAuthorization', label: 'Autorización sanitaria' },
+    { key: 'storageZone', label: 'Zona de almacenamiento' },
+    { key: 'basicManagementPlan', label: 'Plan básico de manejo' },
+    { key: 'eorsAuthorization', label: 'EO-RS / operador autorizado' },
+    { key: 'valorizationAuthorization', label: 'Autorización de valorización' },
+    { key: 'safeStorage', label: 'Almacenamiento seguro' },
+    { key: 'specializedStorage', label: 'Almacenamiento especializado' },
+    { key: 'operationalTraceability', label: 'Trazabilidad operativa' },
+    { key: 'matpelAuthorization', label: 'Autorización MATPEL' },
+    { key: 'manifest', label: 'Manifiestos y control documental' },
+    { key: 'emergencyProtocols', label: 'Protocolos de emergencia' }
+  ] as const;
+  protected readonly complianceRecord = computed(() =>
+    this.regulatoryStore.getRecord(this.profile()?.id ?? this.authFacade.user()?.id)
+  );
+  protected readonly buyerEvaluation = computed(() =>
+    evaluateBuyerCompliance(4, this.profile(), this.complianceRecord().buyer)
+  );
+  protected readonly maxBuyerLevel = computed(() =>
+    getMaxEligibleBuyerLevel(this.profile(), this.complianceRecord().buyer)
+  );
 
   protected readonly form = this.fb.nonNullable.group({
     residueType: ['organic'],
@@ -148,6 +185,7 @@ export class PurchasePreferencesPageComponent implements OnInit, OnDestroy, Pend
 
   ngOnInit(): void {
     this.facade.loadInitialState();
+    this.loadProfile();
 
     this.subscriptions.add(
       this.form.valueChanges.subscribe(() => {
@@ -292,5 +330,22 @@ export class PurchasePreferencesPageComponent implements OnInit, OnDestroy, Pend
     };
 
     this.facade.updateState(nextState);
+  }
+
+  protected toggleBuyerCompliance(key: string, checked: boolean): void {
+    const userId = this.profile()?.id ?? this.authFacade.user()?.id;
+    this.regulatoryStore.saveBuyer(userId, { [key]: checked } as Partial<BuyerComplianceFlags>);
+    this.facade.toastMessage.set('Capacidad regulatoria de compra actualizada.');
+  }
+
+  protected buyerFlagValue(key: string): boolean {
+    return Boolean(this.complianceRecord().buyer[key as keyof BuyerComplianceFlags]);
+  }
+
+  private loadProfile(): void {
+    this.profileRepository
+      .getProfile()
+      .pipe(catchError(() => EMPTY))
+      .subscribe((profile) => this.profile.set(profile));
   }
 }
