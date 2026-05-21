@@ -1,0 +1,467 @@
+<ui-section-header title="Admin" subtitle="Gestiona empresas y revisiones regulatorias desde una sola bandeja.">
+  <div class="inline-flex rounded-2xl border border-slate-200 bg-slate-50 p-1">
+    <button
+      type="button"
+      class="rounded-xl px-4 py-2 text-sm font-semibold transition"
+      [class]="activeTab() === 'companies' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'"
+      (click)="setActiveTab('companies')"
+    >
+      Empresas
+    </button>
+    <button
+      type="button"
+      class="rounded-xl px-4 py-2 text-sm font-semibold transition"
+      [class]="activeTab() === 'reviews' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'"
+      (click)="setActiveTab('reviews')"
+    >
+      Revisiones regulatorias
+    </button>
+  </div>
+</ui-section-header>
+
+@if (activeTab() === 'companies') {
+  @if (companiesError()) {
+    <div class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+      {{ companiesError() }}
+    </div>
+  }
+
+  @if (companiesLoading()) {
+    <p class="text-sm text-slate-500">Cargando empresas...</p>
+  } @else if (companies().length === 0) {
+    <ui-empty-state title="Sin empresas" description="No hay empresas registradas para revisar." />
+  } @else {
+    <ui-card>
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-slate-200 text-sm">
+          <thead class="text-left text-xs uppercase tracking-[0.08em] text-slate-500">
+            <tr>
+              <th class="px-3 py-3 font-semibold">Empresa</th>
+              <th class="px-3 py-3 font-semibold">RUC</th>
+              <th class="px-3 py-3 font-semibold">Estado</th>
+              <th class="px-3 py-3 font-semibold">Creada</th>
+              <th class="px-3 py-3 text-right font-semibold">Acciones</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 text-slate-700">
+            @for (company of companies(); track company.id) {
+              <tr>
+                <td class="px-3 py-3 font-medium text-slate-900">{{ company.businessName }}</td>
+                <td class="px-3 py-3">{{ company.ruc }}</td>
+                <td class="px-3 py-3">
+                  <span class="rounded-full px-2.5 py-1 text-xs font-semibold" [class]="statusClass(company.verificationStatus)">
+                    {{ statusLabel(company.verificationStatus) }}
+                  </span>
+                </td>
+                <td class="px-3 py-3">{{ company.createdAt }}</td>
+                <td class="px-3 py-3">
+                  <div class="flex justify-end gap-2">
+                    <button
+                      type="button"
+                      class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
+                      [disabled]="companiesUpdatingId() === company.id || company.verificationStatus === 'verified'"
+                      (click)="verifyCompany(company.id)"
+                    >
+                      Verificar
+                    </button>
+                    <button
+                      type="button"
+                      class="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50"
+                      [disabled]="companiesUpdatingId() === company.id || company.verificationStatus === 'rejected'"
+                      (click)="rejectCompany(company.id)"
+                    >
+                      Rechazar
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </ui-card>
+  }
+} @else {
+  <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+    <div class="inline-flex rounded-2xl border border-slate-200 bg-slate-50 p-1">
+      <button
+        type="button"
+        class="rounded-xl px-4 py-2 text-sm font-semibold transition"
+        [class]="reviewTab() === 'pending' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'"
+        (click)="setReviewTab('pending')"
+      >
+        Pendientes
+      </button>
+      <button
+        type="button"
+        class="rounded-xl px-4 py-2 text-sm font-semibold transition"
+        [class]="reviewTab() === 'history' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'"
+        (click)="setReviewTab('history')"
+      >
+        Historial
+      </button>
+    </div>
+
+    @if (reviewTab() === 'history') {
+      <label class="flex items-center gap-2 text-sm text-slate-600">
+        <span>Filtrar</span>
+        <select
+          class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none"
+          [ngModel]="historyStatusFilter()"
+          (ngModelChange)="setHistoryStatusFilter($event)"
+        >
+          <option value="all">Todos</option>
+          <option value="approved">Aprobados</option>
+          <option value="rejected">Rechazados</option>
+        </select>
+      </label>
+    }
+  </div>
+
+  @if (reviewTab() === 'pending') {
+    @if (pendingError()) {
+      <div class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        {{ pendingError() }}
+      </div>
+    }
+
+    @if (pendingLoading()) {
+      <p class="text-sm text-slate-500">Cargando revisiones pendientes...</p>
+    } @else if (!pendingHasRows()) {
+      <ui-empty-state
+        title="Sin revisiones pendientes"
+        description="No hay evidencias regulatorias esperando acción del administrador."
+      />
+    } @else {
+      <ui-card>
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-slate-200 text-sm">
+            <thead class="text-left text-xs uppercase tracking-[0.08em] text-slate-500">
+              <tr>
+                <th class="px-3 py-3 font-semibold">Empresa</th>
+                <th class="px-3 py-3 font-semibold">Nivel / requisito</th>
+                <th class="px-3 py-3 font-semibold">Archivo</th>
+                <th class="px-3 py-3 font-semibold">Proceso</th>
+                <th class="px-3 py-3 font-semibold">Estado</th>
+                <th class="px-3 py-3 font-semibold">Plazo</th>
+                <th class="px-3 py-3 font-semibold">Actualizado</th>
+                <th class="px-3 py-3 text-right font-semibold">Acciones</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 text-slate-700">
+              @for (item of pendingRows(); track item.requirementRecordId) {
+                <tr>
+                  <td class="px-3 py-3 align-top">
+                    <p class="font-semibold text-slate-900">{{ displayCompanyName(item) }}</p>
+                    <p class="mt-1 text-xs text-slate-500">{{ displayRequesterName(item) }}</p>
+                    <p class="mt-1 text-xs text-slate-500">RUC: {{ item.ruc || 'No registrado' }}</p>
+                  </td>
+                  <td class="px-3 py-3 align-top">
+                    <p class="font-medium text-slate-900">{{ levelLabel(item.levelId) }}</p>
+                    <p class="mt-1 text-xs text-slate-500">{{ item.requirementTitle }}</p>
+                    <p class="mt-1 text-xs uppercase tracking-[0.08em] text-slate-400">{{ actorTypeLabel(item.actorType) }}</p>
+                  </td>
+                  <td class="px-3 py-3 align-top">
+                    <p class="font-medium text-slate-900">{{ displayFileName(item) }}</p>
+                    <p class="mt-1 text-xs text-slate-500">{{ item.uploadedFileKind || 'Desconocido' }}</p>
+                    <p class="mt-1 text-xs text-slate-500">Enviado: {{ formatDateTime(item.createdAt) }}</p>
+                  </td>
+                  <td class="px-3 py-3 align-top">
+                    <span class="rounded-full px-2.5 py-1 text-xs font-semibold" [class]="processClass(item)">
+                      {{ processLabel(item) }}
+                    </span>
+                  </td>
+                  <td class="px-3 py-3 align-top">
+                    <span class="rounded-full px-2.5 py-1 text-xs font-semibold" [class]="reviewStatusClass(item.currentStatus)">
+                      {{ reviewStatusLabel(item.currentStatus) }}
+                    </span>
+                  </td>
+                  <td class="px-3 py-3 align-top">
+                    <div class="space-y-2">
+                      <span class="inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold" [class]="deadlineBadgeClass(item)">
+                        {{ item.isOverdue ? 'Vencido' : 'En plazo' }}
+                      </span>
+                      <p class="text-xs text-slate-500">{{ formatDateTime(item.reviewDeadlineAt) }}</p>
+                      <p class="text-xs font-medium" [class]="item.isOverdue ? 'text-red-600' : 'text-emerald-700'">
+                        {{ deadlineText(item) }}
+                      </p>
+                    </div>
+                  </td>
+                  <td class="px-3 py-3 align-top text-xs text-slate-500">
+                    {{ formatDateTime(item.updatedAt) }}
+                  </td>
+                  <td class="px-3 py-3 align-top">
+                    <div class="flex flex-wrap justify-end gap-2">
+                      <button
+                        type="button"
+                        class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                        [disabled]="!item.evidenceUrl"
+                        (click)="openPreview(item)"
+                      >
+                        Visualizar
+                      </button>
+                      <button
+                        type="button"
+                        class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                        [disabled]="downloadLoadingId() === item.requirementRecordId"
+                        (click)="downloadEvidence(item)"
+                      >
+                        Descargar
+                      </button>
+                      <button
+                        type="button"
+                        class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
+                        [disabled]="isPendingActionDisabled(item)"
+                        (click)="openApproveModal(item)"
+                      >
+                        Aprobar
+                      </button>
+                      <button
+                        type="button"
+                        class="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50"
+                        [disabled]="isPendingActionDisabled(item)"
+                        (click)="openRejectModal(item)"
+                      >
+                        Rechazar
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <div class="mt-4 flex items-center justify-between border-t border-slate-100 pt-4">
+          <p class="text-sm text-slate-500">{{ pendingPageLabel() }}</p>
+          <div class="flex gap-2">
+            <button
+              type="button"
+              class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+              [disabled]="(pendingReviews()?.page ?? 1) <= 1"
+              (click)="goToPendingPage(-1)"
+            >
+              Anterior
+            </button>
+            <button
+              type="button"
+              class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+              [disabled]="!(pendingReviews()?.hasMore)"
+              (click)="goToPendingPage(1)"
+            >
+              Siguiente
+            </button>
+          </div>
+        </div>
+      </ui-card>
+    }
+  } @else {
+    @if (historyError()) {
+      <div class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        {{ historyError() }}
+      </div>
+    }
+
+    @if (historyLoading()) {
+      <p class="text-sm text-slate-500">Cargando historial regulatorio...</p>
+    } @else if (!historyHasRows()) {
+      <ui-empty-state title="Sin historial" description="Aún no hay decisiones regulatorias registradas." />
+    } @else {
+      <ui-card>
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-slate-200 text-sm">
+            <thead class="text-left text-xs uppercase tracking-[0.08em] text-slate-500">
+              <tr>
+                <th class="px-3 py-3 font-semibold">Empresa</th>
+                <th class="px-3 py-3 font-semibold">Requisito</th>
+                <th class="px-3 py-3 font-semibold">Estado</th>
+                <th class="px-3 py-3 font-semibold">Archivo</th>
+                <th class="px-3 py-3 font-semibold">Decisión</th>
+                <th class="px-3 py-3 text-right font-semibold">Acciones</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 text-slate-700">
+              @for (item of historyRows(); track item.requirementRecordId) {
+                <tr>
+                  <td class="px-3 py-3 align-top">
+                    <p class="font-semibold text-slate-900">{{ displayCompanyName(item) }}</p>
+                    <p class="mt-1 text-xs text-slate-500">{{ displayRequesterName(item) }}</p>
+                  </td>
+                  <td class="px-3 py-3 align-top">
+                    <p class="font-medium text-slate-900">{{ item.requirementTitle }}</p>
+                    <p class="mt-1 text-xs text-slate-500">{{ levelLabel(item.levelId) }} · {{ actorTypeLabel(item.actorType) }}</p>
+                  </td>
+                  <td class="px-3 py-3 align-top">
+                    <span class="rounded-full px-2.5 py-1 text-xs font-semibold" [class]="reviewStatusClass(item.currentStatus)">
+                      {{ reviewStatusLabel(item.currentStatus) }}
+                    </span>
+                  </td>
+                  <td class="px-3 py-3 align-top">
+                    <p class="font-medium text-slate-900">{{ displayFileName(item) }}</p>
+                    <p class="mt-1 text-xs text-slate-500">{{ item.uploadedFileKind || 'Desconocido' }}</p>
+                  </td>
+                  <td class="px-3 py-3 align-top">
+                    <p class="text-xs text-slate-500">Actualizado: {{ formatDateTime(item.updatedAt) }}</p>
+                    <p class="mt-1 text-xs text-slate-500">Vigencia: {{ formatDateTime(item.approvalExpiresAt) }}</p>
+                    @if (item.notes) {
+                      <p class="mt-2 rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-600">{{ item.notes }}</p>
+                    }
+                  </td>
+                  <td class="px-3 py-3 align-top">
+                    <div class="flex flex-wrap justify-end gap-2">
+                      <button
+                        type="button"
+                        class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                        [disabled]="!item.evidenceUrl"
+                        (click)="openPreview(item)"
+                      >
+                        Visualizar
+                      </button>
+                      <button
+                        type="button"
+                        class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                        [disabled]="downloadLoadingId() === item.requirementRecordId"
+                        (click)="downloadEvidence(item)"
+                      >
+                        Descargar
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <div class="mt-4 flex items-center justify-between border-t border-slate-100 pt-4">
+          <p class="text-sm text-slate-500">{{ historyPageLabel() }}</p>
+          <div class="flex gap-2">
+            <button
+              type="button"
+              class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+              [disabled]="(historyReviews()?.page ?? 1) <= 1"
+              (click)="goToHistoryPage(-1)"
+            >
+              Anterior
+            </button>
+            <button
+              type="button"
+              class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+              [disabled]="!(historyReviews()?.hasMore)"
+              (click)="goToHistoryPage(1)"
+            >
+              Siguiente
+            </button>
+          </div>
+        </div>
+      </ui-card>
+    }
+  }
+}
+
+<ui-modal [open]="previewOpen()" [title]="previewTitle()">
+  @if (previewItem()) {
+    <div class="space-y-4">
+      <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+        <p class="font-semibold text-slate-900">{{ displayCompanyName(previewItem()!) }}</p>
+        <p class="mt-1">{{ previewItem()?.requirementTitle }}</p>
+      </div>
+
+      @if (isPreviewImage()) {
+        <img
+          class="max-h-[70vh] w-full rounded-2xl border border-slate-200 object-contain"
+          [src]="previewItem()?.evidenceUrl || ''"
+          [alt]="previewItem()?.uploadedFileName || 'Evidencia regulatoria'"
+        />
+      } @else if (isPreviewPdf()) {
+        <iframe
+          class="h-[70vh] w-full rounded-2xl border border-slate-200"
+          [src]="previewPdfUrl()"
+          title="Vista previa del PDF"
+        ></iframe>
+      } @else {
+        <div class="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-sm text-slate-600">
+          Este archivo no puede previsualizarse inline en esta versión. Puedes revisarlo descargándolo desde esta misma ventana.
+        </div>
+      }
+
+      <div class="flex justify-end gap-3">
+        <button
+          type="button"
+          class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+          (click)="closePreview()"
+        >
+          Cerrar
+        </button>
+        <button
+          type="button"
+          class="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+          (click)="downloadPreviewEvidence()"
+        >
+          Descargar
+        </button>
+      </div>
+    </div>
+  }
+</ui-modal>
+
+<ui-modal [open]="reviewModalOpen()" [title]="reviewModalTitle()">
+  @if (reviewModalItem()) {
+    <div class="space-y-4">
+      <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+        <p class="font-semibold text-slate-900">{{ selectedReviewSummary() }}</p>
+        <p class="mt-1">{{ displayFileName(reviewModalItem()!) }}</p>
+      </div>
+
+      @if (reviewModalError()) {
+        <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {{ reviewModalError() }}
+        </div>
+      }
+
+      @if (reviewModalMode() === 'approved') {
+        <label class="block text-sm text-slate-700">
+          <span class="mb-2 block font-semibold text-slate-900">Vigencia de la aprobación (opcional)</span>
+          <input
+            type="datetime-local"
+            class="w-full rounded-xl border border-slate-200 px-3 py-2 outline-none focus:border-emerald-500"
+            [ngModel]="reviewModalExpiresAt()"
+            (ngModelChange)="onReviewExpiresAtChange($event)"
+          />
+        </label>
+      }
+
+      <label class="block text-sm text-slate-700">
+        <span class="mb-2 block font-semibold text-slate-900">
+          {{ reviewModalMode() === 'rejected' ? 'Motivo del rechazo' : 'Notas de revisión' }}
+        </span>
+        <textarea
+          rows="4"
+          class="w-full rounded-xl border border-slate-200 px-3 py-2 outline-none focus:border-emerald-500"
+          [ngModel]="reviewModalNotes()"
+          (ngModelChange)="onReviewNotesChange($event)"
+          [placeholder]="reviewModalMode() === 'rejected' ? 'Explica por qué se rechaza la evidencia.' : 'Notas opcionales para la aprobación.'"
+        ></textarea>
+      </label>
+
+      <div class="flex justify-end gap-3">
+        <button
+          type="button"
+          class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+          (click)="closeReviewModal()"
+        >
+          Cancelar
+        </button>
+        <button
+          type="button"
+          class="rounded-xl px-4 py-2 text-sm font-semibold text-white"
+          [class]="reviewModalMode() === 'approved' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-red-600 hover:bg-red-700'"
+          [disabled]="reviewUpdatingId() === reviewModalItem()?.requirementRecordId"
+          (click)="submitReviewModal()"
+        >
+          {{ reviewModalActionLabel() }}
+        </button>
+      </div>
+    </div>
+  }
+</ui-modal>

@@ -80,12 +80,21 @@ public sealed record RegulationUploadRequirementEvidenceCommand(
 public sealed record RegulationRequirementReviewItemDto(
     Guid RequirementRecordId,
     Guid UserId,
+    string RequesterName,
+    string CompanyName,
+    string? Ruc,
     int LevelId,
     string RequirementCode,
     string RequirementTitle,
+    string ActorType,
     string CurrentStatus,
+    string? UploadedFileName,
+    string? UploadedFileKind,
     string? EvidenceUrl,
     string? Notes,
+    DateTime? ReviewDeadlineAt,
+    bool IsOverdue,
+    DateTime? ApprovalExpiresAt,
     DateTime CreatedAt,
     DateTime UpdatedAt);
 
