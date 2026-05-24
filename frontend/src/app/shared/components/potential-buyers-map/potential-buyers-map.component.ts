@@ -31,8 +31,11 @@ import { LocalGeoJsonService } from 'app/core/services/local-geojson.service';
 import { BuyerScope, PotentialBuyer } from './potential-buyers-map.models';
 import {
   buildBuyerTooltipMarkup,
+  filterPolygonFeatures,
   findMatchingCountryFeatures,
   findMatchingFeatures,
+  hasPolygonalGeoJsonFeatures,
+  isGeoJsonFeatureCollection,
   normalizeGeoName,
   resolveFocusBuyer
 } from './potential-buyers-map.utils';
@@ -311,18 +314,20 @@ export class PotentialBuyersMapComponent implements AfterViewInit, OnDestroy {
       return;
     }
 
-    const features = boundary
+    const boundaryValidation = this.validateBoundaryPayload(boundary, scope);
+    const features = boundaryValidation.isValid
       ? new GeoJSON().readFeatures(boundary, {
           dataProjection: 'EPSG:4326',
           featureProjection: 'EPSG:3857'
         })
       : [];
+    const polygonFeatures = filterPolygonFeatures(features);
 
     const matchedFeatures =
       scope === 'national'
-        ? findMatchingFeatures(features, scope, this.resolveRegionNames(buyers, focusBuyer))
+        ? findMatchingFeatures(polygonFeatures, scope, this.resolveRegionNames(buyers, focusBuyer))
         : findMatchingCountryFeatures(
-            features,
+            polygonFeatures,
             this.resolveCountryNames(buyers, focusBuyer),
             this.resolveCountryIso3s(buyers, focusBuyer)
           );
@@ -339,11 +344,8 @@ export class PotentialBuyersMapComponent implements AfterViewInit, OnDestroy {
     this.markerLayer.setSource(markerSource);
 
     let status: string | null = null;
-    if (!boundary) {
-      status =
-        scope === 'international'
-          ? 'No se pudo cargar el país seleccionado. Verifica countries.geojson'
-          : 'No se pudo cargar el archivo GeoJSON.';
+    if (!boundaryValidation.isValid) {
+      status = boundaryValidation.warning;
     } else if (!matchedFeatures.length) {
       status = 'No se pudo encontrar el área geográfica seleccionada.';
     } else if (!filteredBuyers.length) {
@@ -357,7 +359,7 @@ export class PotentialBuyersMapComponent implements AfterViewInit, OnDestroy {
       scope === 'national'
         ? this.resolveRegionNames(buyers, focusBuyer).length
         : Math.max(this.resolveCountryIso3s(buyers, focusBuyer).length, this.resolveCountryNames(buyers, focusBuyer).length);
-    if (boundary && matchedFeatures.length && matchedFeatures.length < expectedGeoCount) {
+    if (boundaryValidation.isValid && matchedFeatures.length && matchedFeatures.length < expectedGeoCount) {
       console.warn('[PotentialBuyersMap] Cobertura geográfica parcial', {
         scope,
         expectedGeoCount,
@@ -493,6 +495,51 @@ export class PotentialBuyersMapComponent implements AfterViewInit, OnDestroy {
     );
 
     return uniqueCountries.length ? uniqueCountries : focusBuyer?.country ? [focusBuyer.country] : [];
+  }
+
+  private validateBoundaryPayload(
+    boundary: unknown,
+    scope: BuyerScope
+  ): { readonly isValid: boolean; readonly warning: string | null } {
+    if (!boundary) {
+      return {
+        isValid: false,
+        warning:
+          scope === 'international'
+            ? 'No se pudo cargar el archivo GeoJSON desde los assets del frontend actual.'
+            : 'No se pudo cargar el archivo GeoJSON desde los assets del frontend actual.'
+      };
+    }
+
+    if (!isGeoJsonFeatureCollection(boundary)) {
+      const warning =
+        scope === 'international'
+          ? 'countries.geojson no tiene un FeatureCollection válido. Regénéralo desde ne_50m_admin_0_countries.shp.'
+          : 'El archivo GeoJSON de regiones no tiene un FeatureCollection válido.';
+      console.warn('[PotentialBuyersMap] Boundary asset inválido', { scope, warning });
+      return { isValid: false, warning };
+    }
+
+    if (!hasPolygonalGeoJsonFeatures(boundary)) {
+      const warning =
+        scope === 'international'
+          ? 'countries.geojson no contiene polígonos reales. Regénéralo desde ne_50m_admin_0_countries.shp.'
+          : 'El archivo GeoJSON de regiones no contiene polígonos reales.';
+      console.warn('[PotentialBuyersMap] Boundary asset sin polígonos', { scope, warning });
+      return { isValid: false, warning };
+    }
+
+    const featureCount = boundary.features?.length ?? 0;
+    if (scope === 'international' && featureCount < 100) {
+      const warning =
+        'countries.geojson parece incompleto o demasiado liviano. Regénéralo desde ne_50m_admin_0_countries.shp.';
+      console.warn('[PotentialBuyersMap] Boundary asset internacional sospechoso', {
+        featureCount
+      });
+      return { isValid: false, warning };
+    }
+
+    return { isValid: true, warning: null };
   }
 
   private fitMap(

@@ -2,6 +2,13 @@ import Feature from 'ol/Feature';
 import { Geometry } from 'ol/geom';
 import { BuyerScope, PotentialBuyer } from './potential-buyers-map.models';
 
+type GeoJsonGeometryLike = { type?: string | null } | null | undefined;
+type GeoJsonFeatureLike = { geometry?: GeoJsonGeometryLike } | null | undefined;
+type GeoJsonFeatureCollectionLike = {
+  type?: string | null;
+  features?: readonly GeoJsonFeatureLike[] | null;
+} | null | undefined;
+
 const REGION_NAME_KEYS = [
   'shapeName',
   'shapeISO',
@@ -230,6 +237,35 @@ export function findMatchingCountryFeatures(
     const featureLabel = normalizeGeoName(getFeatureLabel(feature, 'international'));
     return !!featureLabel && normalizedCountrySet.has(featureLabel);
   });
+}
+
+export function isGeoJsonFeatureCollection(value: unknown): value is GeoJsonFeatureCollectionLike {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const candidate = value as { type?: unknown; features?: unknown };
+  return candidate.type === 'FeatureCollection' && Array.isArray(candidate.features);
+}
+
+export function hasPolygonalGeoJsonFeatures(value: unknown): boolean {
+  if (!isGeoJsonFeatureCollection(value)) {
+    return false;
+  }
+
+  const featureCollection = value as { features?: readonly GeoJsonFeatureLike[] | null };
+  const features = featureCollection.features ?? [];
+  return features.some((feature) => isPolygonalGeometryType(feature?.geometry?.type));
+}
+
+export function filterPolygonFeatures(
+  features: readonly Feature<Geometry>[]
+): readonly Feature<Geometry>[] {
+  return features.filter((feature) => isPolygonalGeometryType(feature.getGeometry()?.getType()));
+}
+
+function isPolygonalGeometryType(type: string | null | undefined): boolean {
+  return type === 'Polygon' || type === 'MultiPolygon';
 }
 
 export function matchesBuyerFocus(

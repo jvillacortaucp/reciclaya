@@ -51,7 +51,7 @@
 </ui-card>
 
 @if (showLevel0Banner()) {
-  <ui-card class="mb-4 block border border-amber-300 bg-amber-50">
+  <ui-card class="mb-4 block border border-amber-300 rounded-2xl bg-amber-50">
     <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
       <div>
         <p class="text-xs font-semibold uppercase tracking-wide text-amber-700">Estado regulatorio actual</p>
@@ -98,7 +98,7 @@
       />
     </div>
 
-    <div class="space-y-4">
+    <div class="flex flex-col space-y-4">
       @if (levels().length === 0) {
         <ui-empty-state title="Sin datos regulatorios" description="No se encontró la información del catálogo regulatorio." />
       }

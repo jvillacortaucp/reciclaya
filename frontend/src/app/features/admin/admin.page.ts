@@ -20,6 +20,7 @@ import {
 } from '../../core/regulatory/regulation-api.models';
 import { CardComponent } from '../../shared/ui/card/card.component';
 import { EmptyStateComponent } from '../../shared/ui/empty-state/empty-state.component';
+import { LoaderComponent } from '../../shared/ui/loader/loader.component';
 import { ModalComponent } from '../../shared/ui/modal/modal.component';
 import { SectionHeaderComponent } from '../../shared/ui/section-header/section-header.component';
 import { AdminCompaniesRepository, AdminCompany } from './admin-companies.repository';
@@ -36,7 +37,7 @@ const REVIEW_PAGE_SIZE = 10;
 @Component({
   selector: 'app-admin-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, CardComponent, EmptyStateComponent, ModalComponent, SectionHeaderComponent],
+  imports: [CommonModule, FormsModule, CardComponent, EmptyStateComponent, LoaderComponent, ModalComponent, SectionHeaderComponent],
   templateUrl: './admin.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
