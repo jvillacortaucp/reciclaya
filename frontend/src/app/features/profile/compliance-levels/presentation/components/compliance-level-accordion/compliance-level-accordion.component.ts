@@ -19,6 +19,7 @@ export class ComplianceLevelAccordionComponent {
 
   protected toneClasses(): string {
     const classes = {
+      0: 'border-slate-200 bg-slate-50/60',
       1: 'border-emerald-200 bg-emerald-50/60',
       2: 'border-cyan-200 bg-cyan-50/60',
       3: 'border-amber-200 bg-amber-50/60',
@@ -30,6 +31,7 @@ export class ComplianceLevelAccordionComponent {
 
   protected levelProgressBarClasses(): string {
     const classes = {
+      0: 'bg-slate-500',
       1: 'bg-emerald-500',
       2: 'bg-cyan-500',
       3: 'bg-amber-500',

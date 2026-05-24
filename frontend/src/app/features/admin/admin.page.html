@@ -1,0 +1,699 @@
+<ui-section-header title="Admin" subtitle="Gestiona empresas y revisiones regulatorias desde una sola bandeja.">
+  <div class="flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-1">
+    <button
+      type="button"
+      class="rounded-xl px-4 py-2 text-sm font-semibold transition"
+      [class]="activeTab() === 'companies' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'"
+      (click)="setActiveTab('companies')"
+    >
+      Empresas
+    </button>
+    <button
+      type="button"
+      class="rounded-xl px-4 py-2 text-sm font-semibold transition"
+      [class]="activeTab() === 'reviews' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'"
+      (click)="setActiveTab('reviews')"
+    >
+      Revisiones regulatorias
+    </button>
+    <button
+      type="button"
+      class="rounded-xl px-4 py-2 text-sm font-semibold transition"
+      [class]="activeTab() === 'catalog' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'"
+      (click)="setActiveTab('catalog')"
+    >
+      Catálogo regulatorio
+    </button>
+  </div>
+</ui-section-header>
+
+@if (activeTab() === 'companies') {
+  @if (companiesError()) {
+    <div class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+      {{ companiesError() }}
+    </div>
+  }
+
+  @if (companiesLoading()) {
+    <ui-card>
+      <div class="min-h-[240px]">
+        <app-loader size="md" message="Cargando empresas..." />
+      </div>
+    </ui-card>
+  } @else if (companies().length === 0) {
+    <ui-empty-state title="Sin empresas" description="No hay empresas registradas para revisar." />
+  } @else {
+    <ui-card>
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-slate-200 text-sm">
+          <thead class="text-left text-xs uppercase tracking-[0.08em] text-slate-500">
+            <tr>
+              <th class="px-3 py-3 font-semibold">Empresa</th>
+              <th class="px-3 py-3 font-semibold">RUC</th>
+              <th class="px-3 py-3 font-semibold">Estado</th>
+              <th class="px-3 py-3 font-semibold">Creada</th>
+              <th class="px-3 py-3 text-right font-semibold">Acciones</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 text-slate-700">
+            @for (company of companies(); track company.id) {
+              <tr>
+                <td class="px-3 py-3 font-medium text-slate-900">{{ company.businessName }}</td>
+                <td class="px-3 py-3">{{ company.ruc }}</td>
+                <td class="px-3 py-3">
+                  <span class="rounded-full px-2.5 py-1 text-xs font-semibold" [class]="statusClass(company.verificationStatus)">
+                    {{ statusLabel(company.verificationStatus) }}
+                  </span>
+                </td>
+                <td class="px-3 py-3">{{ company.createdAt }}</td>
+                <td class="px-3 py-3">
+                  <div class="flex justify-end gap-2">
+                    <button
+                      type="button"
+                      class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
+                      [disabled]="companiesUpdatingId() === company.id || company.verificationStatus === 'verified'"
+                      (click)="verifyCompany(company.id)"
+                    >
+                      Verificar
+                    </button>
+                    <button
+                      type="button"
+                      class="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50"
+                      [disabled]="companiesUpdatingId() === company.id || company.verificationStatus === 'rejected'"
+                      (click)="rejectCompany(company.id)"
+                    >
+                      Rechazar
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </ui-card>
+  }
+} @else if (activeTab() === 'reviews') {
+  <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+    <div class="flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-1">
+      <button
+        type="button"
+        class="rounded-xl px-4 py-2 text-sm font-semibold transition"
+        [class]="reviewTab() === 'pending' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'"
+        (click)="setReviewTab('pending')"
+      >
+        Pendientes
+      </button>
+      <button
+        type="button"
+        class="rounded-xl px-4 py-2 text-sm font-semibold transition"
+        [class]="reviewTab() === 'history' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'"
+        (click)="setReviewTab('history')"
+      >
+        Historial
+      </button>
+    </div>
+
+    @if (reviewTab() === 'history') {
+      <label class="flex flex-wrap items-center gap-2 text-sm text-slate-600">
+        <span>Filtrar</span>
+        <div class="relative min-w-[140px]">
+          <select
+            class="h-11 w-full appearance-none rounded-xl border border-slate-200 bg-white px-4 pr-10 text-sm text-slate-700 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+            [ngModel]="historyStatusFilter()"
+            (ngModelChange)="setHistoryStatusFilter($event)"
+          >
+            <option value="all">Todos</option>
+            <option value="approved">Aprobados</option>
+            <option value="rejected">Rechazados</option>
+          </select>
+          <span class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-400">
+            <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+              <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </span>
+        </div>
+      </label>
+    }
+  </div>
+
+  @if (reviewTab() === 'pending') {
+    @if (pendingError()) {
+      <div class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        {{ pendingError() }}
+      </div>
+    }
+
+    @if (pendingLoading()) {
+      <ui-card>
+        <div class="min-h-[240px]">
+          <app-loader size="md" message="Cargando revisiones pendientes..." />
+        </div>
+      </ui-card>
+    } @else if (!pendingHasRows()) {
+      <ui-empty-state
+        title="Sin revisiones pendientes"
+        description="No hay evidencias regulatorias esperando acción del administrador."
+      />
+    } @else {
+      <ui-card>
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-slate-200 text-sm">
+            <thead class="text-left text-xs uppercase tracking-[0.08em] text-slate-500">
+              <tr>
+                <th class="px-3 py-3 font-semibold">Empresa</th>
+                <th class="px-3 py-3 font-semibold">Nivel / requisito</th>
+                <th class="px-3 py-3 font-semibold">Archivo</th>
+                <th class="px-3 py-3 font-semibold">Proceso</th>
+                <th class="px-3 py-3 font-semibold">Estado</th>
+                <th class="px-3 py-3 font-semibold">Plazo</th>
+                <th class="px-3 py-3 font-semibold">Actualizado</th>
+                <th class="px-3 py-3 text-right font-semibold">Acciones</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 text-slate-700">
+              @for (item of pendingRows(); track item.requirementRecordId) {
+                <tr>
+                  <td class="px-3 py-3 align-top">
+                    <p class="font-semibold text-slate-900">{{ displayCompanyName(item) }}</p>
+                    <p class="mt-1 text-xs text-slate-500">{{ displayRequesterName(item) }}</p>
+                    <p class="mt-1 text-xs text-slate-500">RUC: {{ item.ruc || 'No registrado' }}</p>
+                  </td>
+                  <td class="px-3 py-3 align-top">
+                    <p class="font-medium text-slate-900">{{ levelLabel(item.levelId) }}</p>
+                    <p class="mt-1 text-xs text-slate-500">{{ item.requirementTitle }}</p>
+                    <p class="mt-1 text-xs uppercase tracking-[0.08em] text-slate-400">{{ actorTypeLabel(item.actorType) }}</p>
+                  </td>
+                  <td class="px-3 py-3 align-top">
+                    <p class="font-medium text-slate-900">{{ displayFileName(item) }}</p>
+                    <p class="mt-1 text-xs text-slate-500">{{ item.uploadedFileKind || 'Desconocido' }}</p>
+                    <p class="mt-1 text-xs text-slate-500">Enviado: {{ formatDateTime(item.createdAt) }}</p>
+                  </td>
+                  <td class="px-3 py-3 align-top">
+                    <span class="rounded-full px-2.5 py-1 text-xs font-semibold" [class]="processClass(item)">
+                      {{ processLabel(item) }}
+                    </span>
+                  </td>
+                  <td class="px-3 py-3 align-top">
+                    <span class="rounded-full px-2.5 py-1 text-xs font-semibold" [class]="reviewStatusClass(item.currentStatus)">
+                      {{ reviewStatusLabel(item.currentStatus) }}
+                    </span>
+                  </td>
+                  <td class="px-3 py-3 align-top">
+                    <div class="space-y-2">
+                      <span class="inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold" [class]="deadlineBadgeClass(item)">
+                        {{ item.isOverdue ? 'Vencido' : 'En plazo' }}
+                      </span>
+                      <p class="text-xs text-slate-500">{{ formatDateTime(item.reviewDeadlineAt) }}</p>
+                      <p class="text-xs font-medium" [class]="item.isOverdue ? 'text-red-600' : 'text-emerald-700'">
+                        {{ deadlineText(item) }}
+                      </p>
+                    </div>
+                  </td>
+                  <td class="px-3 py-3 align-top text-xs text-slate-500">
+                    {{ formatDateTime(item.updatedAt) }}
+                  </td>
+                  <td class="px-3 py-3 align-top">
+                    <div class="flex flex-wrap justify-end gap-2">
+                      <button
+                        type="button"
+                        class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                        [disabled]="!item.evidenceUrl"
+                        (click)="openPreview(item)"
+                      >
+                        Visualizar
+                      </button>
+                      <button
+                        type="button"
+                        class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                        [disabled]="downloadLoadingId() === item.requirementRecordId"
+                        (click)="downloadEvidence(item)"
+                      >
+                        Descargar
+                      </button>
+                      <button
+                        type="button"
+                        class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
+                        [disabled]="isPendingActionDisabled(item)"
+                        (click)="openApproveModal(item)"
+                      >
+                        Aprobar
+                      </button>
+                      <button
+                        type="button"
+                        class="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50"
+                        [disabled]="isPendingActionDisabled(item)"
+                        (click)="openRejectModal(item)"
+                      >
+                        Rechazar
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <div class="mt-4 flex items-center justify-between border-t border-slate-100 pt-4">
+          <p class="text-sm text-slate-500">{{ pendingPageLabel() }}</p>
+          <div class="flex gap-2">
+            <button
+              type="button"
+              class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+              [disabled]="(pendingReviews()?.page ?? 1) <= 1"
+              (click)="goToPendingPage(-1)"
+            >
+              Anterior
+            </button>
+            <button
+              type="button"
+              class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+              [disabled]="!(pendingReviews()?.hasMore)"
+              (click)="goToPendingPage(1)"
+            >
+              Siguiente
+            </button>
+          </div>
+        </div>
+      </ui-card>
+    }
+  } @else {
+    @if (historyError()) {
+      <div class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        {{ historyError() }}
+      </div>
+    }
+
+    @if (historyLoading()) {
+      <ui-card>
+        <div class="min-h-[240px]">
+          <app-loader size="md" message="Cargando historial regulatorio..." />
+        </div>
+      </ui-card>
+    } @else if (!historyHasRows()) {
+      <ui-empty-state title="Sin historial" description="Aún no hay decisiones regulatorias registradas." />
+    } @else {
+      <ui-card>
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-slate-200 text-sm">
+            <thead class="text-left text-xs uppercase tracking-[0.08em] text-slate-500">
+              <tr>
+                <th class="px-3 py-3 font-semibold">Empresa</th>
+                <th class="px-3 py-3 font-semibold">Requisito</th>
+                <th class="px-3 py-3 font-semibold">Estado</th>
+                <th class="px-3 py-3 font-semibold">Archivo</th>
+                <th class="px-3 py-3 font-semibold">Decisión</th>
+                <th class="px-3 py-3 text-right font-semibold">Acciones</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 text-slate-700">
+              @for (item of historyRows(); track item.requirementRecordId) {
+                <tr>
+                  <td class="px-3 py-3 align-top">
+                    <p class="font-semibold text-slate-900">{{ displayCompanyName(item) }}</p>
+                    <p class="mt-1 text-xs text-slate-500">{{ displayRequesterName(item) }}</p>
+                  </td>
+                  <td class="px-3 py-3 align-top">
+                    <p class="font-medium text-slate-900">{{ item.requirementTitle }}</p>
+                    <p class="mt-1 text-xs text-slate-500">{{ levelLabel(item.levelId) }} · {{ actorTypeLabel(item.actorType) }}</p>
+                  </td>
+                  <td class="px-3 py-3 align-top">
+                    <span class="rounded-full px-2.5 py-1 text-xs font-semibold" [class]="reviewStatusClass(item.currentStatus)">
+                      {{ reviewStatusLabel(item.currentStatus) }}
+                    </span>
+                  </td>
+                  <td class="px-3 py-3 align-top">
+                    <p class="font-medium text-slate-900">{{ displayFileName(item) }}</p>
+                    <p class="mt-1 text-xs text-slate-500">{{ item.uploadedFileKind || 'Desconocido' }}</p>
+                  </td>
+                  <td class="px-3 py-3 align-top">
+                    <p class="text-xs text-slate-500">Actualizado: {{ formatDateTime(item.updatedAt) }}</p>
+                    <p class="mt-1 text-xs text-slate-500">Vigencia: {{ formatDateTime(item.approvalExpiresAt) }}</p>
+                    @if (item.notes) {
+                      <p class="mt-2 rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-600">{{ item.notes }}</p>
+                    }
+                  </td>
+                  <td class="px-3 py-3 align-top">
+                    <div class="flex flex-wrap justify-end gap-2">
+                      <button
+                        type="button"
+                        class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                        [disabled]="!item.evidenceUrl"
+                        (click)="openPreview(item)"
+                      >
+                        Visualizar
+                      </button>
+                      <button
+                        type="button"
+                        class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                        [disabled]="downloadLoadingId() === item.requirementRecordId"
+                        (click)="downloadEvidence(item)"
+                      >
+                        Descargar
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <div class="mt-4 flex items-center justify-between border-t border-slate-100 pt-4">
+          <p class="text-sm text-slate-500">{{ historyPageLabel() }}</p>
+          <div class="flex gap-2">
+            <button
+              type="button"
+              class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+              [disabled]="(historyReviews()?.page ?? 1) <= 1"
+              (click)="goToHistoryPage(-1)"
+            >
+              Anterior
+            </button>
+            <button
+              type="button"
+              class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+              [disabled]="!(historyReviews()?.hasMore)"
+              (click)="goToHistoryPage(1)"
+            >
+              Siguiente
+            </button>
+          </div>
+        </div>
+      </ui-card>
+    }
+  }
+} @else {
+  @if (catalogError()) {
+    <div class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+      {{ catalogError() }}
+    </div>
+  }
+
+  @if (catalogLoading()) {
+    <ui-card>
+      <div class="min-h-[280px]">
+        <app-loader size="md" message="Cargando catálogo regulatorio..." />
+      </div>
+    </ui-card>
+  } @else if (!currentCatalogLevel()) {
+    <ui-empty-state title="Sin catálogo" description="No se encontró la información del catálogo regulatorio." />
+  } @else {
+    <div class="mb-4 flex flex-col space-y-4">
+      <ui-card>
+        <div class="mb-4 flex flex-wrap items-center justify-between gap-4">
+          <p class="text-sm text-slate-600">
+            Versión activa: <span class="font-semibold text-slate-900">{{ catalog()?.activeVersion }}</span>
+          </p>
+          <label class="flex flex-wrap items-center gap-2 text-sm text-slate-600">
+            <span>Nivel</span>
+            <div class="relative min-w-[150px]">
+              <select
+                class="h-11 w-full appearance-none rounded-xl border border-slate-200 bg-white px-4 pr-10 text-sm text-slate-700 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                [ngModel]="selectedCatalogLevel()"
+                (ngModelChange)="onSelectCatalogLevel($event)"
+              >
+                @for (level of levelOptions(); track level.levelId) {
+                  <option [value]="level.levelId">Nivel {{ level.levelId }}</option>
+                }
+              </select>
+              <span class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-400">
+                <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                  <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              </span>
+            </div>
+          </label>
+        </div>
+  
+        <div class="grid gap-3 md:grid-cols-2">
+          <label class="block text-sm text-slate-700">
+            <span class="mb-1 block font-semibold text-slate-900">Título</span>
+            <input
+              class="w-full rounded-xl border border-slate-200 px-3 py-2"
+              [ngModel]="levelEditModel.title"
+              (ngModelChange)="levelEditModel.title = $event"
+            />
+          </label>
+          <label class="block text-sm text-slate-700">
+            <span class="mb-1 block font-semibold text-slate-900">Subtítulo</span>
+            <input
+              class="w-full rounded-xl border border-slate-200 px-3 py-2"
+              [ngModel]="levelEditModel.subtitle"
+              (ngModelChange)="levelEditModel.subtitle = $event"
+            />
+          </label>
+          <label class="block text-sm text-slate-700">
+            <span class="mb-1 block font-semibold text-slate-900">Etiqueta de regularización</span>
+            <input
+              class="w-full rounded-xl border border-slate-200 px-3 py-2"
+              [ngModel]="levelEditModel.regularizationLabel"
+              (ngModelChange)="levelEditModel.regularizationLabel = $event"
+            />
+          </label>
+          <label class="block text-sm text-slate-700">
+            <span class="mb-1 block font-semibold text-slate-900">Riesgo</span>
+            <input
+              class="w-full rounded-xl border border-slate-200 px-3 py-2"
+              [ngModel]="levelEditModel.riskLevel"
+              (ngModelChange)="levelEditModel.riskLevel = $event"
+            />
+          </label>
+          <label class="block text-sm text-slate-700 md:col-span-2">
+            <span class="mb-1 block font-semibold text-slate-900">Fiscalización</span>
+            <input
+              class="w-full rounded-xl border border-slate-200 px-3 py-2"
+              [ngModel]="levelEditModel.fiscalization"
+              (ngModelChange)="levelEditModel.fiscalization = $event"
+            />
+          </label>
+        </div>
+  
+        <div class="mt-4 grid gap-3 md:grid-cols-2">
+          <label class="block text-sm text-slate-700">
+            <span class="mb-1 block font-semibold text-slate-900">Objetivos (1 por línea)</span>
+            <textarea rows="4" class="w-full rounded-xl border border-slate-200 px-3 py-2" [ngModel]="objectiveText" (ngModelChange)="objectiveText = $event"></textarea>
+          </label>
+          <label class="block text-sm text-slate-700">
+            <span class="mb-1 block font-semibold text-slate-900">Restricciones (1 por línea)</span>
+            <textarea rows="4" class="w-full rounded-xl border border-slate-200 px-3 py-2" [ngModel]="restrictionsText" (ngModelChange)="restrictionsText = $event"></textarea>
+          </label>
+          <label class="block text-sm text-slate-700">
+            <span class="mb-1 block font-semibold text-slate-900">Permitido plataforma (1 por línea)</span>
+            <textarea rows="4" class="w-full rounded-xl border border-slate-200 px-3 py-2" [ngModel]="platformAllowedText" (ngModelChange)="platformAllowedText = $event"></textarea>
+          </label>
+          <label class="block text-sm text-slate-700">
+            <span class="mb-1 block font-semibold text-slate-900">Requerido plataforma (1 por línea)</span>
+            <textarea rows="4" class="w-full rounded-xl border border-slate-200 px-3 py-2" [ngModel]="platformRequiredText" (ngModelChange)="platformRequiredText = $event"></textarea>
+          </label>
+          <label class="block text-sm text-slate-700">
+            <span class="mb-1 block font-semibold text-slate-900">Trazabilidad (1 por línea)</span>
+            <textarea rows="4" class="w-full rounded-xl border border-slate-200 px-3 py-2" [ngModel]="traceabilityText" (ngModelChange)="traceabilityText = $event"></textarea>
+          </label>
+          <label class="block text-sm text-slate-700">
+            <span class="mb-1 block font-semibold text-slate-900">Riesgo legal (1 por línea)</span>
+            <textarea rows="4" class="w-full rounded-xl border border-slate-200 px-3 py-2" [ngModel]="legalRiskText" (ngModelChange)="legalRiskText = $event"></textarea>
+          </label>
+        </div>
+  
+        <div class="mt-4 flex justify-end">
+          <button
+            type="button"
+            class="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+            [disabled]="catalogSaving()"
+            (click)="saveLevelMetadata()"
+          >
+            Guardar metadatos
+          </button>
+        </div>
+      </ui-card>
+  
+      <ui-card class="mt-4">
+        <h3 class="text-base font-semibold text-slate-900">Requisitos</h3>
+        @for (item of currentCatalogLevel()?.requirements ?? []; track item.id) {
+          <div class="mt-3 grid gap-2 rounded-xl border border-slate-200 p-3 md:grid-cols-4">
+            <input class="rounded-lg border border-slate-200 px-2 py-1 text-sm" [ngModel]="requirementDraft(item.id)?.requirementCode" (ngModelChange)="requirementDraft(item.id)!.requirementCode = $event" />
+            <input class="rounded-lg border border-slate-200 px-2 py-1 text-sm" [ngModel]="requirementDraft(item.id)?.title" (ngModelChange)="requirementDraft(item.id)!.title = $event" />
+            <input class="rounded-lg border border-slate-200 px-2 py-1 text-sm" [ngModel]="requirementDraft(item.id)?.actorType" (ngModelChange)="requirementDraft(item.id)!.actorType = $event" />
+            <input class="rounded-lg border border-slate-200 px-2 py-1 text-sm" [ngModel]="requirementDraft(item.id)?.sortOrder" (ngModelChange)="requirementDraft(item.id)!.sortOrder = +$event" />
+            <textarea class="md:col-span-3 rounded-lg border border-slate-200 px-2 py-1 text-sm" rows="2" [ngModel]="requirementDraft(item.id)?.description" (ngModelChange)="requirementDraft(item.id)!.description = $event"></textarea>
+            <div class="flex items-center justify-end gap-2">
+              <button type="button" class="rounded-lg border border-slate-200 px-3 py-1 text-xs" (click)="saveRequirement(item)">Guardar</button>
+              <button type="button" class="rounded-lg border border-red-200 bg-red-50 px-3 py-1 text-xs text-red-700" (click)="deleteRequirement(item.id)">Eliminar</button>
+            </div>
+          </div>
+        }
+        <div class="mt-4 grid gap-2 rounded-xl border border-dashed border-slate-300 p-3 md:grid-cols-4">
+          <input class="rounded-lg border border-slate-200 px-2 py-1 text-sm" placeholder="Código" [ngModel]="newRequirementDraft.requirementCode" (ngModelChange)="newRequirementDraft.requirementCode = $event" />
+          <input class="rounded-lg border border-slate-200 px-2 py-1 text-sm" placeholder="Título" [ngModel]="newRequirementDraft.title" (ngModelChange)="newRequirementDraft.title = $event" />
+          <input class="rounded-lg border border-slate-200 px-2 py-1 text-sm" placeholder="Actor" [ngModel]="newRequirementDraft.actorType" (ngModelChange)="newRequirementDraft.actorType = $event" />
+          <input class="rounded-lg border border-slate-200 px-2 py-1 text-sm" type="number" placeholder="Orden" [ngModel]="newRequirementDraft.sortOrder" (ngModelChange)="newRequirementDraft.sortOrder = +$event" />
+          <textarea class="md:col-span-3 rounded-lg border border-slate-200 px-2 py-1 text-sm" rows="2" placeholder="Descripción" [ngModel]="newRequirementDraft.description" (ngModelChange)="newRequirementDraft.description = $event"></textarea>
+          <div class="flex justify-end">
+            <button type="button" class="rounded-lg bg-emerald-600 px-3 py-1 text-xs font-semibold text-white" (click)="addRequirement()">Agregar</button>
+          </div>
+        </div>
+      </ui-card>
+  
+      <ui-card class="mt-4">
+        <h3 class="text-base font-semibold text-slate-900">Residuos permitidos</h3>
+        @for (item of currentCatalogLevel()?.allowedResidues ?? []; track item.id) {
+          <div class="mt-3 grid gap-2 rounded-xl border border-slate-200 p-3 md:grid-cols-4">
+            <input class="rounded-lg border border-slate-200 px-2 py-1 text-sm" [ngModel]="residueDraft(item.id)?.categoryId" (ngModelChange)="residueDraft(item.id)!.categoryId = $event" />
+            <input class="rounded-lg border border-slate-200 px-2 py-1 text-sm" [ngModel]="residueDraft(item.id)?.categoryTitle" (ngModelChange)="residueDraft(item.id)!.categoryTitle = $event" />
+            <input class="rounded-lg border border-slate-200 px-2 py-1 text-sm" [ngModel]="residueDraft(item.id)?.residueName" (ngModelChange)="residueDraft(item.id)!.residueName = $event" />
+            <input class="rounded-lg border border-slate-200 px-2 py-1 text-sm" type="number" [ngModel]="residueDraft(item.id)?.sortOrder" (ngModelChange)="residueDraft(item.id)!.sortOrder = +$event" />
+            <input class="rounded-lg border border-slate-200 px-2 py-1 text-sm" type="number" placeholder="Mín" [ngModel]="residueDraft(item.id)?.quantityMin" (ngModelChange)="residueDraft(item.id)!.quantityMin = $event === '' ? null : +$event" />
+            <input class="rounded-lg border border-slate-200 px-2 py-1 text-sm" type="number" placeholder="Máx" [ngModel]="residueDraft(item.id)?.quantityMax" (ngModelChange)="residueDraft(item.id)!.quantityMax = $event === '' ? null : +$event" />
+            <input class="rounded-lg border border-slate-200 px-2 py-1 text-sm" placeholder="Unidad" [ngModel]="residueDraft(item.id)?.unit" (ngModelChange)="residueDraft(item.id)!.unit = $event" />
+            <div class="flex items-center justify-end gap-2">
+              <button type="button" class="rounded-lg border border-slate-200 px-3 py-1 text-xs" (click)="saveResidue(item)">Guardar</button>
+              <button type="button" class="rounded-lg border border-red-200 bg-red-50 px-3 py-1 text-xs text-red-700" (click)="deleteResidue(item.id)">Eliminar</button>
+            </div>
+          </div>
+        }
+        <div class="mt-4 grid gap-2 rounded-xl border border-dashed border-slate-300 p-3 md:grid-cols-4">
+          <input class="rounded-lg border border-slate-200 px-2 py-1 text-sm" placeholder="CategoryId" [ngModel]="newResidueDraft.categoryId" (ngModelChange)="newResidueDraft.categoryId = $event" />
+          <input class="rounded-lg border border-slate-200 px-2 py-1 text-sm" placeholder="Categoría" [ngModel]="newResidueDraft.categoryTitle" (ngModelChange)="newResidueDraft.categoryTitle = $event" />
+          <input class="rounded-lg border border-slate-200 px-2 py-1 text-sm" placeholder="Residuo" [ngModel]="newResidueDraft.residueName" (ngModelChange)="newResidueDraft.residueName = $event" />
+          <input class="rounded-lg border border-slate-200 px-2 py-1 text-sm" type="number" placeholder="Orden" [ngModel]="newResidueDraft.sortOrder" (ngModelChange)="newResidueDraft.sortOrder = +$event" />
+          <div class="flex justify-end md:col-span-4">
+            <button type="button" class="rounded-lg bg-emerald-600 px-3 py-1 text-xs font-semibold text-white" (click)="addResidue()">Agregar</button>
+          </div>
+        </div>
+      </ui-card>
+  
+      <ui-card class="mt-4">
+        <h3 class="text-base font-semibold text-slate-900">Normativas</h3>
+        @for (item of currentCatalogLevel()?.normatives ?? []; track item.id) {
+          <div class="mt-3 grid gap-2 rounded-xl border border-slate-200 p-3 md:grid-cols-4">
+            <input class="rounded-lg border border-slate-200 px-2 py-1 text-sm" [ngModel]="normativeDraft(item.id)?.code" (ngModelChange)="normativeDraft(item.id)!.code = $event" />
+            <input class="rounded-lg border border-slate-200 px-2 py-1 text-sm md:col-span-2" [ngModel]="normativeDraft(item.id)?.title" (ngModelChange)="normativeDraft(item.id)!.title = $event" />
+            <input class="rounded-lg border border-slate-200 px-2 py-1 text-sm" type="number" [ngModel]="normativeDraft(item.id)?.sortOrder" (ngModelChange)="normativeDraft(item.id)!.sortOrder = +$event" />
+            <input class="rounded-lg border border-slate-200 px-2 py-1 text-sm md:col-span-3" [ngModel]="normativeDraft(item.id)?.referenceUrl" (ngModelChange)="normativeDraft(item.id)!.referenceUrl = $event" />
+            <div class="flex items-center justify-end gap-2">
+              <button type="button" class="rounded-lg border border-slate-200 px-3 py-1 text-xs" (click)="saveNormative(item)">Guardar</button>
+              <button type="button" class="rounded-lg border border-red-200 bg-red-50 px-3 py-1 text-xs text-red-700" (click)="deleteNormative(item.id)">Eliminar</button>
+            </div>
+          </div>
+        }
+        <div class="mt-4 grid gap-2 rounded-xl border border-dashed border-slate-300 p-3 md:grid-cols-4">
+          <input class="rounded-lg border border-slate-200 px-2 py-1 text-sm" placeholder="Código" [ngModel]="newNormativeDraft.code" (ngModelChange)="newNormativeDraft.code = $event" />
+          <input class="rounded-lg border border-slate-200 px-2 py-1 text-sm md:col-span-2" placeholder="Título" [ngModel]="newNormativeDraft.title" (ngModelChange)="newNormativeDraft.title = $event" />
+          <input class="rounded-lg border border-slate-200 px-2 py-1 text-sm" type="number" placeholder="Orden" [ngModel]="newNormativeDraft.sortOrder" (ngModelChange)="newNormativeDraft.sortOrder = +$event" />
+          <div class="flex justify-end md:col-span-4">
+            <button type="button" class="rounded-lg bg-emerald-600 px-3 py-1 text-xs font-semibold text-white" (click)="addNormative()">Agregar</button>
+          </div>
+        </div>
+      </ui-card>
+    </div>
+  }
+}
+
+<ui-modal [open]="previewOpen()" [title]="previewTitle()" size="preview">
+  @if (previewItem()) {
+    <div class="space-y-4">
+      <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+        <p class="font-semibold text-slate-900">{{ displayCompanyName(previewItem()!) }}</p>
+        <p class="mt-1">{{ previewItem()?.requirementTitle }}</p>
+      </div>
+
+      @if (isPreviewImage()) {
+        <img
+          class="max-h-[75vh] w-full rounded-2xl border border-slate-200 object-contain"
+          [src]="previewItem()?.evidenceUrl || ''"
+          [alt]="previewItem()?.uploadedFileName || 'Evidencia regulatoria'"
+        />
+      } @else if (isPreviewPdf()) {
+        <iframe
+          class="h-[75vh] w-full rounded-2xl border border-slate-200"
+          [src]="previewPdfUrl()"
+          title="Vista previa del PDF"
+        ></iframe>
+      } @else {
+        <div class="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-sm text-slate-600">
+          Este archivo no puede previsualizarse inline en esta versión. Puedes revisarlo descargándolo desde esta misma ventana.
+        </div>
+      }
+
+      <div class="flex justify-end gap-3">
+        <button
+          type="button"
+          class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+          (click)="closePreview()"
+        >
+          Cerrar
+        </button>
+        <button
+          type="button"
+          class="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+          (click)="downloadPreviewEvidence()"
+        >
+          Descargar
+        </button>
+      </div>
+    </div>
+  }
+</ui-modal>
+
+<ui-modal [open]="reviewModalOpen()" [title]="reviewModalTitle()">
+  @if (reviewModalItem()) {
+    <div class="space-y-4">
+      <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+        <p class="font-semibold text-slate-900">{{ selectedReviewSummary() }}</p>
+        <p class="mt-1">{{ displayFileName(reviewModalItem()!) }}</p>
+      </div>
+
+      @if (reviewModalError()) {
+        <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {{ reviewModalError() }}
+        </div>
+      }
+
+      @if (reviewModalMode() === 'approved') {
+        <label class="block text-sm text-slate-700">
+          <span class="mb-2 block font-semibold text-slate-900">Vigencia de la aprobación (opcional)</span>
+          <input
+            type="datetime-local"
+            class="w-full rounded-xl border border-slate-200 px-3 py-2 outline-none focus:border-emerald-500"
+            [ngModel]="reviewModalExpiresAt()"
+            (ngModelChange)="onReviewExpiresAtChange($event)"
+          />
+        </label>
+      }
+
+      <label class="block text-sm text-slate-700">
+        <span class="mb-2 block font-semibold text-slate-900">
+          {{ reviewModalMode() === 'rejected' ? 'Motivo del rechazo' : 'Notas de revisión' }}
+        </span>
+        <textarea
+          rows="4"
+          class="w-full rounded-xl border border-slate-200 px-3 py-2 outline-none focus:border-emerald-500"
+          [ngModel]="reviewModalNotes()"
+          (ngModelChange)="onReviewNotesChange($event)"
+          [placeholder]="reviewModalMode() === 'rejected' ? 'Explica por qué se rechaza la evidencia.' : 'Notas opcionales para la aprobación.'"
+        ></textarea>
+      </label>
+
+      <div class="flex justify-end gap-3">
+        <button
+          type="button"
+          class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+          (click)="closeReviewModal()"
+        >
+          Cancelar
+        </button>
+        <button
+          type="button"
+          class="rounded-xl px-4 py-2 text-sm font-semibold text-white"
+          [class]="reviewModalMode() === 'approved' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-red-600 hover:bg-red-700'"
+          [disabled]="reviewUpdatingId() === reviewModalItem()?.requirementRecordId"
+          (click)="submitReviewModal()"
+        >
+          {{ reviewModalActionLabel() }}
+        </button>
+      </div>
+    </div>
+  }
+</ui-modal>

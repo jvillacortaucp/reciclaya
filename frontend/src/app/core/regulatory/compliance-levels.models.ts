@@ -2,7 +2,7 @@ import { RegulatoryLevel } from './regulatory.models';
 
 export type ComplianceRiskLevel = 'low' | 'medium' | 'medium_high' | 'high';
 export type ComplianceRequirementActorType = 'seller' | 'buyer' | 'both';
-export type ComplianceAcceptedFileType = 'pdf' | 'image';
+export type ComplianceAcceptedFileType = 'pdf' | 'image' | 'document';
 export type ComplianceRequirementStatus = 'pending' | 'uploaded' | 'in_review' | 'approved' | 'rejected';
 export type ComplianceLevelStatus = 'locked' | 'available' | 'in_progress' | 'completed';
 

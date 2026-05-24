@@ -1,6 +1,6 @@
 import { computed, effect, inject, Injectable, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { catchError, EMPTY, finalize, firstValueFrom } from 'rxjs';
+import { catchError, EMPTY, finalize, firstValueFrom, map, of, switchMap } from 'rxjs';
 import { VIEW_CACHE_KEYS } from '../../../core/cache/view-cache.keys';
 import { ViewCacheService } from '../../../core/cache/view-cache.service';
 import { getErrorMessage } from '../../../core/http/api-response.helpers';
@@ -108,18 +108,29 @@ export class WasteSellFacade {
   publish(state: WasteSellPageState): void {
     this.publishLoading.set(true);
     this.repository
-      .publish(state, this.currentListingId)
+      .verifyListingEvidence(state)
       .pipe(
+        catchError(() => of(null)),
+        switchMap((evidence) =>
+          this.repository.publish(state, this.currentListingId).pipe(
+            map((nextState) => ({ nextState, evidence }))
+          )
+        ),
         catchError((error: unknown) => {
           this.toastMessage.set(getErrorMessage(error, 'No se pudo publicar el listado.'));
           return EMPTY;
         }),
         finalize(() => this.publishLoading.set(false))
       )
-      .subscribe((nextState) => {
+      .subscribe(({ nextState, evidence }) => {
         const mergedState = this.mergeServerStateWithVisualMedia(nextState, this.state()?.formValue.mediaUploads ?? []);
         this.state.set(mergedState);
-        this.toastMessage.set('Listado publicado correctamente.');
+        if (evidence?.riskLevel === 'high' || evidence?.manualReviewRequired) {
+          const suggestion = evidence?.suggestedResidue ? ` Sugerencia IA: ${evidence.suggestedResidue}.` : '';
+          this.toastMessage.set(`Publicación enviada con revisión manual recomendada.${suggestion}`);
+        } else {
+          this.toastMessage.set('Listado publicado correctamente.');
+        }
         this.refreshPreview();
         this.routeReuseCache.invalidate('my-listings', 'marketplace');
         this.viewCache.invalidate(VIEW_CACHE_KEYS.marketplaceView, VIEW_CACHE_KEYS.marketplaceDataset);

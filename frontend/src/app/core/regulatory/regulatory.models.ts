@@ -1,4 +1,4 @@
-export type RegulatoryLevel = 1 | 2 | 3 | 4;
+export type RegulatoryLevel = 0 | 1 | 2 | 3 | 4;
 
 export type RegulatoryStatus = 'complete' | 'missing' | 'recommended' | 'not_applicable';
 

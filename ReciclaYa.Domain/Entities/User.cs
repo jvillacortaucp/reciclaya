@@ -53,4 +53,10 @@ public sealed class User
     public ICollection<Message> SentMessages { get; set; } = new List<Message>();
 
     public ICollection<MediaAsset> MediaAssets { get; set; } = new List<MediaAsset>();
+
+    public UserRegulationProfile? RegulationProfile { get; set; }
+
+    public ICollection<UserRegulationRequirement> RegulationRequirements { get; set; } = new List<UserRegulationRequirement>();
+
+    public ICollection<RegulationOperationAudit> RegulationOperationAudits { get; set; } = new List<RegulationOperationAudit>();
 }

@@ -8,7 +8,9 @@
             ? 'tab-process'
             : tab.key === 'explanation'
               ? 'tab-complexity'
-              : 'tab-market'
+              : tab.key === 'regularization'
+                ? 'tab-regularization'
+                : 'tab-market'
         "
         class="relative h-10 px-3 text-sm font-medium transition sm:text-base md:px-4 focus:outline-none cursor-pointer whitespace-nowrap"
         [class.text-emerald-700]="activeTab() === tab.key"

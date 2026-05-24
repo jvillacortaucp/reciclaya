@@ -13,6 +13,7 @@ using ReciclaYa.Application.Profile.Services;
 using ReciclaYa.Application.PreOrders.Services;
 using ReciclaYa.Application.PurchasePreferences.Services;
 using ReciclaYa.Application.Recommendations.Services;
+using ReciclaYa.Application.Regulation.Services;
 using ReciclaYa.Application.ValueSectors.Services;
 using ReciclaYa.Application.ValorizationIdeas.Services;
 
@@ -33,6 +34,7 @@ public static class DependencyInjection
         services.AddScoped<IPreOrderService, PreOrderService>();
         services.AddScoped<IQuotationPdfService, QuotationPdfService>();
         services.AddScoped<IRecommendationService, RecommendationService>();
+        services.AddScoped<IRegulationService, RegulationService>();
         services.AddScoped<ValueSectorFallbackFactory>();
         services.AddScoped<IValueSectorService, ValueSectorService>();
         services.AddScoped<ICommercialRequestService, CommercialRequestService>();
