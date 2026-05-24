@@ -92,7 +92,7 @@ export class AuthFacade {
         finalize(() => this.socialLoginLoading.set(false))
       )
       .subscribe(() => {
-        this.navigateAfterAuth();
+        this.queueNavigationAfterAuth();
       });
   }
 
@@ -277,5 +277,15 @@ export class AuthFacade {
     }
 
     return returnUrl;
+  }
+
+  private mapGoogleError(errorCode: string | null): string {
+    if (errorCode === 'ACCESS_DENIED') {
+      return 'Acceso denegado. No se concedieron los permisos necesarios.';
+    }
+    if (errorCode === 'SOCIAL_DISABLED') {
+      return LOGIN_VALIDATION_MESSAGES.socialDisabled;
+    }
+    return 'No se pudo iniciar sesión con Google. Inténtalo de nuevo.';
   }
 }
