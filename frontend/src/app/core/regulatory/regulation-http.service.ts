@@ -8,6 +8,20 @@ import {
   RegulationLevelsApiResponse,
   RegulationMeApiResponse,
   RegulationMeResponse,
+  RegulationAdminCatalogApiResponse,
+  RegulationAdminCatalogResponse,
+  RegulationAdminLevelApiResponse,
+  RegulationAdminCatalogLevelResponse,
+  RegulationAdminLevelUpdateRequest,
+  RegulationAdminRequirementApiResponse,
+  RegulationAdminRequirementResponse,
+  RegulationAdminRequirementUpsertRequest,
+  RegulationAdminAllowedResidueApiResponse,
+  RegulationAdminAllowedResidueResponse,
+  RegulationAdminAllowedResidueUpsertRequest,
+  RegulationAdminNormativeApiResponse,
+  RegulationAdminNormativeResponse,
+  RegulationAdminNormativeUpsertRequest,
   RegulationRequirementReviewPageResponse,
   RegulationRequirementReviewRequest,
   RegulationRequirementUploadResult,
@@ -16,6 +30,9 @@ import {
   RegulationValidateApiResponse,
   RegulationValidateOperationRequest,
   RegulationValidationResult
+  ,RegulationEvidenceVerificationRequest
+  ,RegulationEvidenceVerificationResult
+  ,RegulationEvidenceVerifyApiResponse
 } from './regulation-api.models';
 
 @Injectable({ providedIn: 'root' })
@@ -104,5 +121,95 @@ export class RegulationHttpService {
     return this.http.get(`${environment.apiBaseUrl}/regulation/review/${encodeURIComponent(requirementRecordId)}/download`, {
       responseType: 'blob'
     });
+  }
+
+  verifyListingEvidence(payload: RegulationEvidenceVerificationRequest): Observable<RegulationEvidenceVerificationResult> {
+    return this.http
+      .post<RegulationEvidenceVerifyApiResponse>(`${environment.apiBaseUrl}/regulation/verify-listing-evidence`, payload)
+      .pipe(map(unwrapApiResponse));
+  }
+
+  getAdminCatalog(): Observable<RegulationAdminCatalogResponse> {
+    return this.http
+      .get<RegulationAdminCatalogApiResponse>(`${environment.apiBaseUrl}/regulation/admin/catalog`)
+      .pipe(map(unwrapApiResponse));
+  }
+
+  updateAdminLevel(levelId: number, payload: RegulationAdminLevelUpdateRequest): Observable<RegulationAdminCatalogLevelResponse> {
+    return this.http
+      .put<RegulationAdminLevelApiResponse>(`${environment.apiBaseUrl}/regulation/admin/levels/${levelId}`, payload)
+      .pipe(map(unwrapApiResponse));
+  }
+
+  addAdminRequirement(levelId: number, payload: RegulationAdminRequirementUpsertRequest): Observable<RegulationAdminRequirementResponse> {
+    return this.http
+      .post<RegulationAdminRequirementApiResponse>(
+        `${environment.apiBaseUrl}/regulation/admin/levels/${levelId}/requirements`,
+        payload
+      )
+      .pipe(map(unwrapApiResponse));
+  }
+
+  updateAdminRequirement(requirementId: string, payload: RegulationAdminRequirementUpsertRequest): Observable<RegulationAdminRequirementResponse> {
+    return this.http
+      .patch<RegulationAdminRequirementApiResponse>(
+        `${environment.apiBaseUrl}/regulation/admin/requirements/${encodeURIComponent(requirementId)}`,
+        payload
+      )
+      .pipe(map(unwrapApiResponse));
+  }
+
+  deleteAdminRequirement(requirementId: string): Observable<void> {
+    return this.http
+      .delete(`${environment.apiBaseUrl}/regulation/admin/requirements/${encodeURIComponent(requirementId)}`)
+      .pipe(map(() => void 0));
+  }
+
+  addAdminAllowedResidue(levelId: number, payload: RegulationAdminAllowedResidueUpsertRequest): Observable<RegulationAdminAllowedResidueResponse> {
+    return this.http
+      .post<RegulationAdminAllowedResidueApiResponse>(
+        `${environment.apiBaseUrl}/regulation/admin/levels/${levelId}/allowed-residues`,
+        payload
+      )
+      .pipe(map(unwrapApiResponse));
+  }
+
+  updateAdminAllowedResidue(residueId: string, payload: RegulationAdminAllowedResidueUpsertRequest): Observable<RegulationAdminAllowedResidueResponse> {
+    return this.http
+      .patch<RegulationAdminAllowedResidueApiResponse>(
+        `${environment.apiBaseUrl}/regulation/admin/allowed-residues/${encodeURIComponent(residueId)}`,
+        payload
+      )
+      .pipe(map(unwrapApiResponse));
+  }
+
+  deleteAdminAllowedResidue(residueId: string): Observable<void> {
+    return this.http
+      .delete(`${environment.apiBaseUrl}/regulation/admin/allowed-residues/${encodeURIComponent(residueId)}`)
+      .pipe(map(() => void 0));
+  }
+
+  addAdminNormative(levelId: number, payload: RegulationAdminNormativeUpsertRequest): Observable<RegulationAdminNormativeResponse> {
+    return this.http
+      .post<RegulationAdminNormativeApiResponse>(
+        `${environment.apiBaseUrl}/regulation/admin/levels/${levelId}/normatives`,
+        payload
+      )
+      .pipe(map(unwrapApiResponse));
+  }
+
+  updateAdminNormative(normativeId: string, payload: RegulationAdminNormativeUpsertRequest): Observable<RegulationAdminNormativeResponse> {
+    return this.http
+      .patch<RegulationAdminNormativeApiResponse>(
+        `${environment.apiBaseUrl}/regulation/admin/normatives/${encodeURIComponent(normativeId)}`,
+        payload
+      )
+      .pipe(map(unwrapApiResponse));
+  }
+
+  deleteAdminNormative(normativeId: string): Observable<void> {
+    return this.http
+      .delete(`${environment.apiBaseUrl}/regulation/admin/normatives/${encodeURIComponent(normativeId)}`)
+      .pipe(map(() => void 0));
   }
 }

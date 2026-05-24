@@ -5,6 +5,15 @@ import { FormsModule } from '@angular/forms';
 import { catchError, EMPTY, finalize } from 'rxjs';
 import { getErrorMessage } from '../../core/http/api-response.helpers';
 import {
+  RegulationAdminAllowedResidueResponse,
+  RegulationAdminAllowedResidueUpsertRequest,
+  RegulationAdminCatalogLevelResponse,
+  RegulationAdminCatalogResponse,
+  RegulationAdminLevelUpdateRequest,
+  RegulationAdminNormativeResponse,
+  RegulationAdminNormativeUpsertRequest,
+  RegulationAdminRequirementResponse,
+  RegulationAdminRequirementUpsertRequest,
   RegulationRequirementReviewItemResponse,
   RegulationRequirementReviewPageResponse,
   RegulationRequirementReviewRequest
@@ -14,9 +23,10 @@ import { EmptyStateComponent } from '../../shared/ui/empty-state/empty-state.com
 import { ModalComponent } from '../../shared/ui/modal/modal.component';
 import { SectionHeaderComponent } from '../../shared/ui/section-header/section-header.component';
 import { AdminCompaniesRepository, AdminCompany } from './admin-companies.repository';
+import { AdminRegulationCatalogRepository } from './admin-regulation-catalog.repository';
 import { AdminRegulationReviewsRepository } from './admin-regulation-reviews.repository';
 
-type AdminTab = 'companies' | 'reviews';
+type AdminTab = 'companies' | 'reviews' | 'catalog';
 type ReviewTab = 'pending' | 'history';
 type ReviewModalMode = 'approved' | 'rejected' | null;
 type HistoryStatusFilter = 'all' | 'approved' | 'rejected';
@@ -33,6 +43,7 @@ const REVIEW_PAGE_SIZE = 10;
 export class AdminPageComponent implements OnInit {
   private readonly companiesRepository = inject(AdminCompaniesRepository);
   private readonly reviewsRepository = inject(AdminRegulationReviewsRepository);
+  private readonly catalogRepository = inject(AdminRegulationCatalogRepository);
   private readonly sanitizer = inject(DomSanitizer);
 
   protected readonly activeTab = signal<AdminTab>('companies');
@@ -66,6 +77,26 @@ export class AdminPageComponent implements OnInit {
   protected readonly reviewModalExpiresAt = signal('');
   protected readonly reviewModalError = signal<string | null>(null);
 
+  protected readonly catalog = signal<RegulationAdminCatalogResponse | null>(null);
+  protected readonly catalogLoading = signal(false);
+  protected readonly catalogSaving = signal(false);
+  protected readonly catalogError = signal<string | null>(null);
+  protected readonly selectedCatalogLevel = signal<number>(1);
+
+  protected levelEditModel: RegulationAdminLevelUpdateRequest = this.createEmptyLevelEditModel();
+  protected objectiveText = '';
+  protected restrictionsText = '';
+  protected platformAllowedText = '';
+  protected platformRequiredText = '';
+  protected traceabilityText = '';
+  protected legalRiskText = '';
+  protected requirementDrafts = new Map<string, RegulationAdminRequirementUpsertRequest>();
+  protected residueDrafts = new Map<string, RegulationAdminAllowedResidueUpsertRequest>();
+  protected normativeDrafts = new Map<string, RegulationAdminNormativeUpsertRequest>();
+  protected newRequirementDraft: RegulationAdminRequirementUpsertRequest = this.createNewRequirementDraft();
+  protected newResidueDraft: RegulationAdminAllowedResidueUpsertRequest = this.createNewResidueDraft();
+  protected newNormativeDraft: RegulationAdminNormativeUpsertRequest = this.createNewNormativeDraft();
+
   ngOnInit(): void {
     this.loadCompanies();
     this.loadPendingReviews();
@@ -75,6 +106,11 @@ export class AdminPageComponent implements OnInit {
     this.activeTab.set(tab);
     if (tab === 'reviews') {
       this.ensureReviewTabLoaded(this.reviewTab());
+      return;
+    }
+
+    if (tab === 'catalog' && !this.catalog()) {
+      this.loadCatalog();
     }
   }
 
@@ -468,6 +504,225 @@ export class AdminPageComponent implements OnInit {
       : 'bg-amber-100 text-amber-700';
   }
 
+  protected levelOptions(): readonly RegulationAdminCatalogLevelResponse[] {
+    return this.catalog()?.levels ?? [];
+  }
+
+  protected currentCatalogLevel(): RegulationAdminCatalogLevelResponse | null {
+    const levelId = this.selectedCatalogLevel();
+    return this.levelOptions().find((item) => item.levelId === levelId) ?? null;
+  }
+
+  protected onSelectCatalogLevel(value: string): void {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed) || parsed < 1 || parsed > 4) {
+      return;
+    }
+
+    this.selectedCatalogLevel.set(parsed);
+    this.refreshLevelEditModel();
+  }
+
+  protected saveLevelMetadata(): void {
+    const levelId = this.selectedCatalogLevel();
+    const payload: RegulationAdminLevelUpdateRequest = {
+      ...this.levelEditModel,
+      objective: this.parseMultiLine(this.objectiveText),
+      restrictions: this.parseMultiLine(this.restrictionsText),
+      platformAllowed: this.parseMultiLine(this.platformAllowedText),
+      platformRequired: this.parseMultiLine(this.platformRequiredText),
+      traceabilityItems: this.parseMultiLine(this.traceabilityText),
+      legalRiskItems: this.parseMultiLine(this.legalRiskText)
+    };
+    this.catalogSaving.set(true);
+    this.catalogError.set(null);
+
+    this.catalogRepository
+      .updateLevel(levelId, payload)
+      .pipe(
+        catchError((error: unknown) => {
+          this.catalogError.set(getErrorMessage(error, 'No se pudo actualizar el nivel regulatorio.'));
+          return EMPTY;
+        }),
+        finalize(() => this.catalogSaving.set(false))
+      )
+      .subscribe(() => this.loadCatalog(levelId));
+  }
+
+  protected saveRequirement(requirement: RegulationAdminRequirementResponse): void {
+    const draft = this.requirementDrafts.get(requirement.id);
+    if (!draft) {
+      return;
+    }
+
+    this.catalogSaving.set(true);
+    this.catalogError.set(null);
+    this.catalogRepository
+      .updateRequirement(requirement.id, draft)
+      .pipe(
+        catchError((error: unknown) => {
+          this.catalogError.set(getErrorMessage(error, 'No se pudo actualizar el requisito.'));
+          return EMPTY;
+        }),
+        finalize(() => this.catalogSaving.set(false))
+      )
+      .subscribe(() => this.loadCatalog(this.selectedCatalogLevel()));
+  }
+
+  protected deleteRequirement(requirementId: string): void {
+    this.catalogSaving.set(true);
+    this.catalogError.set(null);
+    this.catalogRepository
+      .deleteRequirement(requirementId)
+      .pipe(
+        catchError((error: unknown) => {
+          this.catalogError.set(getErrorMessage(error, 'No se pudo eliminar el requisito.'));
+          return EMPTY;
+        }),
+        finalize(() => this.catalogSaving.set(false))
+      )
+      .subscribe(() => this.loadCatalog(this.selectedCatalogLevel()));
+  }
+
+  protected addRequirement(): void {
+    const levelId = this.selectedCatalogLevel();
+    this.catalogSaving.set(true);
+    this.catalogError.set(null);
+    this.catalogRepository
+      .addRequirement(levelId, this.newRequirementDraft)
+      .pipe(
+        catchError((error: unknown) => {
+          this.catalogError.set(getErrorMessage(error, 'No se pudo crear el requisito.'));
+          return EMPTY;
+        }),
+        finalize(() => this.catalogSaving.set(false))
+      )
+      .subscribe(() => {
+        this.newRequirementDraft = this.createNewRequirementDraft();
+        this.loadCatalog(levelId);
+      });
+  }
+
+  protected saveResidue(residue: RegulationAdminAllowedResidueResponse): void {
+    const draft = this.residueDrafts.get(residue.id);
+    if (!draft) {
+      return;
+    }
+
+    this.catalogSaving.set(true);
+    this.catalogError.set(null);
+    this.catalogRepository
+      .updateResidue(residue.id, draft)
+      .pipe(
+        catchError((error: unknown) => {
+          this.catalogError.set(getErrorMessage(error, 'No se pudo actualizar el residuo.'));
+          return EMPTY;
+        }),
+        finalize(() => this.catalogSaving.set(false))
+      )
+      .subscribe(() => this.loadCatalog(this.selectedCatalogLevel()));
+  }
+
+  protected deleteResidue(residueId: string): void {
+    this.catalogSaving.set(true);
+    this.catalogError.set(null);
+    this.catalogRepository
+      .deleteResidue(residueId)
+      .pipe(
+        catchError((error: unknown) => {
+          this.catalogError.set(getErrorMessage(error, 'No se pudo eliminar el residuo.'));
+          return EMPTY;
+        }),
+        finalize(() => this.catalogSaving.set(false))
+      )
+      .subscribe(() => this.loadCatalog(this.selectedCatalogLevel()));
+  }
+
+  protected addResidue(): void {
+    const levelId = this.selectedCatalogLevel();
+    this.catalogSaving.set(true);
+    this.catalogError.set(null);
+    this.catalogRepository
+      .addResidue(levelId, this.newResidueDraft)
+      .pipe(
+        catchError((error: unknown) => {
+          this.catalogError.set(getErrorMessage(error, 'No se pudo crear el residuo.'));
+          return EMPTY;
+        }),
+        finalize(() => this.catalogSaving.set(false))
+      )
+      .subscribe(() => {
+        this.newResidueDraft = this.createNewResidueDraft();
+        this.loadCatalog(levelId);
+      });
+  }
+
+  protected saveNormative(normative: RegulationAdminNormativeResponse): void {
+    const draft = this.normativeDrafts.get(normative.id);
+    if (!draft) {
+      return;
+    }
+
+    this.catalogSaving.set(true);
+    this.catalogError.set(null);
+    this.catalogRepository
+      .updateNormative(normative.id, draft)
+      .pipe(
+        catchError((error: unknown) => {
+          this.catalogError.set(getErrorMessage(error, 'No se pudo actualizar la normativa.'));
+          return EMPTY;
+        }),
+        finalize(() => this.catalogSaving.set(false))
+      )
+      .subscribe(() => this.loadCatalog(this.selectedCatalogLevel()));
+  }
+
+  protected deleteNormative(normativeId: string): void {
+    this.catalogSaving.set(true);
+    this.catalogError.set(null);
+    this.catalogRepository
+      .deleteNormative(normativeId)
+      .pipe(
+        catchError((error: unknown) => {
+          this.catalogError.set(getErrorMessage(error, 'No se pudo eliminar la normativa.'));
+          return EMPTY;
+        }),
+        finalize(() => this.catalogSaving.set(false))
+      )
+      .subscribe(() => this.loadCatalog(this.selectedCatalogLevel()));
+  }
+
+  protected addNormative(): void {
+    const levelId = this.selectedCatalogLevel();
+    this.catalogSaving.set(true);
+    this.catalogError.set(null);
+    this.catalogRepository
+      .addNormative(levelId, this.newNormativeDraft)
+      .pipe(
+        catchError((error: unknown) => {
+          this.catalogError.set(getErrorMessage(error, 'No se pudo crear la normativa.'));
+          return EMPTY;
+        }),
+        finalize(() => this.catalogSaving.set(false))
+      )
+      .subscribe(() => {
+        this.newNormativeDraft = this.createNewNormativeDraft();
+        this.loadCatalog(levelId);
+      });
+  }
+
+  protected requirementDraft(id: string): RegulationAdminRequirementUpsertRequest | undefined {
+    return this.requirementDrafts.get(id);
+  }
+
+  protected residueDraft(id: string): RegulationAdminAllowedResidueUpsertRequest | undefined {
+    return this.residueDrafts.get(id);
+  }
+
+  protected normativeDraft(id: string): RegulationAdminNormativeUpsertRequest | undefined {
+    return this.normativeDrafts.get(id);
+  }
+
   private loadCompanies(): void {
     this.companiesLoading.set(true);
     this.companiesError.set(null);
@@ -599,5 +854,164 @@ export class AdminPageComponent implements OnInit {
     }
 
     return `${minutes}m`;
+  }
+
+  private loadCatalog(targetLevel?: number): void {
+    this.catalogLoading.set(true);
+    this.catalogError.set(null);
+
+    this.catalogRepository
+      .getCatalog()
+      .pipe(
+        catchError((error: unknown) => {
+          this.catalogError.set(getErrorMessage(error, 'No se pudo cargar el catálogo regulatorio.'));
+          return EMPTY;
+        }),
+        finalize(() => this.catalogLoading.set(false))
+      )
+      .subscribe((catalog) => {
+        this.catalog.set(catalog);
+        const selected = targetLevel ?? this.selectedCatalogLevel();
+        const exists = catalog.levels.some((item) => item.levelId === selected);
+        this.selectedCatalogLevel.set(exists ? selected : (catalog.levels[0]?.levelId ?? 1));
+        this.refreshLevelEditModel();
+      });
+  }
+
+  private refreshLevelEditModel(): void {
+    const level = this.currentCatalogLevel();
+    if (!level) {
+      this.levelEditModel = this.createEmptyLevelEditModel();
+      this.requirementDrafts.clear();
+      this.residueDrafts.clear();
+      this.normativeDrafts.clear();
+      return;
+    }
+
+    this.levelEditModel = {
+      title: level.title,
+      subtitle: level.subtitle,
+      regularizationLabel: level.regularizationLabel,
+      riskLevel: level.riskLevel,
+      fiscalization: level.fiscalization,
+      objective: [...level.objective],
+      restrictions: [...level.restrictions],
+      platformAllowed: [...level.platformAllowed],
+      platformRequired: [...level.platformRequired],
+      traceabilityItems: [...level.traceabilityItems],
+      legalRiskItems: [...level.legalRiskItems]
+    };
+    this.objectiveText = this.levelEditModel.objective.join('\n');
+    this.restrictionsText = this.levelEditModel.restrictions.join('\n');
+    this.platformAllowedText = this.levelEditModel.platformAllowed.join('\n');
+    this.platformRequiredText = this.levelEditModel.platformRequired.join('\n');
+    this.traceabilityText = this.levelEditModel.traceabilityItems.join('\n');
+    this.legalRiskText = this.levelEditModel.legalRiskItems.join('\n');
+
+    this.requirementDrafts = new Map(
+      level.requirements.map((item) => [
+        item.id,
+        {
+          requirementCode: item.requirementCode,
+          title: item.title,
+          description: item.description,
+          required: item.required,
+          actorType: item.actorType,
+          acceptedFileTypes: [...item.acceptedFileTypes],
+          sortOrder: item.sortOrder,
+          isActive: item.isActive
+        }
+      ])
+    );
+
+    this.residueDrafts = new Map(
+      level.allowedResidues.map((item) => [
+        item.id,
+        {
+          categoryId: item.categoryId,
+          categoryTitle: item.categoryTitle,
+          residueName: item.residueName,
+          quantityMin: item.quantityMin,
+          quantityMax: item.quantityMax,
+          unit: item.unit,
+          sortOrder: item.sortOrder,
+          isActive: item.isActive
+        }
+      ])
+    );
+
+    this.normativeDrafts = new Map(
+      level.normatives.map((item) => [
+        item.id,
+        {
+          code: item.code,
+          title: item.title,
+          article: item.article,
+          referenceUrl: item.referenceUrl,
+          sortOrder: item.sortOrder,
+          isActive: item.isActive
+        }
+      ])
+    );
+  }
+
+  private createEmptyLevelEditModel(): RegulationAdminLevelUpdateRequest {
+    return {
+      title: '',
+      subtitle: '',
+      regularizationLabel: '',
+      riskLevel: 'medium',
+      fiscalization: '',
+      objective: [],
+      restrictions: [],
+      platformAllowed: [],
+      platformRequired: [],
+      traceabilityItems: [],
+      legalRiskItems: []
+    };
+  }
+
+  private createNewRequirementDraft(): RegulationAdminRequirementUpsertRequest {
+    return {
+      requirementCode: '',
+      title: '',
+      description: '',
+      required: true,
+      actorType: 'both',
+      acceptedFileTypes: ['pdf', 'image'],
+      sortOrder: 0,
+      isActive: true
+    };
+  }
+
+  private createNewResidueDraft(): RegulationAdminAllowedResidueUpsertRequest {
+    return {
+      categoryId: '',
+      categoryTitle: '',
+      residueName: '',
+      quantityMin: null,
+      quantityMax: null,
+      unit: null,
+      sortOrder: 0,
+      isActive: true
+    };
+  }
+
+  private createNewNormativeDraft(): RegulationAdminNormativeUpsertRequest {
+    return {
+      code: '',
+      title: '',
+      article: null,
+      referenceUrl: null,
+      sortOrder: 0,
+      isActive: true
+    };
+  }
+
+  private parseMultiLine(value: string): string[] {
+    return value
+      .split('\n')
+      .map((item) => item.trim())
+      .filter((item) => item.length > 0);
   }
 }

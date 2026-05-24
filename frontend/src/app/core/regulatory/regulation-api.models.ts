@@ -1,147 +1,281 @@
 import { ApiResponse } from '../models/app.models';
 
 export interface RegulationMeResponse {
-  readonly currentRegulationLevel: 'level0' | 'level1' | 'level2' | 'level3' | 'level4';
-  readonly canTransact: boolean;
-  readonly nextLevel: 'level1' | 'level2' | 'level3' | 'level4' | null;
-  readonly requirementsSummary: {
-    readonly total: number;
-    readonly approved: number;
-    readonly pending: number;
+  currentRegulationLevel: 'level0' | 'level1' | 'level2' | 'level3' | 'level4';
+  canTransact: boolean;
+  nextLevel: 'level1' | 'level2' | 'level3' | 'level4' | null;
+  requirementsSummary: {
+    total: number;
+    approved: number;
+    pending: number;
   };
 }
 
 export interface RegulationLevelResponse {
-  readonly id: number;
-  readonly slug: string;
-  readonly title: string;
-  readonly subtitle: string;
-  readonly regularizationLabel: string;
-  readonly riskLevel: 'low' | 'medium' | 'medium_high' | 'high' | string;
-  readonly fiscalization: string;
-  readonly objective: readonly string[];
-  readonly includedWasteCategories: readonly {
-    readonly id: string;
-    readonly title: string;
-    readonly examples: readonly string[];
+  id: number;
+  slug: string;
+  title: string;
+  subtitle: string;
+  regularizationLabel: string;
+  riskLevel: 'low' | 'medium' | 'medium_high' | 'high' | string;
+  fiscalization: string;
+  objective: string[];
+  includedWasteCategories: {
+    id: string;
+    title: string;
+    examples: string[];
   }[];
-  readonly sellerRequirements: readonly {
-    readonly id: string;
-    readonly title: string;
-    readonly requiredItems: readonly string[];
-    readonly recommendedItems: readonly string[];
+  sellerRequirements: {
+    id: string;
+    title: string;
+    requiredItems: string[];
+    recommendedItems: string[];
   }[];
-  readonly buyerRequirements: readonly {
-    readonly id: string;
-    readonly title: string;
-    readonly requiredItems: readonly string[];
-    readonly recommendedItems: readonly string[];
+  buyerRequirements: {
+    id: string;
+    title: string;
+    requiredItems: string[];
+    recommendedItems: string[];
   }[];
-  readonly platformValidations: {
-    readonly allowed: readonly string[];
-    readonly required: readonly string[];
+  platformValidations: {
+    allowed: string[];
+    required: string[];
   };
-  readonly restrictions: readonly string[];
-  readonly traceability: {
-    readonly label: string;
-    readonly items: readonly string[];
+  restrictions: string[];
+  traceability: {
+    label: string;
+    items: string[];
   };
-  readonly legalRisks: {
-    readonly label: string;
-    readonly items: readonly string[];
+  legalRisks: {
+    label: string;
+    items: string[];
   };
-  readonly regulations: readonly string[];
-  readonly requirementsForUpload: readonly {
-    readonly id: string;
-    readonly levelId: number;
-    readonly title: string;
-    readonly description: string;
-    readonly required: boolean;
-    readonly actorType: 'seller' | 'buyer' | 'both';
-    readonly acceptedFileTypes: readonly ('pdf' | 'image' | 'document')[];
-    readonly currentStatus: 'pending' | 'uploaded' | 'in_review' | 'approved' | 'rejected';
-    readonly uploadedFileName: string | null;
-    readonly uploadedFileUrl: string | null;
-    readonly uploadedFileKind: 'pdf' | 'image' | 'document' | null;
-    readonly notes: string | null;
+  regulations: string[];
+  requirementsForUpload: {
+    id: string;
+    levelId: number;
+    title: string;
+    description: string;
+    required: boolean;
+    actorType: 'seller' | 'buyer' | 'both';
+    acceptedFileTypes: ('pdf' | 'image' | 'document')[];
+    currentStatus: 'pending' | 'uploaded' | 'in_review' | 'approved' | 'rejected';
+    uploadedFileName: string | null;
+    uploadedFileUrl: string | null;
+    uploadedFileKind: 'pdf' | 'image' | 'document' | null;
+    notes: string | null;
   }[];
 }
 
 export interface RegulationRequirementUploadResult {
-  readonly id: string;
-  readonly levelId: number;
-  readonly title: string;
-  readonly description: string;
-  readonly required: boolean;
-  readonly actorType: 'seller' | 'buyer' | 'both';
-  readonly acceptedFileTypes: readonly ('pdf' | 'image' | 'document')[];
-  readonly currentStatus: 'pending' | 'uploaded' | 'in_review' | 'approved' | 'rejected';
-  readonly uploadedFileName: string | null;
-  readonly uploadedFileUrl: string | null;
-  readonly uploadedFileKind: 'pdf' | 'image' | 'document' | null;
-  readonly notes: string | null;
+  id: string;
+  levelId: number;
+  title: string;
+  description: string;
+  required: boolean;
+  actorType: 'seller' | 'buyer' | 'both';
+  acceptedFileTypes: ('pdf' | 'image' | 'document')[];
+  currentStatus: 'pending' | 'uploaded' | 'in_review' | 'approved' | 'rejected';
+  uploadedFileName: string | null;
+  uploadedFileUrl: string | null;
+  uploadedFileKind: 'pdf' | 'image' | 'document' | null;
+  notes: string | null;
 }
 
 export interface RegulationRequirementReviewItemResponse {
-  readonly requirementRecordId: string;
-  readonly userId: string;
-  readonly requesterName: string;
-  readonly companyName: string;
-  readonly ruc: string | null;
-  readonly levelId: number;
-  readonly requirementCode: string;
-  readonly requirementTitle: string;
-  readonly actorType: 'seller' | 'buyer' | 'both' | string;
-  readonly currentStatus: 'uploaded' | 'in_review' | 'approved' | 'rejected' | string;
-  readonly uploadedFileName: string | null;
-  readonly uploadedFileKind: 'pdf' | 'image' | 'document' | null;
-  readonly evidenceUrl: string | null;
-  readonly notes: string | null;
-  readonly reviewDeadlineAt: string | null;
-  readonly isOverdue: boolean;
-  readonly approvalExpiresAt: string | null;
-  readonly createdAt: string;
-  readonly updatedAt: string;
+  requirementRecordId: string;
+  userId: string;
+  requesterName: string;
+  companyName: string;
+  ruc: string | null;
+  levelId: number;
+  requirementCode: string;
+  requirementTitle: string;
+  actorType: 'seller' | 'buyer' | 'both' | string;
+  currentStatus: 'uploaded' | 'in_review' | 'approved' | 'rejected' | string;
+  uploadedFileName: string | null;
+  uploadedFileKind: 'pdf' | 'image' | 'document' | null;
+  evidenceUrl: string | null;
+  notes: string | null;
+  reviewDeadlineAt: string | null;
+  isOverdue: boolean;
+  approvalExpiresAt: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface RegulationRequirementReviewPageResponse {
-  readonly items: readonly RegulationRequirementReviewItemResponse[];
-  readonly page: number;
-  readonly pageSize: number;
-  readonly total: number;
-  readonly hasMore: boolean;
+  items: RegulationRequirementReviewItemResponse[];
+  page: number;
+  pageSize: number;
+  total: number;
+  hasMore: boolean;
 }
 
 export interface RegulationRequirementReviewRequest {
-  readonly status: 'approved' | 'rejected' | 'in_review';
-  readonly notes?: string | null;
-  readonly expiresAt?: string | null;
+  status: 'approved' | 'rejected' | 'in_review';
+  notes?: string | null;
+  expiresAt?: string | null;
 }
 
 export interface RegulationValidateOperationRequest {
-  readonly action: 'publish' | 'buy' | 'negotiate' | 'confirm_purchase';
-  readonly actor?: 'seller' | 'buyer';
-  readonly residueType?: string | null;
-  readonly sector?: string | null;
-  readonly productType?: string | null;
-  readonly specificResidue?: string | null;
-  readonly quantity?: number | null;
-  readonly unit?: string | null;
+  action: 'publish' | 'buy' | 'negotiate' | 'confirm_purchase';
+  actor?: 'seller' | 'buyer';
+  residueType?: string | null;
+  sector?: string | null;
+  productType?: string | null;
+  specificResidue?: string | null;
+  quantity?: number | null;
+  unit?: string | null;
 }
 
 export interface RegulationValidationResult {
-  readonly allowed: boolean;
-  readonly requiredMinLevel: string;
-  readonly actorCurrentLevel: string;
-  readonly blockingReasonCode: string | null;
-  readonly blockingMessage: string;
-  readonly upgradeCallToAction: string;
-  readonly missingRequirements: readonly string[];
-  readonly manualReviewRequired: boolean;
+  allowed: boolean;
+  requiredMinLevel: string;
+  actorCurrentLevel: string;
+  blockingReasonCode: string | null;
+  blockingMessage: string;
+  upgradeCallToAction: string;
+  missingRequirements: string[];
+  manualReviewRequired: boolean;
+}
+
+export interface RegulationEvidenceVerificationRequest {
+  specificResidue?: string | null;
+  residueType?: string | null;
+  sector?: string | null;
+  productType?: string | null;
+  quantity?: number | null;
+  unit?: string | null;
+  mediaUrls?: readonly string[] | null;
+}
+
+export interface RegulationEvidenceVerificationResult {
+  isConsistent: boolean;
+  confidence: number;
+  riskLevel: 'low' | 'medium' | 'high' | string;
+  suggestedResidue: string | null;
+  riskFlags: readonly string[];
+  manualReviewRequired: boolean;
+  message: string;
 }
 
 export type RegulationMeApiResponse = ApiResponse<RegulationMeResponse>;
-export type RegulationLevelsApiResponse = ApiResponse<readonly RegulationLevelResponse[]>;
+export type RegulationLevelsApiResponse = ApiResponse<RegulationLevelResponse[]>;
 export type RegulationValidateApiResponse = ApiResponse<RegulationValidationResult>;
+export type RegulationEvidenceVerifyApiResponse = ApiResponse<RegulationEvidenceVerificationResult>;
 export type RegulationUploadRequirementApiResponse = ApiResponse<RegulationRequirementUploadResult>;
 export type RegulationReviewPageApiResponse = ApiResponse<RegulationRequirementReviewPageResponse>;
+
+export interface RegulationAdminCatalogLevelResponse {
+  levelId: number;
+  slug: string;
+  title: string;
+  subtitle: string;
+  regularizationLabel: string;
+  riskLevel: string;
+  fiscalization: string;
+  objective: string[];
+  restrictions: string[];
+  platformAllowed: string[];
+  platformRequired: string[];
+  traceabilityItems: string[];
+  legalRiskItems: string[];
+  requirements: RegulationAdminRequirementResponse[];
+  allowedResidues: RegulationAdminAllowedResidueResponse[];
+  normatives: RegulationAdminNormativeResponse[];
+}
+
+export interface RegulationAdminCatalogResponse {
+  activeVersion: number;
+  levels: RegulationAdminCatalogLevelResponse[];
+}
+
+export interface RegulationAdminRequirementResponse {
+  id: string;
+  levelId: number;
+  requirementCode: string;
+  title: string;
+  description: string;
+  required: boolean;
+  actorType: 'seller' | 'buyer' | 'both';
+  acceptedFileTypes: ('pdf' | 'image' | 'document')[];
+  sortOrder: number;
+  isActive: boolean;
+}
+
+export interface RegulationAdminAllowedResidueResponse {
+  id: string;
+  levelId: number;
+  categoryId: string;
+  categoryTitle: string;
+  residueName: string;
+  quantityMin: number | null;
+  quantityMax: number | null;
+  unit: string | null;
+  sortOrder: number;
+  isActive: boolean;
+}
+
+export interface RegulationAdminNormativeResponse {
+  id: string;
+  levelId: number;
+  code: string;
+  title: string;
+  article: string | null;
+  referenceUrl: string | null;
+  sortOrder: number;
+  isActive: boolean;
+}
+
+export interface RegulationAdminLevelUpdateRequest {
+  title: string;
+  subtitle: string;
+  regularizationLabel: string;
+  riskLevel: string;
+  fiscalization: string;
+  objective: string[];
+  restrictions: string[];
+  platformAllowed: string[];
+  platformRequired: string[];
+  traceabilityItems: string[];
+  legalRiskItems: string[];
+}
+
+export interface RegulationAdminRequirementUpsertRequest {
+  requirementCode: string;
+  title: string;
+  description: string;
+  required: boolean;
+  actorType: 'seller' | 'buyer' | 'both';
+  acceptedFileTypes: ('pdf' | 'image' | 'document')[];
+  sortOrder: number;
+  isActive: boolean;
+}
+
+export interface RegulationAdminAllowedResidueUpsertRequest {
+  categoryId: string;
+  categoryTitle: string;
+  residueName: string;
+  quantityMin: number | null;
+  quantityMax: number | null;
+  unit: string | null;
+  sortOrder: number;
+  isActive: boolean;
+}
+
+export interface RegulationAdminNormativeUpsertRequest {
+  code: string;
+  title: string;
+  article: string | null;
+  referenceUrl: string | null;
+  sortOrder: number;
+  isActive: boolean;
+}
+
+export type RegulationAdminCatalogApiResponse = ApiResponse<RegulationAdminCatalogResponse>;
+export type RegulationAdminLevelApiResponse = ApiResponse<RegulationAdminCatalogLevelResponse>;
+export type RegulationAdminRequirementApiResponse = ApiResponse<RegulationAdminRequirementResponse>;
+export type RegulationAdminAllowedResidueApiResponse = ApiResponse<RegulationAdminAllowedResidueResponse>;
+export type RegulationAdminNormativeApiResponse = ApiResponse<RegulationAdminNormativeResponse>;
+

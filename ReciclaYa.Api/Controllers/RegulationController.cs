@@ -63,6 +63,20 @@ public sealed class RegulationController(IRegulationService regulationService) :
         return Ok(ApiResponse<RegulationValidationResultDto>.Ok(response));
     }
 
+    [HttpPost("verify-listing-evidence")]
+    public async Task<IActionResult> VerifyListingEvidence(
+        [FromBody] RegulationEvidenceVerificationRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetUserContext(out var userId, out _))
+        {
+            return Unauthorized(ApiResponse<object>.Fail("Unauthorized.", ["INVALID_TOKEN_SUBJECT"]));
+        }
+
+        var response = await regulationService.VerifyListingEvidenceAsync(userId, request, cancellationToken);
+        return Ok(ApiResponse<RegulationEvidenceVerificationResultDto>.Ok(response));
+    }
+
     [HttpPost("requirements/{requirementId}/evidence")]
     [RequestSizeLimit(10 * 1024 * 1024)]
     public async Task<IActionResult> UploadRequirementEvidence(
@@ -140,6 +154,7 @@ public sealed class RegulationController(IRegulationService regulationService) :
             {
                 "EVIDENCE_REQUIREMENT_ID_REQUIRED" => 400,
                 "EVIDENCE_NOT_FOUND" => 404,
+                "EVIDENCE_DELETE_NOT_ALLOWED_FOR_REVIEWED" => 409,
                 _ => 400
             };
 
@@ -275,6 +290,244 @@ public sealed class RegulationController(IRegulationService regulationService) :
 
         var response = await regulationService.GetCatalogHealthAsync(cancellationToken);
         return Ok(ApiResponse<RegulationCatalogHealthDto>.Ok(response));
+    }
+
+    [HttpGet("admin/catalog")]
+    public async Task<IActionResult> GetAdminCatalog(CancellationToken cancellationToken)
+    {
+        if (!TryGetUserContext(out _, out var role))
+        {
+            return Unauthorized(ApiResponse<object>.Fail("Unauthorized.", ["INVALID_TOKEN_SUBJECT"]));
+        }
+
+        if (!string.Equals(role, "admin", StringComparison.OrdinalIgnoreCase))
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail("Forbidden.", ["FORBIDDEN"]));
+        }
+
+        var response = await regulationService.GetAdminCatalogAsync(cancellationToken);
+        return Ok(ApiResponse<RegulationAdminCatalogDto>.Ok(response));
+    }
+
+    [HttpPut("admin/levels/{levelId:int}")]
+    public async Task<IActionResult> UpdateAdminLevel(
+        [FromRoute] int levelId,
+        [FromBody] RegulationAdminLevelUpdateDto request,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetUserContext(out var adminUserId, out var role))
+        {
+            return Unauthorized(ApiResponse<object>.Fail("Unauthorized.", ["INVALID_TOKEN_SUBJECT"]));
+        }
+
+        if (!string.Equals(role, "admin", StringComparison.OrdinalIgnoreCase))
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail("Forbidden.", ["FORBIDDEN"]));
+        }
+
+        try
+        {
+            var response = await regulationService.UpdateAdminLevelAsync(levelId, request, adminUserId, cancellationToken);
+            return Ok(ApiResponse<RegulationAdminLevelDto>.Ok(response));
+        }
+        catch (InvalidOperationException ex)
+        {
+            var code = string.IsNullOrWhiteSpace(ex.Message) ? "REGULATION_ADMIN_UPDATE_FAILED" : ex.Message;
+            return BadRequest(ApiResponse<object>.Fail("No se pudo actualizar el nivel regulatorio.", [code]));
+        }
+    }
+
+    [HttpPost("admin/levels/{levelId:int}/requirements")]
+    public async Task<IActionResult> AddAdminRequirement(
+        [FromRoute] int levelId,
+        [FromBody] RegulationAdminRequirementUpsertDto request,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetUserContext(out var adminUserId, out var role))
+        {
+            return Unauthorized(ApiResponse<object>.Fail("Unauthorized.", ["INVALID_TOKEN_SUBJECT"]));
+        }
+
+        if (!string.Equals(role, "admin", StringComparison.OrdinalIgnoreCase))
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail("Forbidden.", ["FORBIDDEN"]));
+        }
+
+        try
+        {
+            var response = await regulationService.AddAdminRequirementAsync(levelId, request, adminUserId, cancellationToken);
+            return Ok(ApiResponse<RegulationAdminRequirementDto>.Ok(response));
+        }
+        catch (InvalidOperationException ex)
+        {
+            var code = string.IsNullOrWhiteSpace(ex.Message) ? "REGULATION_ADMIN_REQUIREMENT_ADD_FAILED" : ex.Message;
+            return BadRequest(ApiResponse<object>.Fail("No se pudo crear el requisito regulatorio.", [code]));
+        }
+    }
+
+    [HttpPatch("admin/requirements/{requirementId:guid}")]
+    public async Task<IActionResult> UpdateAdminRequirement(
+        [FromRoute] Guid requirementId,
+        [FromBody] RegulationAdminRequirementUpsertDto request,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetUserContext(out var adminUserId, out var role))
+        {
+            return Unauthorized(ApiResponse<object>.Fail("Unauthorized.", ["INVALID_TOKEN_SUBJECT"]));
+        }
+
+        if (!string.Equals(role, "admin", StringComparison.OrdinalIgnoreCase))
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail("Forbidden.", ["FORBIDDEN"]));
+        }
+
+        try
+        {
+            var response = await regulationService.UpdateAdminRequirementAsync(requirementId, request, adminUserId, cancellationToken);
+            return Ok(ApiResponse<RegulationAdminRequirementDto>.Ok(response));
+        }
+        catch (InvalidOperationException ex)
+        {
+            var code = string.IsNullOrWhiteSpace(ex.Message) ? "REGULATION_ADMIN_REQUIREMENT_PATCH_FAILED" : ex.Message;
+            return BadRequest(ApiResponse<object>.Fail("No se pudo actualizar el requisito regulatorio.", [code]));
+        }
+    }
+
+    [HttpDelete("admin/requirements/{requirementId:guid}")]
+    public async Task<IActionResult> DeleteAdminRequirement(
+        [FromRoute] Guid requirementId,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetUserContext(out var adminUserId, out var role))
+        {
+            return Unauthorized(ApiResponse<object>.Fail("Unauthorized.", ["INVALID_TOKEN_SUBJECT"]));
+        }
+
+        if (!string.Equals(role, "admin", StringComparison.OrdinalIgnoreCase))
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail("Forbidden.", ["FORBIDDEN"]));
+        }
+
+        await regulationService.DeleteAdminRequirementAsync(requirementId, adminUserId, cancellationToken);
+        return Ok(ApiResponse<object>.Ok(new { }, "Requirement deleted."));
+    }
+
+    [HttpPost("admin/levels/{levelId:int}/allowed-residues")]
+    public async Task<IActionResult> AddAdminAllowedResidue(
+        [FromRoute] int levelId,
+        [FromBody] RegulationAdminAllowedResidueUpsertDto request,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetUserContext(out var adminUserId, out var role))
+        {
+            return Unauthorized(ApiResponse<object>.Fail("Unauthorized.", ["INVALID_TOKEN_SUBJECT"]));
+        }
+
+        if (!string.Equals(role, "admin", StringComparison.OrdinalIgnoreCase))
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail("Forbidden.", ["FORBIDDEN"]));
+        }
+
+        var response = await regulationService.AddAdminAllowedResidueAsync(levelId, request, adminUserId, cancellationToken);
+        return Ok(ApiResponse<RegulationAdminAllowedResidueDto>.Ok(response));
+    }
+
+    [HttpPatch("admin/allowed-residues/{residueId:guid}")]
+    public async Task<IActionResult> UpdateAdminAllowedResidue(
+        [FromRoute] Guid residueId,
+        [FromBody] RegulationAdminAllowedResidueUpsertDto request,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetUserContext(out var adminUserId, out var role))
+        {
+            return Unauthorized(ApiResponse<object>.Fail("Unauthorized.", ["INVALID_TOKEN_SUBJECT"]));
+        }
+
+        if (!string.Equals(role, "admin", StringComparison.OrdinalIgnoreCase))
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail("Forbidden.", ["FORBIDDEN"]));
+        }
+
+        var response = await regulationService.UpdateAdminAllowedResidueAsync(residueId, request, adminUserId, cancellationToken);
+        return Ok(ApiResponse<RegulationAdminAllowedResidueDto>.Ok(response));
+    }
+
+    [HttpDelete("admin/allowed-residues/{residueId:guid}")]
+    public async Task<IActionResult> DeleteAdminAllowedResidue(
+        [FromRoute] Guid residueId,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetUserContext(out var adminUserId, out var role))
+        {
+            return Unauthorized(ApiResponse<object>.Fail("Unauthorized.", ["INVALID_TOKEN_SUBJECT"]));
+        }
+
+        if (!string.Equals(role, "admin", StringComparison.OrdinalIgnoreCase))
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail("Forbidden.", ["FORBIDDEN"]));
+        }
+
+        await regulationService.DeleteAdminAllowedResidueAsync(residueId, adminUserId, cancellationToken);
+        return Ok(ApiResponse<object>.Ok(new { }, "Allowed residue deleted."));
+    }
+
+    [HttpPost("admin/levels/{levelId:int}/normatives")]
+    public async Task<IActionResult> AddAdminNormative(
+        [FromRoute] int levelId,
+        [FromBody] RegulationAdminNormativeUpsertDto request,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetUserContext(out var adminUserId, out var role))
+        {
+            return Unauthorized(ApiResponse<object>.Fail("Unauthorized.", ["INVALID_TOKEN_SUBJECT"]));
+        }
+
+        if (!string.Equals(role, "admin", StringComparison.OrdinalIgnoreCase))
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail("Forbidden.", ["FORBIDDEN"]));
+        }
+
+        var response = await regulationService.AddAdminNormativeAsync(levelId, request, adminUserId, cancellationToken);
+        return Ok(ApiResponse<RegulationAdminNormativeDto>.Ok(response));
+    }
+
+    [HttpPatch("admin/normatives/{normativeId:guid}")]
+    public async Task<IActionResult> UpdateAdminNormative(
+        [FromRoute] Guid normativeId,
+        [FromBody] RegulationAdminNormativeUpsertDto request,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetUserContext(out var adminUserId, out var role))
+        {
+            return Unauthorized(ApiResponse<object>.Fail("Unauthorized.", ["INVALID_TOKEN_SUBJECT"]));
+        }
+
+        if (!string.Equals(role, "admin", StringComparison.OrdinalIgnoreCase))
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail("Forbidden.", ["FORBIDDEN"]));
+        }
+
+        var response = await regulationService.UpdateAdminNormativeAsync(normativeId, request, adminUserId, cancellationToken);
+        return Ok(ApiResponse<RegulationAdminNormativeDto>.Ok(response));
+    }
+
+    [HttpDelete("admin/normatives/{normativeId:guid}")]
+    public async Task<IActionResult> DeleteAdminNormative(
+        [FromRoute] Guid normativeId,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetUserContext(out var adminUserId, out var role))
+        {
+            return Unauthorized(ApiResponse<object>.Fail("Unauthorized.", ["INVALID_TOKEN_SUBJECT"]));
+        }
+
+        if (!string.Equals(role, "admin", StringComparison.OrdinalIgnoreCase))
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail("Forbidden.", ["FORBIDDEN"]));
+        }
+
+        await regulationService.DeleteAdminNormativeAsync(normativeId, adminUserId, cancellationToken);
+        return Ok(ApiResponse<object>.Ok(new { }, "Normative deleted."));
     }
 
     private bool TryGetUserContext(out Guid userId, out string role)

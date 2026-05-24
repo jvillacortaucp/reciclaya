@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, computed, inject
 import { RouterLink } from '@angular/router';
 import { APP_ROUTES } from '../../../core/constants/app.constants';
 import { CardComponent } from '../../../shared/ui/card/card.component';
+import { EmptyStateComponent } from '../../../shared/ui/empty-state/empty-state.component';
 import { SectionHeaderComponent } from '../../../shared/ui/section-header/section-header.component';
 import { AuthFacade } from '../../auth/services/auth.facade';
 import { ComplianceLevelsFacade } from './application/compliance-levels.facade';
@@ -15,6 +16,7 @@ import { ComplianceSummaryCardComponent } from './presentation/components/compli
     RouterLink,
     SectionHeaderComponent,
     CardComponent,
+    EmptyStateComponent,
     ComplianceSummaryCardComponent,
     ComplianceLevelAccordionComponent
   ],

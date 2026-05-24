@@ -16,6 +16,14 @@
     >
       Revisiones regulatorias
     </button>
+    <button
+      type="button"
+      class="rounded-xl px-4 py-2 text-sm font-semibold transition"
+      [class]="activeTab() === 'catalog' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'"
+      (click)="setActiveTab('catalog')"
+    >
+      Catálogo regulatorio
+    </button>
   </div>
 </ui-section-header>
 
@@ -81,7 +89,7 @@
       </div>
     </ui-card>
   }
-} @else {
+} @else if (activeTab() === 'reviews') {
   <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
     <div class="inline-flex rounded-2xl border border-slate-200 bg-slate-50 p-1">
       <button
@@ -356,6 +364,198 @@
         </div>
       </ui-card>
     }
+  }
+} @else {
+  @if (catalogError()) {
+    <div class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+      {{ catalogError() }}
+    </div>
+  }
+
+  @if (catalogLoading()) {
+    <p class="text-sm text-slate-500">Cargando catálogo regulatorio...</p>
+  } @else if (!currentCatalogLevel()) {
+    <ui-empty-state title="Sin catálogo" description="No se encontró la información del catálogo regulatorio." />
+  } @else {
+    <ui-card>
+      <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <p class="text-sm text-slate-600">
+          Versión activa: <span class="font-semibold text-slate-900">{{ catalog()?.activeVersion }}</span>
+        </p>
+        <label class="flex items-center gap-2 text-sm text-slate-600">
+          <span>Nivel</span>
+          <select
+            class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none"
+            [ngModel]="selectedCatalogLevel()"
+            (ngModelChange)="onSelectCatalogLevel($event)"
+          >
+            @for (level of levelOptions(); track level.levelId) {
+              <option [value]="level.levelId">Nivel {{ level.levelId }}</option>
+            }
+          </select>
+        </label>
+      </div>
+
+      <div class="grid gap-3 md:grid-cols-2">
+        <label class="block text-sm text-slate-700">
+          <span class="mb-1 block font-semibold text-slate-900">Título</span>
+          <input
+            class="w-full rounded-xl border border-slate-200 px-3 py-2"
+            [ngModel]="levelEditModel.title"
+            (ngModelChange)="levelEditModel.title = $event"
+          />
+        </label>
+        <label class="block text-sm text-slate-700">
+          <span class="mb-1 block font-semibold text-slate-900">Subtítulo</span>
+          <input
+            class="w-full rounded-xl border border-slate-200 px-3 py-2"
+            [ngModel]="levelEditModel.subtitle"
+            (ngModelChange)="levelEditModel.subtitle = $event"
+          />
+        </label>
+        <label class="block text-sm text-slate-700">
+          <span class="mb-1 block font-semibold text-slate-900">Etiqueta de regularización</span>
+          <input
+            class="w-full rounded-xl border border-slate-200 px-3 py-2"
+            [ngModel]="levelEditModel.regularizationLabel"
+            (ngModelChange)="levelEditModel.regularizationLabel = $event"
+          />
+        </label>
+        <label class="block text-sm text-slate-700">
+          <span class="mb-1 block font-semibold text-slate-900">Riesgo</span>
+          <input
+            class="w-full rounded-xl border border-slate-200 px-3 py-2"
+            [ngModel]="levelEditModel.riskLevel"
+            (ngModelChange)="levelEditModel.riskLevel = $event"
+          />
+        </label>
+        <label class="block text-sm text-slate-700 md:col-span-2">
+          <span class="mb-1 block font-semibold text-slate-900">Fiscalización</span>
+          <input
+            class="w-full rounded-xl border border-slate-200 px-3 py-2"
+            [ngModel]="levelEditModel.fiscalization"
+            (ngModelChange)="levelEditModel.fiscalization = $event"
+          />
+        </label>
+      </div>
+
+      <div class="mt-4 grid gap-3 md:grid-cols-2">
+        <label class="block text-sm text-slate-700">
+          <span class="mb-1 block font-semibold text-slate-900">Objetivos (1 por línea)</span>
+          <textarea rows="4" class="w-full rounded-xl border border-slate-200 px-3 py-2" [ngModel]="objectiveText" (ngModelChange)="objectiveText = $event"></textarea>
+        </label>
+        <label class="block text-sm text-slate-700">
+          <span class="mb-1 block font-semibold text-slate-900">Restricciones (1 por línea)</span>
+          <textarea rows="4" class="w-full rounded-xl border border-slate-200 px-3 py-2" [ngModel]="restrictionsText" (ngModelChange)="restrictionsText = $event"></textarea>
+        </label>
+        <label class="block text-sm text-slate-700">
+          <span class="mb-1 block font-semibold text-slate-900">Permitido plataforma (1 por línea)</span>
+          <textarea rows="4" class="w-full rounded-xl border border-slate-200 px-3 py-2" [ngModel]="platformAllowedText" (ngModelChange)="platformAllowedText = $event"></textarea>
+        </label>
+        <label class="block text-sm text-slate-700">
+          <span class="mb-1 block font-semibold text-slate-900">Requerido plataforma (1 por línea)</span>
+          <textarea rows="4" class="w-full rounded-xl border border-slate-200 px-3 py-2" [ngModel]="platformRequiredText" (ngModelChange)="platformRequiredText = $event"></textarea>
+        </label>
+        <label class="block text-sm text-slate-700">
+          <span class="mb-1 block font-semibold text-slate-900">Trazabilidad (1 por línea)</span>
+          <textarea rows="4" class="w-full rounded-xl border border-slate-200 px-3 py-2" [ngModel]="traceabilityText" (ngModelChange)="traceabilityText = $event"></textarea>
+        </label>
+        <label class="block text-sm text-slate-700">
+          <span class="mb-1 block font-semibold text-slate-900">Riesgo legal (1 por línea)</span>
+          <textarea rows="4" class="w-full rounded-xl border border-slate-200 px-3 py-2" [ngModel]="legalRiskText" (ngModelChange)="legalRiskText = $event"></textarea>
+        </label>
+      </div>
+
+      <div class="mt-4 flex justify-end">
+        <button
+          type="button"
+          class="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+          [disabled]="catalogSaving()"
+          (click)="saveLevelMetadata()"
+        >
+          Guardar metadatos
+        </button>
+      </div>
+    </ui-card>
+
+    <ui-card class="mt-4">
+      <h3 class="text-base font-semibold text-slate-900">Requisitos</h3>
+      @for (item of currentCatalogLevel()?.requirements ?? []; track item.id) {
+        <div class="mt-3 grid gap-2 rounded-xl border border-slate-200 p-3 md:grid-cols-4">
+          <input class="rounded-lg border border-slate-200 px-2 py-1 text-sm" [ngModel]="requirementDraft(item.id)?.requirementCode" (ngModelChange)="requirementDraft(item.id)!.requirementCode = $event" />
+          <input class="rounded-lg border border-slate-200 px-2 py-1 text-sm" [ngModel]="requirementDraft(item.id)?.title" (ngModelChange)="requirementDraft(item.id)!.title = $event" />
+          <input class="rounded-lg border border-slate-200 px-2 py-1 text-sm" [ngModel]="requirementDraft(item.id)?.actorType" (ngModelChange)="requirementDraft(item.id)!.actorType = $event" />
+          <input class="rounded-lg border border-slate-200 px-2 py-1 text-sm" [ngModel]="requirementDraft(item.id)?.sortOrder" (ngModelChange)="requirementDraft(item.id)!.sortOrder = +$event" />
+          <textarea class="md:col-span-3 rounded-lg border border-slate-200 px-2 py-1 text-sm" rows="2" [ngModel]="requirementDraft(item.id)?.description" (ngModelChange)="requirementDraft(item.id)!.description = $event"></textarea>
+          <div class="flex items-center justify-end gap-2">
+            <button type="button" class="rounded-lg border border-slate-200 px-3 py-1 text-xs" (click)="saveRequirement(item)">Guardar</button>
+            <button type="button" class="rounded-lg border border-red-200 bg-red-50 px-3 py-1 text-xs text-red-700" (click)="deleteRequirement(item.id)">Eliminar</button>
+          </div>
+        </div>
+      }
+      <div class="mt-4 grid gap-2 rounded-xl border border-dashed border-slate-300 p-3 md:grid-cols-4">
+        <input class="rounded-lg border border-slate-200 px-2 py-1 text-sm" placeholder="Código" [ngModel]="newRequirementDraft.requirementCode" (ngModelChange)="newRequirementDraft.requirementCode = $event" />
+        <input class="rounded-lg border border-slate-200 px-2 py-1 text-sm" placeholder="Título" [ngModel]="newRequirementDraft.title" (ngModelChange)="newRequirementDraft.title = $event" />
+        <input class="rounded-lg border border-slate-200 px-2 py-1 text-sm" placeholder="Actor" [ngModel]="newRequirementDraft.actorType" (ngModelChange)="newRequirementDraft.actorType = $event" />
+        <input class="rounded-lg border border-slate-200 px-2 py-1 text-sm" type="number" placeholder="Orden" [ngModel]="newRequirementDraft.sortOrder" (ngModelChange)="newRequirementDraft.sortOrder = +$event" />
+        <textarea class="md:col-span-3 rounded-lg border border-slate-200 px-2 py-1 text-sm" rows="2" placeholder="Descripción" [ngModel]="newRequirementDraft.description" (ngModelChange)="newRequirementDraft.description = $event"></textarea>
+        <div class="flex justify-end">
+          <button type="button" class="rounded-lg bg-emerald-600 px-3 py-1 text-xs font-semibold text-white" (click)="addRequirement()">Agregar</button>
+        </div>
+      </div>
+    </ui-card>
+
+    <ui-card class="mt-4">
+      <h3 class="text-base font-semibold text-slate-900">Residuos permitidos</h3>
+      @for (item of currentCatalogLevel()?.allowedResidues ?? []; track item.id) {
+        <div class="mt-3 grid gap-2 rounded-xl border border-slate-200 p-3 md:grid-cols-4">
+          <input class="rounded-lg border border-slate-200 px-2 py-1 text-sm" [ngModel]="residueDraft(item.id)?.categoryId" (ngModelChange)="residueDraft(item.id)!.categoryId = $event" />
+          <input class="rounded-lg border border-slate-200 px-2 py-1 text-sm" [ngModel]="residueDraft(item.id)?.categoryTitle" (ngModelChange)="residueDraft(item.id)!.categoryTitle = $event" />
+          <input class="rounded-lg border border-slate-200 px-2 py-1 text-sm" [ngModel]="residueDraft(item.id)?.residueName" (ngModelChange)="residueDraft(item.id)!.residueName = $event" />
+          <input class="rounded-lg border border-slate-200 px-2 py-1 text-sm" type="number" [ngModel]="residueDraft(item.id)?.sortOrder" (ngModelChange)="residueDraft(item.id)!.sortOrder = +$event" />
+          <input class="rounded-lg border border-slate-200 px-2 py-1 text-sm" type="number" placeholder="Mín" [ngModel]="residueDraft(item.id)?.quantityMin" (ngModelChange)="residueDraft(item.id)!.quantityMin = $event === '' ? null : +$event" />
+          <input class="rounded-lg border border-slate-200 px-2 py-1 text-sm" type="number" placeholder="Máx" [ngModel]="residueDraft(item.id)?.quantityMax" (ngModelChange)="residueDraft(item.id)!.quantityMax = $event === '' ? null : +$event" />
+          <input class="rounded-lg border border-slate-200 px-2 py-1 text-sm" placeholder="Unidad" [ngModel]="residueDraft(item.id)?.unit" (ngModelChange)="residueDraft(item.id)!.unit = $event" />
+          <div class="flex items-center justify-end gap-2">
+            <button type="button" class="rounded-lg border border-slate-200 px-3 py-1 text-xs" (click)="saveResidue(item)">Guardar</button>
+            <button type="button" class="rounded-lg border border-red-200 bg-red-50 px-3 py-1 text-xs text-red-700" (click)="deleteResidue(item.id)">Eliminar</button>
+          </div>
+        </div>
+      }
+      <div class="mt-4 grid gap-2 rounded-xl border border-dashed border-slate-300 p-3 md:grid-cols-4">
+        <input class="rounded-lg border border-slate-200 px-2 py-1 text-sm" placeholder="CategoryId" [ngModel]="newResidueDraft.categoryId" (ngModelChange)="newResidueDraft.categoryId = $event" />
+        <input class="rounded-lg border border-slate-200 px-2 py-1 text-sm" placeholder="Categoría" [ngModel]="newResidueDraft.categoryTitle" (ngModelChange)="newResidueDraft.categoryTitle = $event" />
+        <input class="rounded-lg border border-slate-200 px-2 py-1 text-sm" placeholder="Residuo" [ngModel]="newResidueDraft.residueName" (ngModelChange)="newResidueDraft.residueName = $event" />
+        <input class="rounded-lg border border-slate-200 px-2 py-1 text-sm" type="number" placeholder="Orden" [ngModel]="newResidueDraft.sortOrder" (ngModelChange)="newResidueDraft.sortOrder = +$event" />
+        <div class="flex justify-end md:col-span-4">
+          <button type="button" class="rounded-lg bg-emerald-600 px-3 py-1 text-xs font-semibold text-white" (click)="addResidue()">Agregar</button>
+        </div>
+      </div>
+    </ui-card>
+
+    <ui-card class="mt-4">
+      <h3 class="text-base font-semibold text-slate-900">Normativas</h3>
+      @for (item of currentCatalogLevel()?.normatives ?? []; track item.id) {
+        <div class="mt-3 grid gap-2 rounded-xl border border-slate-200 p-3 md:grid-cols-4">
+          <input class="rounded-lg border border-slate-200 px-2 py-1 text-sm" [ngModel]="normativeDraft(item.id)?.code" (ngModelChange)="normativeDraft(item.id)!.code = $event" />
+          <input class="rounded-lg border border-slate-200 px-2 py-1 text-sm md:col-span-2" [ngModel]="normativeDraft(item.id)?.title" (ngModelChange)="normativeDraft(item.id)!.title = $event" />
+          <input class="rounded-lg border border-slate-200 px-2 py-1 text-sm" type="number" [ngModel]="normativeDraft(item.id)?.sortOrder" (ngModelChange)="normativeDraft(item.id)!.sortOrder = +$event" />
+          <input class="rounded-lg border border-slate-200 px-2 py-1 text-sm md:col-span-3" [ngModel]="normativeDraft(item.id)?.referenceUrl" (ngModelChange)="normativeDraft(item.id)!.referenceUrl = $event" />
+          <div class="flex items-center justify-end gap-2">
+            <button type="button" class="rounded-lg border border-slate-200 px-3 py-1 text-xs" (click)="saveNormative(item)">Guardar</button>
+            <button type="button" class="rounded-lg border border-red-200 bg-red-50 px-3 py-1 text-xs text-red-700" (click)="deleteNormative(item.id)">Eliminar</button>
+          </div>
+        </div>
+      }
+      <div class="mt-4 grid gap-2 rounded-xl border border-dashed border-slate-300 p-3 md:grid-cols-4">
+        <input class="rounded-lg border border-slate-200 px-2 py-1 text-sm" placeholder="Código" [ngModel]="newNormativeDraft.code" (ngModelChange)="newNormativeDraft.code = $event" />
+        <input class="rounded-lg border border-slate-200 px-2 py-1 text-sm md:col-span-2" placeholder="Título" [ngModel]="newNormativeDraft.title" (ngModelChange)="newNormativeDraft.title = $event" />
+        <input class="rounded-lg border border-slate-200 px-2 py-1 text-sm" type="number" placeholder="Orden" [ngModel]="newNormativeDraft.sortOrder" (ngModelChange)="newNormativeDraft.sortOrder = +$event" />
+        <div class="flex justify-end md:col-span-4">
+          <button type="button" class="rounded-lg bg-emerald-600 px-3 py-1 text-xs font-semibold text-white" (click)="addNormative()">Agregar</button>
+        </div>
+      </div>
+    </ui-card>
   }
 }
 

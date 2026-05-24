@@ -71,9 +71,30 @@ public sealed class WasteSellController(
             return RegulatoryBlocked(validation);
         }
 
+        var evidenceCheck = await regulationService.VerifyListingEvidenceAsync(
+            userId,
+            new RegulationEvidenceVerificationRequestDto(
+                SpecificResidue: request.FormValue.SpecificResidue,
+                ResidueType: request.FormValue.ResidueType,
+                Sector: request.FormValue.Sector,
+                ProductType: request.FormValue.ProductType,
+                Quantity: request.FormValue.Volume.Quantity,
+                Unit: request.FormValue.Volume.Unit,
+                MediaUrls: request.FormValue.MediaUploads
+                    .Select(item => item.PreviewUrl)
+                    .Where(item => !string.IsNullOrWhiteSpace(item))
+                    .ToArray()),
+            cancellationToken);
+
         await listingService.PublishAsync(userId, request, listingId, cancellationToken);
 
-        return Ok(ApiResponse<object>.Ok(new { published = true }, "Listing published."));
+        return Ok(ApiResponse<object>.Ok(new
+        {
+            published = true,
+            complianceWarnings = evidenceCheck.ManualReviewRequired || evidenceCheck.RiskLevel == "high"
+                ? new[] { evidenceCheck }
+                : Array.Empty<RegulationEvidenceVerificationResultDto>()
+        }, "Listing published."));
     }
 
     [HttpPost("preview")]

@@ -42,6 +42,32 @@ public static class DependencyInjection
 
             return Microsoft.Extensions.Options.Options.Create(options);
         });
+        services.AddSingleton<IOptions<AiEvidenceCheckOptions>>(_ =>
+        {
+            var section = configuration.GetSection(AiEvidenceCheckOptions.SectionName);
+            var options = new AiEvidenceCheckOptions
+            {
+                Enabled = !string.Equals(section["Enabled"], "false", StringComparison.OrdinalIgnoreCase),
+                ConfidenceThreshold = decimal.TryParse(section["ConfidenceThreshold"], out var threshold)
+                    ? Math.Clamp(threshold, 0.1m, 0.95m)
+                    : 0.65m,
+                Mode = string.IsNullOrWhiteSpace(section["Mode"]) ? "soft" : section["Mode"]!.Trim().ToLowerInvariant()
+            };
+
+            return Microsoft.Extensions.Options.Options.Create(options);
+        });
+        services.AddSingleton<IOptions<RegulationAiOptions>>(_ =>
+        {
+            var section = configuration.GetSection("DeepSeek");
+            var options = new RegulationAiOptions
+            {
+                ApiKey = section["ApiKey"] ?? string.Empty,
+                BaseUrl = section["BaseUrl"] ?? "https://api.deepseek.com",
+                Model = section["Model"] ?? "deepseek-chat",
+                TimeoutSeconds = ParseTimeoutSeconds(section["TimeoutSeconds"])
+            };
+            return Microsoft.Extensions.Options.Options.Create(options);
+        });
 
         var connectionString = configuration.GetConnectionString("DefaultConnection");
 

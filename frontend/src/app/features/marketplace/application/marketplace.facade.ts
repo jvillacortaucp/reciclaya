@@ -148,6 +148,10 @@ export class MarketplaceFacade {
     this.toastMessage.set(MARKETPLACE_MESSAGES.savedSearch);
   }
 
+  showToast(message: string): void {
+    this.toastMessage.set(message);
+  }
+
   clearToast(): void {
     this.toastMessage.set(null);
   }

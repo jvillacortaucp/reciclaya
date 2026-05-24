@@ -122,3 +122,118 @@ public sealed record RegulationCatalogHealthDto(
     int TotalLevels,
     int TotalRequirements,
     IReadOnlyCollection<string> Issues);
+
+public sealed record RegulationAdminCatalogDto(
+    int ActiveVersion,
+    IReadOnlyCollection<RegulationAdminLevelDto> Levels);
+
+public sealed record RegulationAdminLevelDto(
+    int LevelId,
+    string Slug,
+    string Title,
+    string Subtitle,
+    string RegularizationLabel,
+    string RiskLevel,
+    string Fiscalization,
+    IReadOnlyCollection<string> Objective,
+    IReadOnlyCollection<string> Restrictions,
+    IReadOnlyCollection<string> PlatformAllowed,
+    IReadOnlyCollection<string> PlatformRequired,
+    IReadOnlyCollection<string> TraceabilityItems,
+    IReadOnlyCollection<string> LegalRiskItems,
+    IReadOnlyCollection<RegulationAdminRequirementDto> Requirements,
+    IReadOnlyCollection<RegulationAdminAllowedResidueDto> AllowedResidues,
+    IReadOnlyCollection<RegulationAdminNormativeDto> Normatives);
+
+public sealed record RegulationAdminRequirementDto(
+    Guid Id,
+    int LevelId,
+    string RequirementCode,
+    string Title,
+    string Description,
+    bool Required,
+    string ActorType,
+    IReadOnlyCollection<string> AcceptedFileTypes,
+    int SortOrder,
+    bool IsActive);
+
+public sealed record RegulationAdminAllowedResidueDto(
+    Guid Id,
+    int LevelId,
+    string CategoryId,
+    string CategoryTitle,
+    string ResidueName,
+    decimal? QuantityMin,
+    decimal? QuantityMax,
+    string? Unit,
+    int SortOrder,
+    bool IsActive);
+
+public sealed record RegulationAdminNormativeDto(
+    Guid Id,
+    int LevelId,
+    string Code,
+    string Title,
+    string? Article,
+    string? ReferenceUrl,
+    int SortOrder,
+    bool IsActive);
+
+public sealed record RegulationAdminLevelUpdateDto(
+    string Title,
+    string Subtitle,
+    string RegularizationLabel,
+    string RiskLevel,
+    string Fiscalization,
+    IReadOnlyCollection<string>? Objective,
+    IReadOnlyCollection<string>? Restrictions,
+    IReadOnlyCollection<string>? PlatformAllowed,
+    IReadOnlyCollection<string>? PlatformRequired,
+    IReadOnlyCollection<string>? TraceabilityItems,
+    IReadOnlyCollection<string>? LegalRiskItems);
+
+public sealed record RegulationAdminRequirementUpsertDto(
+    string RequirementCode,
+    string Title,
+    string Description,
+    bool Required,
+    string ActorType,
+    IReadOnlyCollection<string> AcceptedFileTypes,
+    int SortOrder,
+    bool IsActive);
+
+public sealed record RegulationAdminAllowedResidueUpsertDto(
+    string CategoryId,
+    string CategoryTitle,
+    string ResidueName,
+    decimal? QuantityMin,
+    decimal? QuantityMax,
+    string? Unit,
+    int SortOrder,
+    bool IsActive);
+
+public sealed record RegulationAdminNormativeUpsertDto(
+    string Code,
+    string Title,
+    string? Article,
+    string? ReferenceUrl,
+    int SortOrder,
+    bool IsActive);
+
+public sealed record RegulationEvidenceVerificationRequestDto(
+    string? SpecificResidue,
+    string? ResidueType,
+    string? Sector,
+    string? ProductType,
+    decimal? Quantity,
+    string? Unit,
+    IReadOnlyCollection<string>? MediaUrls);
+
+public sealed record RegulationEvidenceVerificationResultDto(
+    bool IsConsistent,
+    decimal Confidence,
+    string RiskLevel,
+    string? SuggestedResidue,
+    IReadOnlyCollection<string> RiskFlags,
+    bool ManualReviewRequired,
+    string Message);

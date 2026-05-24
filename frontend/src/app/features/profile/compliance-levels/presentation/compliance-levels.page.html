@@ -99,6 +99,9 @@
     </div>
 
     <div class="space-y-4">
+      @if (levels().length === 0) {
+        <ui-empty-state title="Sin datos regulatorios" description="No se encontró la información del catálogo regulatorio." />
+      }
       @for (level of levels(); track level.id) {
         <app-compliance-level-accordion
           [level]="level"

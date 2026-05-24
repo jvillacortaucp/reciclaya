@@ -9,7 +9,7 @@ import {
   StoredComplianceLevelsState,
   StoredComplianceRequirementState
 } from '../../../../core/regulatory/compliance-levels.models';
-import { COMPLIANCE_INITIAL_STATE, COMPLIANCE_LEVEL_DEFINITIONS } from '../../../../core/regulatory/compliance-levels.constants';
+import { COMPLIANCE_INITIAL_STATE } from '../../../../core/regulatory/compliance-levels.constants';
 import { RegulationLevelResponse, RegulationMeResponse } from '../../../../core/regulatory/regulation-api.models';
 import { RegulationHttpService } from '../../../../core/regulatory/regulation-http.service';
 import { ComplianceLevelsStore } from '../../../../core/regulatory/compliance-levels.store';
@@ -27,7 +27,7 @@ export class ComplianceLevelsFacade implements OnDestroy {
   private readonly regulationHttpService = inject(RegulationHttpService);
   private readonly activeUserId = signal<string>('anonymous');
   private readonly state = signal<StoredComplianceLevelsState>(this.cloneStoredState(COMPLIANCE_INITIAL_STATE));
-  private readonly definitions = signal<readonly ComplianceLevelDefinition[]>(COMPLIANCE_LEVEL_DEFINITIONS);
+  private readonly definitions = signal<readonly ComplianceLevelDefinition[]>([]);
   private readonly meState = signal<RegulationMeResponse | null>(null);
   private readonly dirty = signal(false);
   private readonly runtimeUploads = new Map<string, RuntimeUploadAsset>();
@@ -82,7 +82,7 @@ export class ComplianceLevelsFacade implements OnDestroy {
         this.meState.set(me);
 
         if (levels.length === 0) {
-          this.definitions.set(COMPLIANCE_LEVEL_DEFINITIONS);
+          this.definitions.set([]);
           this.state.set(fallbackState);
           this.dirty.set(false);
           return;

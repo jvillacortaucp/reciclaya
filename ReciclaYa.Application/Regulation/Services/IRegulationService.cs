@@ -49,4 +49,59 @@ public interface IRegulationService
         CancellationToken cancellationToken);
 
     Task<RegulationCatalogHealthDto> GetCatalogHealthAsync(CancellationToken cancellationToken);
+
+    Task<RegulationAdminCatalogDto> GetAdminCatalogAsync(CancellationToken cancellationToken);
+
+    Task<RegulationAdminLevelDto> UpdateAdminLevelAsync(
+        int levelId,
+        RegulationAdminLevelUpdateDto request,
+        Guid adminUserId,
+        CancellationToken cancellationToken);
+
+    Task<RegulationAdminRequirementDto> AddAdminRequirementAsync(
+        int levelId,
+        RegulationAdminRequirementUpsertDto request,
+        Guid adminUserId,
+        CancellationToken cancellationToken);
+
+    Task<RegulationAdminRequirementDto> UpdateAdminRequirementAsync(
+        Guid requirementId,
+        RegulationAdminRequirementUpsertDto request,
+        Guid adminUserId,
+        CancellationToken cancellationToken);
+
+    Task DeleteAdminRequirementAsync(Guid requirementId, Guid adminUserId, CancellationToken cancellationToken);
+
+    Task<RegulationAdminAllowedResidueDto> AddAdminAllowedResidueAsync(
+        int levelId,
+        RegulationAdminAllowedResidueUpsertDto request,
+        Guid adminUserId,
+        CancellationToken cancellationToken);
+
+    Task<RegulationAdminAllowedResidueDto> UpdateAdminAllowedResidueAsync(
+        Guid residueId,
+        RegulationAdminAllowedResidueUpsertDto request,
+        Guid adminUserId,
+        CancellationToken cancellationToken);
+
+    Task DeleteAdminAllowedResidueAsync(Guid residueId, Guid adminUserId, CancellationToken cancellationToken);
+
+    Task<RegulationAdminNormativeDto> AddAdminNormativeAsync(
+        int levelId,
+        RegulationAdminNormativeUpsertDto request,
+        Guid adminUserId,
+        CancellationToken cancellationToken);
+
+    Task<RegulationAdminNormativeDto> UpdateAdminNormativeAsync(
+        Guid normativeId,
+        RegulationAdminNormativeUpsertDto request,
+        Guid adminUserId,
+        CancellationToken cancellationToken);
+
+    Task DeleteAdminNormativeAsync(Guid normativeId, Guid adminUserId, CancellationToken cancellationToken);
+
+    Task<RegulationEvidenceVerificationResultDto> VerifyListingEvidenceAsync(
+        Guid userId,
+        RegulationEvidenceVerificationRequestDto request,
+        CancellationToken cancellationToken);
 }

@@ -35,44 +35,12 @@ public sealed class RegulationService(
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     };
 
-    private static readonly Dictionary<string, Dictionary<int, string[]>> RequiredRequirementCodesByActor = new(StringComparer.OrdinalIgnoreCase)
-    {
-        ["seller"] = new Dictionary<int, string[]>
-        {
-            [1] = ["l1-seller-dni-ruc"],
-            [2] = ["l2-seller-ruc-volume", "l2-seller-classification"],
-            [3] = ["l3-seller-origin"],
-            [4] = ["l4-seller-classification"]
-        },
-        ["buyer"] = new Dictionary<int, string[]>
-        {
-            [1] = ["l1-buyer-license"],
-            [3] = ["l3-buyer-eors"],
-            [4] = ["l4-buyer-matpel"]
-        }
-    };
-
-    private static readonly string[] Level4Keywords =
-    [
-        "peligroso", "quimic", "solvente", "hidrocarb", "aceite usado", "hospital",
-        "biocontamin", "infect", "reactivo", "corrosivo", "toxico", "matpel"
-    ];
-
-    private static readonly string[] Level3Keywords =
-    [
-        "raee", "electron", "electrico", "bateria", "pila", "placa", "circuito", "monitor", "computadora", "cable"
-    ];
-
-    private static readonly string[] Level1Keywords =
-    [
-        "papel", "carton", "plastico", "vidrio", "metal", "aluminio", "pet", "hdpe", "lata"
-    ];
-
     private readonly SupabaseOptions _supabaseOptions = supabaseOptions.Value;
     private readonly RegulationReviewOptions _regulationReviewOptions = regulationReviewOptions.Value;
 
     public async Task<RegulationMeDto> GetMeAsync(Guid userId, CancellationToken cancellationToken)
     {
+        await TryAutoPromoteUserLevelAsync(userId, "system", cancellationToken);
         var profile = await EnsureProfileAsync(userId, cancellationToken);
         var requirements = await dbContext.UserRegulationRequirements
             .Where(item => item.UserId == userId)
@@ -130,7 +98,7 @@ public sealed class RegulationService(
     {
         var profile = await EnsureProfileAsync(userId, cancellationToken);
         var actor = ResolveActor(userRole, request.Actor);
-        var requiredMinLevel = ClassifyRequiredLevel(request);
+        var requiredMinLevel = await ClassifyRequiredLevelAsync(request, cancellationToken);
         var currentLevel = (int)profile.CurrentLevel;
         var action = request.Action?.Trim().ToLowerInvariant() ?? string.Empty;
 
@@ -399,6 +367,12 @@ public sealed class RegulationService(
             throw new InvalidOperationException("EVIDENCE_NOT_FOUND");
         }
 
+        if (string.Equals(record.Status, "approved", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(record.Status, "in_review", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("EVIDENCE_DELETE_NOT_ALLOWED_FOR_REVIEWED");
+        }
+
         record.EvidenceUrl = null;
         record.Status = "pending";
         record.Notes = "Evidencia eliminada por el usuario.";
@@ -516,7 +490,7 @@ public sealed class RegulationService(
         {
             Id = Guid.NewGuid(),
             UserId = requirement.UserId,
-            Actor = $"admin:{adminUserId:D}",
+            Actor = "admin",
             Action = "review_requirement",
             Allowed = targetStatus == "approved",
             RequiredMinLevel = requirement.Level,
@@ -536,6 +510,11 @@ public sealed class RegulationService(
             ManualReviewRequired = false,
             CreatedAt = DateTime.UtcNow
         });
+
+        if (targetStatus == "approved")
+        {
+            await TryAutoPromoteUserLevelAsync(requirement.UserId, "admin", cancellationToken);
+        }
 
         await dbContext.SaveChangesAsync(cancellationToken);
 
@@ -563,8 +542,72 @@ public sealed class RegulationService(
             UploadedFileName = ExtractFileName(requirement.EvidenceUrl),
             UploadedFileUrl = requirement.EvidenceUrl,
             UploadedFileKind = InferFileKindFromPath(ExtractFileName(requirement.EvidenceUrl)) ?? "document",
-              Notes = requirement.Notes
+          Notes = requirement.Notes
           };
+    }
+
+    private async Task TryAutoPromoteUserLevelAsync(Guid userId, string auditActor, CancellationToken cancellationToken)
+    {
+        var profile = await EnsureProfileAsync(userId, cancellationToken);
+        var user = await dbContext.Users
+            .Include(item => item.Company)
+            .Include(item => item.PersonProfile)
+            .FirstOrDefaultAsync(item => item.Id == userId, cancellationToken);
+
+        if (user is null)
+        {
+            return;
+        }
+
+        var actor = ResolveActor(user.Role.ToString(), null);
+        var recalculatedLevel = 0;
+
+        for (var level = 1; level <= 4; level++)
+        {
+            var missingRequired = await GetMissingRequiredLevelRequirementsAsync(
+                userId,
+                actor,
+                level,
+                cancellationToken);
+
+            if (missingRequired.Count > 0)
+            {
+                break;
+            }
+
+            recalculatedLevel = level;
+        }
+
+        if (recalculatedLevel == (int)profile.CurrentLevel)
+        {
+            return;
+        }
+
+        var previousLevel = (int)profile.CurrentLevel;
+        profile.CurrentLevel = (RegulationLevel)recalculatedLevel;
+        profile.UpdatedAt = DateTime.UtcNow;
+
+        dbContext.RegulationOperationAudits.Add(new RegulationOperationAudit
+        {
+            Id = Guid.NewGuid(),
+            UserId = userId,
+            Actor = string.IsNullOrWhiteSpace(auditActor) ? "system" : auditActor,
+            Action = recalculatedLevel > previousLevel ? "level_up" : "level_sync",
+            Allowed = true,
+            RequiredMinLevel = recalculatedLevel,
+            ActorCurrentLevel = previousLevel,
+            BlockingReasonCode = recalculatedLevel > previousLevel
+                ? "AUTO_LEVEL_UPGRADED"
+                : "AUTO_LEVEL_CORRECTED",
+            ContextResidueType = null,
+            ContextSector = "regulation",
+            ContextProductType = null,
+            ContextSpecificResidue = null,
+            ContextQuantity = null,
+            ContextUnit = null,
+            ManualReviewRequired = false,
+            CreatedAt = DateTime.UtcNow
+        });
     }
 
     public async Task<DownloadedFileResult> DownloadRequirementEvidenceAsync(
@@ -666,6 +709,300 @@ public sealed class RegulationService(
             TotalLevels: rows.Count,
             TotalRequirements: totalRequirements,
             Issues: issues);
+    }
+
+    public async Task<RegulationAdminCatalogDto> GetAdminCatalogAsync(CancellationToken cancellationToken)
+    {
+        var version = await GetOrCreateActiveCatalogVersionAsync(cancellationToken);
+        var levels = await BuildAdminLevelsAsync(version.Id, cancellationToken);
+        return new RegulationAdminCatalogDto(version.VersionNumber, levels);
+    }
+
+    public async Task<RegulationAdminLevelDto> UpdateAdminLevelAsync(
+        int levelId,
+        RegulationAdminLevelUpdateDto request,
+        Guid adminUserId,
+        CancellationToken cancellationToken)
+    {
+        ValidateLevel(levelId);
+        var version = await GetOrCreateActiveCatalogVersionAsync(cancellationToken);
+        await ReplaceLevelRulesAsync(version.Id, levelId, request, cancellationToken);
+        await SaveAdminAuditAsync(adminUserId, "catalog_update_level", $"level:{levelId}", cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return (await BuildAdminLevelsAsync(version.Id, cancellationToken)).First(item => item.LevelId == levelId);
+    }
+
+    public async Task<RegulationAdminRequirementDto> AddAdminRequirementAsync(
+        int levelId,
+        RegulationAdminRequirementUpsertDto request,
+        Guid adminUserId,
+        CancellationToken cancellationToken)
+    {
+        ValidateLevel(levelId);
+        var version = await GetOrCreateActiveCatalogVersionAsync(cancellationToken);
+        var now = DateTime.UtcNow;
+        var entity = new RegulationLevelRequirementCatalog
+        {
+            Id = Guid.NewGuid(),
+            VersionId = version.Id,
+            Level = levelId,
+            RequirementCode = SafeCode(request.RequirementCode),
+            Title = SafeText(request.Title),
+            Description = SafeText(request.Description),
+            IsRequired = request.Required,
+            ActorType = NormalizeActorType(request.ActorType),
+            AcceptedFileTypesJson = JsonSerializer.Serialize(request.AcceptedFileTypes ?? []),
+            SortOrder = request.SortOrder,
+            IsActive = request.IsActive,
+            CreatedAt = now,
+            UpdatedAt = now
+        };
+
+        dbContext.RegulationLevelRequirementsCatalog.Add(entity);
+        await SaveAdminAuditAsync(adminUserId, "catalog_add_requirement", entity.RequirementCode, cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return ToAdminRequirementDto(entity);
+    }
+
+    public async Task<RegulationAdminRequirementDto> UpdateAdminRequirementAsync(
+        Guid requirementId,
+        RegulationAdminRequirementUpsertDto request,
+        Guid adminUserId,
+        CancellationToken cancellationToken)
+    {
+        var entity = await dbContext.RegulationLevelRequirementsCatalog
+            .FirstOrDefaultAsync(item => item.Id == requirementId, cancellationToken)
+            ?? throw new InvalidOperationException("REGULATION_REQUIREMENT_NOT_FOUND");
+
+        entity.RequirementCode = SafeCode(request.RequirementCode);
+        entity.Title = SafeText(request.Title);
+        entity.Description = SafeText(request.Description);
+        entity.IsRequired = request.Required;
+        entity.ActorType = NormalizeActorType(request.ActorType);
+        entity.AcceptedFileTypesJson = JsonSerializer.Serialize(request.AcceptedFileTypes ?? []);
+        entity.SortOrder = request.SortOrder;
+        entity.IsActive = request.IsActive;
+        entity.UpdatedAt = DateTime.UtcNow;
+
+        await SaveAdminAuditAsync(adminUserId, "catalog_patch_requirement", entity.RequirementCode, cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return ToAdminRequirementDto(entity);
+    }
+
+    public async Task DeleteAdminRequirementAsync(Guid requirementId, Guid adminUserId, CancellationToken cancellationToken)
+    {
+        var entity = await dbContext.RegulationLevelRequirementsCatalog
+            .FirstOrDefaultAsync(item => item.Id == requirementId, cancellationToken)
+            ?? throw new InvalidOperationException("REGULATION_REQUIREMENT_NOT_FOUND");
+        var detail = entity.RequirementCode;
+        dbContext.RegulationLevelRequirementsCatalog.Remove(entity);
+        await SaveAdminAuditAsync(adminUserId, "catalog_delete_requirement", detail, cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<RegulationAdminAllowedResidueDto> AddAdminAllowedResidueAsync(
+        int levelId,
+        RegulationAdminAllowedResidueUpsertDto request,
+        Guid adminUserId,
+        CancellationToken cancellationToken)
+    {
+        ValidateLevel(levelId);
+        var version = await GetOrCreateActiveCatalogVersionAsync(cancellationToken);
+        var now = DateTime.UtcNow;
+        var entity = new RegulationAllowedResidueCatalog
+        {
+            Id = Guid.NewGuid(),
+            VersionId = version.Id,
+            Level = levelId,
+            CategoryId = SafeCode(request.CategoryId),
+            CategoryTitle = SafeText(request.CategoryTitle),
+            ResidueName = SafeText(request.ResidueName),
+            QuantityMin = request.QuantityMin,
+            QuantityMax = request.QuantityMax,
+            Unit = request.Unit?.Trim(),
+            SortOrder = request.SortOrder,
+            IsActive = request.IsActive,
+            CreatedAt = now,
+            UpdatedAt = now
+        };
+
+        dbContext.RegulationAllowedResiduesCatalog.Add(entity);
+        await SaveAdminAuditAsync(adminUserId, "catalog_add_allowed_residue", entity.ResidueName, cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return ToAdminAllowedResidueDto(entity);
+    }
+
+    public async Task<RegulationAdminAllowedResidueDto> UpdateAdminAllowedResidueAsync(
+        Guid residueId,
+        RegulationAdminAllowedResidueUpsertDto request,
+        Guid adminUserId,
+        CancellationToken cancellationToken)
+    {
+        var entity = await dbContext.RegulationAllowedResiduesCatalog
+            .FirstOrDefaultAsync(item => item.Id == residueId, cancellationToken)
+            ?? throw new InvalidOperationException("REGULATION_ALLOWED_RESIDUE_NOT_FOUND");
+
+        entity.CategoryId = SafeCode(request.CategoryId);
+        entity.CategoryTitle = SafeText(request.CategoryTitle);
+        entity.ResidueName = SafeText(request.ResidueName);
+        entity.QuantityMin = request.QuantityMin;
+        entity.QuantityMax = request.QuantityMax;
+        entity.Unit = request.Unit?.Trim();
+        entity.SortOrder = request.SortOrder;
+        entity.IsActive = request.IsActive;
+        entity.UpdatedAt = DateTime.UtcNow;
+
+        await SaveAdminAuditAsync(adminUserId, "catalog_patch_allowed_residue", entity.ResidueName, cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return ToAdminAllowedResidueDto(entity);
+    }
+
+    public async Task DeleteAdminAllowedResidueAsync(Guid residueId, Guid adminUserId, CancellationToken cancellationToken)
+    {
+        var entity = await dbContext.RegulationAllowedResiduesCatalog
+            .FirstOrDefaultAsync(item => item.Id == residueId, cancellationToken)
+            ?? throw new InvalidOperationException("REGULATION_ALLOWED_RESIDUE_NOT_FOUND");
+        var detail = entity.ResidueName;
+        dbContext.RegulationAllowedResiduesCatalog.Remove(entity);
+        await SaveAdminAuditAsync(adminUserId, "catalog_delete_allowed_residue", detail, cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<RegulationAdminNormativeDto> AddAdminNormativeAsync(
+        int levelId,
+        RegulationAdminNormativeUpsertDto request,
+        Guid adminUserId,
+        CancellationToken cancellationToken)
+    {
+        ValidateLevel(levelId);
+        var version = await GetOrCreateActiveCatalogVersionAsync(cancellationToken);
+        var now = DateTime.UtcNow;
+        var entity = new RegulationNormativeReferenceCatalog
+        {
+            Id = Guid.NewGuid(),
+            VersionId = version.Id,
+            Level = levelId,
+            Code = SafeCode(request.Code),
+            Title = SafeText(request.Title),
+            Article = request.Article?.Trim(),
+            ReferenceUrl = request.ReferenceUrl?.Trim(),
+            SortOrder = request.SortOrder,
+            IsActive = request.IsActive,
+            CreatedAt = now,
+            UpdatedAt = now
+        };
+
+        dbContext.RegulationNormativeReferencesCatalog.Add(entity);
+        await SaveAdminAuditAsync(adminUserId, "catalog_add_normative", entity.Code, cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return ToAdminNormativeDto(entity);
+    }
+
+    public async Task<RegulationAdminNormativeDto> UpdateAdminNormativeAsync(
+        Guid normativeId,
+        RegulationAdminNormativeUpsertDto request,
+        Guid adminUserId,
+        CancellationToken cancellationToken)
+    {
+        var entity = await dbContext.RegulationNormativeReferencesCatalog
+            .FirstOrDefaultAsync(item => item.Id == normativeId, cancellationToken)
+            ?? throw new InvalidOperationException("REGULATION_NORMATIVE_NOT_FOUND");
+
+        entity.Code = SafeCode(request.Code);
+        entity.Title = SafeText(request.Title);
+        entity.Article = request.Article?.Trim();
+        entity.ReferenceUrl = request.ReferenceUrl?.Trim();
+        entity.SortOrder = request.SortOrder;
+        entity.IsActive = request.IsActive;
+        entity.UpdatedAt = DateTime.UtcNow;
+
+        await SaveAdminAuditAsync(adminUserId, "catalog_patch_normative", entity.Code, cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return ToAdminNormativeDto(entity);
+    }
+
+    public async Task DeleteAdminNormativeAsync(Guid normativeId, Guid adminUserId, CancellationToken cancellationToken)
+    {
+        var entity = await dbContext.RegulationNormativeReferencesCatalog
+            .FirstOrDefaultAsync(item => item.Id == normativeId, cancellationToken)
+            ?? throw new InvalidOperationException("REGULATION_NORMATIVE_NOT_FOUND");
+        var detail = entity.Code;
+        dbContext.RegulationNormativeReferencesCatalog.Remove(entity);
+        await SaveAdminAuditAsync(adminUserId, "catalog_delete_normative", detail, cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<RegulationEvidenceVerificationResultDto> VerifyListingEvidenceAsync(
+        Guid userId,
+        RegulationEvidenceVerificationRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        var normalized = string.Join(' ', new[] { request.SpecificResidue, request.ResidueType, request.Sector, request.ProductType }
+            .Where(item => !string.IsNullOrWhiteSpace(item)))
+            .ToLowerInvariant();
+
+        var riskFlags = new List<string>();
+        var confidence = 0.82m;
+        var risk = "low";
+        var isConsistent = true;
+
+        if (request.MediaUrls is null || request.MediaUrls.Count == 0)
+        {
+            riskFlags.Add("no-media");
+            confidence = 0.55m;
+            risk = "medium";
+        }
+
+        if (await ContainsHighRiskResidueAsync(normalized, cancellationToken))
+        {
+            riskFlags.Add("hazardous-keyword");
+            confidence = Math.Min(confidence, 0.60m);
+            risk = "high";
+        }
+
+        if (string.IsNullOrWhiteSpace(normalized))
+        {
+            riskFlags.Add("insufficient-context");
+            confidence = 0.40m;
+            risk = "high";
+            isConsistent = false;
+        }
+
+        var manualReviewRequired = string.Equals(risk, "high", StringComparison.OrdinalIgnoreCase) || confidence < 0.65m;
+        var message = manualReviewRequired
+            ? "Se detectaron señales de riesgo. Recomendamos revision manual."
+            : "La evidencia es consistente para continuar.";
+
+        dbContext.RegulationOperationAudits.Add(new RegulationOperationAudit
+        {
+            Id = Guid.NewGuid(),
+            UserId = userId,
+            Actor = "seller",
+            Action = "ai_evidence_check",
+            Allowed = isConsistent,
+            RequiredMinLevel = 0,
+            ActorCurrentLevel = 0,
+            BlockingReasonCode = manualReviewRequired ? "AI_EVIDENCE_REVIEW_RECOMMENDED" : "AI_EVIDENCE_OK",
+            ContextResidueType = request.ResidueType,
+            ContextSector = request.Sector,
+            ContextProductType = request.ProductType,
+            ContextSpecificResidue = request.SpecificResidue,
+            ContextQuantity = request.Quantity,
+            ContextUnit = request.Unit,
+            ManualReviewRequired = manualReviewRequired,
+            CreatedAt = DateTime.UtcNow
+        });
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return new RegulationEvidenceVerificationResultDto(
+            IsConsistent: isConsistent,
+            Confidence: confidence,
+            RiskLevel: risk,
+            SuggestedResidue: request.SpecificResidue,
+            RiskFlags: riskFlags,
+            ManualReviewRequired: manualReviewRequired,
+            Message: message);
     }
 
     private async Task<UserRegulationProfile> EnsureProfileAsync(Guid userId, CancellationToken cancellationToken)
@@ -803,16 +1140,21 @@ public sealed class RegulationService(
         int requiredLevel,
         CancellationToken cancellationToken)
     {
-        if (!RequiredRequirementCodesByActor.TryGetValue(actor, out var mapByLevel))
-        {
-            return [];
-        }
-
-        var requiredCodes = mapByLevel
-            .Where(item => item.Key <= requiredLevel)
-            .SelectMany(item => item.Value)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToArray();
+        var version = await GetOrCreateActiveCatalogVersionAsync(cancellationToken);
+        var normalizedActor = NormalizeActorType(actor);
+        var requiredCodes = await dbContext.RegulationLevelRequirementsCatalog
+            .AsNoTracking()
+            .Where(item =>
+                item.VersionId == version.Id
+                && item.IsActive
+                && item.IsRequired
+                && item.Level <= requiredLevel
+                && (item.ActorType == "both" || item.ActorType == normalizedActor))
+            .OrderBy(item => item.Level)
+            .ThenBy(item => item.SortOrder)
+            .Select(item => item.RequirementCode)
+            .Distinct()
+            .ToArrayAsync(cancellationToken);
 
         if (requiredCodes.Length == 0)
         {
@@ -843,37 +1185,66 @@ public sealed class RegulationService(
         return string.Equals(userRole, "seller", StringComparison.OrdinalIgnoreCase) ? "seller" : "buyer";
     }
 
-    private static int ClassifyRequiredLevel(RegulationValidateOperationRequestDto request)
+    private async Task<int> ClassifyRequiredLevelAsync(
+        RegulationValidateOperationRequestDto request,
+        CancellationToken cancellationToken)
     {
+        var version = await GetOrCreateActiveCatalogVersionAsync(cancellationToken);
         var pieces = new[] { request.ResidueType, request.Sector, request.ProductType, request.SpecificResidue };
         var normalized = string.Join(
                 ' ',
                 pieces.Where(item => !string.IsNullOrWhiteSpace(item)))
+            .Trim()
             .ToLowerInvariant();
 
-        if (Level4Keywords.Any(keyword => normalized.Contains(keyword)))
-        {
-            return 4;
-        }
+        var residues = await dbContext.RegulationAllowedResiduesCatalog
+            .AsNoTracking()
+            .Where(item => item.VersionId == version.Id && item.IsActive)
+            .ToListAsync(cancellationToken);
 
-        if (Level3Keywords.Any(keyword => normalized.Contains(keyword)))
-        {
-            return 3;
-        }
-
-        if (request.Sector is not null
-            && (request.Sector.Contains("agri", StringComparison.OrdinalIgnoreCase)
-                || request.Sector.Contains("food", StringComparison.OrdinalIgnoreCase)))
-        {
-            return 2;
-        }
-
-        if (Level1Keywords.Any(keyword => normalized.Contains(keyword)))
+        if (residues.Count == 0)
         {
             return 1;
         }
 
-        return 2;
+        if (string.IsNullOrWhiteSpace(normalized))
+        {
+            return residues.Min(item => item.Level);
+        }
+
+        var matched = residues
+            .Where(item =>
+                normalized.Contains(item.ResidueName.ToLowerInvariant())
+                || normalized.Contains(item.CategoryTitle.ToLowerInvariant())
+                || normalized.Contains(item.CategoryId.ToLowerInvariant()))
+            .Select(item => item.Level)
+            .ToArray();
+
+        if (matched.Length == 0)
+        {
+            return residues.Min(item => item.Level);
+        }
+
+        return matched.Max();
+    }
+
+    private async Task<bool> ContainsHighRiskResidueAsync(string normalizedContext, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(normalizedContext))
+        {
+            return false;
+        }
+
+        var version = await GetOrCreateActiveCatalogVersionAsync(cancellationToken);
+        var highRiskResidues = await dbContext.RegulationAllowedResiduesCatalog
+            .AsNoTracking()
+            .Where(item => item.VersionId == version.Id && item.IsActive && item.Level >= 4)
+            .Select(item => item.ResidueName)
+            .ToListAsync(cancellationToken);
+
+        return highRiskResidues.Any(name =>
+            !string.IsNullOrWhiteSpace(name)
+            && normalizedContext.Contains(name.ToLowerInvariant()));
     }
 
     private async Task SaveAuditAsync(
@@ -1078,6 +1449,266 @@ public sealed class RegulationService(
         }
 
         return "Archivo adjunto";
+    }
+
+    private async Task<RegulationCatalogVersion> GetOrCreateActiveCatalogVersionAsync(CancellationToken cancellationToken)
+    {
+        var active = await dbContext.RegulationCatalogVersions
+            .FirstOrDefaultAsync(item => item.IsActive, cancellationToken);
+        if (active is not null)
+        {
+            return active;
+        }
+
+        var now = DateTime.UtcNow;
+        var created = new RegulationCatalogVersion
+        {
+            Id = Guid.NewGuid(),
+            VersionNumber = 1,
+            IsActive = true,
+            Notes = "Auto-created",
+            CreatedAt = now,
+            UpdatedAt = now
+        };
+        dbContext.RegulationCatalogVersions.Add(created);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return created;
+    }
+
+    private async Task<IReadOnlyCollection<RegulationAdminLevelDto>> BuildAdminLevelsAsync(Guid versionId, CancellationToken cancellationToken)
+    {
+        var payloads = await dbContext.RegulationLevelCatalogs
+            .AsNoTracking()
+            .OrderBy(item => item.Level)
+            .ToListAsync(cancellationToken);
+
+        var requirements = await dbContext.RegulationLevelRequirementsCatalog
+            .AsNoTracking()
+            .Where(item => item.VersionId == versionId)
+            .OrderBy(item => item.Level).ThenBy(item => item.SortOrder)
+            .ToListAsync(cancellationToken);
+
+        var residues = await dbContext.RegulationAllowedResiduesCatalog
+            .AsNoTracking()
+            .Where(item => item.VersionId == versionId)
+            .OrderBy(item => item.Level).ThenBy(item => item.SortOrder)
+            .ToListAsync(cancellationToken);
+
+        var rules = await dbContext.RegulationLevelRulesCatalog
+            .AsNoTracking()
+            .Where(item => item.VersionId == versionId && item.IsActive)
+            .OrderBy(item => item.Level).ThenBy(item => item.SortOrder)
+            .ToListAsync(cancellationToken);
+
+        var normatives = await dbContext.RegulationNormativeReferencesCatalog
+            .AsNoTracking()
+            .Where(item => item.VersionId == versionId)
+            .OrderBy(item => item.Level).ThenBy(item => item.SortOrder)
+            .ToListAsync(cancellationToken);
+
+        var result = new List<RegulationAdminLevelDto>(4);
+        for (var level = 1; level <= 4; level++)
+        {
+            var parsed = Deserialize<RegulationLevelDto>(payloads.FirstOrDefault(item => item.Level == level)?.PayloadJson ?? "{}");
+            var levelRequirements = requirements.Where(item => item.Level == level).Select(ToAdminRequirementDto).ToArray();
+            var levelResidues = residues.Where(item => item.Level == level).Select(ToAdminAllowedResidueDto).ToArray();
+            var levelNormatives = normatives.Where(item => item.Level == level).Select(ToAdminNormativeDto).ToArray();
+
+            result.Add(new RegulationAdminLevelDto(
+                LevelId: level,
+                Slug: parsed?.Slug ?? $"level{level}",
+                Title: parsed?.Title ?? $"Nivel {level}",
+                Subtitle: parsed?.Subtitle ?? "No se encontro la informacion",
+                RegularizationLabel: parsed?.RegularizationLabel ?? "No se encontro la informacion",
+                RiskLevel: parsed?.RiskLevel ?? "No se encontro la informacion",
+                Fiscalization: parsed?.Fiscalization ?? "No se encontro la informacion",
+                Objective: ReadRuleItems(rules, level, "objective", parsed?.Objective),
+                Restrictions: ReadRuleItems(rules, level, "restriction", parsed?.Restrictions),
+                PlatformAllowed: ReadRuleItems(rules, level, "platform_allowed", parsed?.PlatformValidations.Allowed),
+                PlatformRequired: ReadRuleItems(rules, level, "platform_required", parsed?.PlatformValidations.Required),
+                TraceabilityItems: ReadRuleItems(rules, level, "traceability", parsed?.Traceability.Items),
+                LegalRiskItems: ReadRuleItems(rules, level, "legal_risk", parsed?.LegalRisks.Items),
+                Requirements: levelRequirements,
+                AllowedResidues: levelResidues,
+                Normatives: levelNormatives));
+        }
+
+        return result;
+    }
+
+    private static IReadOnlyCollection<string> ReadRuleItems(
+        IReadOnlyCollection<RegulationLevelRuleCatalog> rules,
+        int level,
+        string group,
+        IReadOnlyCollection<string>? fallback)
+    {
+        var items = rules
+            .Where(item => item.Level == level && string.Equals(item.RuleGroup, group, StringComparison.OrdinalIgnoreCase))
+            .Select(item => item.ItemText)
+            .Where(item => !string.IsNullOrWhiteSpace(item))
+            .ToArray();
+        return items.Length > 0 ? items : (fallback ?? ["No se encontro la informacion"]);
+    }
+
+    private async Task ReplaceLevelRulesAsync(
+        Guid versionId,
+        int levelId,
+        RegulationAdminLevelUpdateDto request,
+        CancellationToken cancellationToken)
+    {
+        var existing = await dbContext.RegulationLevelRulesCatalog
+            .Where(item => item.VersionId == versionId && item.Level == levelId)
+            .ToListAsync(cancellationToken);
+        dbContext.RegulationLevelRulesCatalog.RemoveRange(existing);
+
+        var now = DateTime.UtcNow;
+        AddRuleEntries(versionId, levelId, "objective", request.Objective ?? [], now);
+        AddRuleEntries(versionId, levelId, "restriction", request.Restrictions ?? [], now);
+        AddRuleEntries(versionId, levelId, "platform_allowed", request.PlatformAllowed ?? [], now);
+        AddRuleEntries(versionId, levelId, "platform_required", request.PlatformRequired ?? [], now);
+        AddRuleEntries(versionId, levelId, "traceability", request.TraceabilityItems ?? [], now);
+        AddRuleEntries(versionId, levelId, "legal_risk", request.LegalRiskItems ?? [], now);
+
+        var legacyRow = await dbContext.RegulationLevelCatalogs.FirstOrDefaultAsync(item => item.Level == levelId, cancellationToken);
+        if (legacyRow is not null)
+        {
+            var parsed = Deserialize<RegulationLevelDto>(legacyRow.PayloadJson);
+            if (parsed is not null)
+            {
+                var updated = parsed with
+                {
+                    Title = string.IsNullOrWhiteSpace(request.Title) ? parsed.Title : request.Title.Trim(),
+                    Subtitle = string.IsNullOrWhiteSpace(request.Subtitle) ? parsed.Subtitle : request.Subtitle.Trim(),
+                    RegularizationLabel = string.IsNullOrWhiteSpace(request.RegularizationLabel) ? parsed.RegularizationLabel : request.RegularizationLabel.Trim(),
+                    RiskLevel = string.IsNullOrWhiteSpace(request.RiskLevel) ? parsed.RiskLevel : request.RiskLevel.Trim(),
+                    Fiscalization = string.IsNullOrWhiteSpace(request.Fiscalization) ? parsed.Fiscalization : request.Fiscalization.Trim()
+                };
+                legacyRow.PayloadJson = JsonSerializer.Serialize(updated);
+                legacyRow.UpdatedAt = DateTime.UtcNow;
+            }
+        }
+    }
+
+    private void AddRuleEntries(Guid versionId, int level, string group, IEnumerable<string> values, DateTime now)
+    {
+        var index = 0;
+        foreach (var value in values.Where(item => !string.IsNullOrWhiteSpace(item)))
+        {
+            dbContext.RegulationLevelRulesCatalog.Add(new RegulationLevelRuleCatalog
+            {
+                Id = Guid.NewGuid(),
+                VersionId = versionId,
+                Level = level,
+                RuleGroup = group,
+                ItemText = value.Trim(),
+                SortOrder = index++,
+                IsActive = true,
+                CreatedAt = now,
+                UpdatedAt = now
+            });
+        }
+    }
+
+    private async Task SaveAdminAuditAsync(Guid adminUserId, string action, string detail, CancellationToken cancellationToken)
+    {
+        dbContext.RegulationOperationAudits.Add(new RegulationOperationAudit
+        {
+            Id = Guid.NewGuid(),
+            UserId = adminUserId,
+            Actor = "admin",
+            Action = action,
+            Allowed = true,
+            RequiredMinLevel = 0,
+            ActorCurrentLevel = 0,
+            BlockingReasonCode = "CATALOG_UPDATED",
+            ContextResidueType = detail,
+            ContextSector = "regulation-admin",
+            ContextProductType = null,
+            ContextSpecificResidue = null,
+            ContextQuantity = null,
+            ContextUnit = null,
+            ManualReviewRequired = false,
+            CreatedAt = DateTime.UtcNow
+        });
+
+        await Task.CompletedTask;
+    }
+
+    private static RegulationAdminRequirementDto ToAdminRequirementDto(RegulationLevelRequirementCatalog entity)
+    {
+        return new RegulationAdminRequirementDto(
+            Id: entity.Id,
+            LevelId: entity.Level,
+            RequirementCode: entity.RequirementCode,
+            Title: entity.Title,
+            Description: entity.Description,
+            Required: entity.IsRequired,
+            ActorType: entity.ActorType,
+            AcceptedFileTypes: Deserialize<string[]>(entity.AcceptedFileTypesJson) ?? [],
+            SortOrder: entity.SortOrder,
+            IsActive: entity.IsActive);
+    }
+
+    private static RegulationAdminAllowedResidueDto ToAdminAllowedResidueDto(RegulationAllowedResidueCatalog entity)
+    {
+        return new RegulationAdminAllowedResidueDto(
+            Id: entity.Id,
+            LevelId: entity.Level,
+            CategoryId: entity.CategoryId,
+            CategoryTitle: entity.CategoryTitle,
+            ResidueName: entity.ResidueName,
+            QuantityMin: entity.QuantityMin,
+            QuantityMax: entity.QuantityMax,
+            Unit: entity.Unit,
+            SortOrder: entity.SortOrder,
+            IsActive: entity.IsActive);
+    }
+
+    private static RegulationAdminNormativeDto ToAdminNormativeDto(RegulationNormativeReferenceCatalog entity)
+    {
+        return new RegulationAdminNormativeDto(
+            Id: entity.Id,
+            LevelId: entity.Level,
+            Code: entity.Code,
+            Title: entity.Title,
+            Article: entity.Article,
+            ReferenceUrl: entity.ReferenceUrl,
+            SortOrder: entity.SortOrder,
+            IsActive: entity.IsActive);
+    }
+
+    private static void ValidateLevel(int levelId)
+    {
+        if (levelId < 1 || levelId > 4)
+        {
+            throw new InvalidOperationException("REGULATION_LEVEL_INVALID");
+        }
+    }
+
+    private static string SafeCode(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            throw new InvalidOperationException("REGULATION_REQUIRED_FIELD_MISSING");
+        }
+
+        return value.Trim();
+    }
+
+    private static string SafeText(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            throw new InvalidOperationException("REGULATION_REQUIRED_FIELD_MISSING");
+        }
+
+        return value.Trim();
+    }
+
+    private static string NormalizeActorType(string? value)
+    {
+        var normalized = (value ?? "both").Trim().ToLowerInvariant();
+        return normalized is "seller" or "buyer" or "both" ? normalized : "both";
     }
 
     private static T? Deserialize<T>(string json)

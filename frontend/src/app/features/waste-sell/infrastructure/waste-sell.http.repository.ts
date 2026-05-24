@@ -67,6 +67,22 @@ export class WasteSellHttpRepository implements WasteSellRepository {
       );
   }
 
+  verifyListingEvidence(state: WasteSellPageState) {
+    const mediaUrls = state.formValue.mediaUploads
+      .map((item) => item.previewUrl)
+      .filter((item) => !!item && !item.startsWith('blob:'));
+
+    return this.regulationHttpService.verifyListingEvidence({
+      specificResidue: state.formValue.specificResidue,
+      residueType: state.formValue.residueType,
+      sector: state.formValue.sector,
+      productType: state.formValue.productType,
+      quantity: state.formValue.volume.quantity,
+      unit: state.formValue.volume.unit,
+      mediaUrls
+    });
+  }
+
   buildPreview(state: WasteSellPageState): Observable<ListingPreviewSummary> {
     return this.http
       .post<ApiResponse<ListingPreviewSummary>>(`${environment.apiBaseUrl}/waste-sell/preview`, this.toRequestState(state))
