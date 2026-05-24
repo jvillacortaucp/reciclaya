@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "ol/ol.css";
 @import "notyf/notyf.min.css";
 @source "./**/*.{html,ts}";
 @source "../node_modules/flowbite";

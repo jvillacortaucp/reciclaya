@@ -6,8 +6,8 @@ export const ADMIN_ROUTES: Route[] = [
     loadComponent: () => import('./admin.page').then((m) => m.AdminPageComponent),
     data: {
       meta: {
-        title: 'Admin empresas',
-        breadcrumb: 'Admin empresas',
+        title: 'Admin',
+        breadcrumb: 'Admin',
         icon: 'settings',
         permissions: ['manage:users']
       }

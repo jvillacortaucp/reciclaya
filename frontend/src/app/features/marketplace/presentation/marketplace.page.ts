@@ -31,6 +31,7 @@ import { MarketplaceFiltersComponent } from './components/marketplace-filters/ma
 import { RecommendedListingCardComponent } from './components/recommended-listing-card/recommended-listing-card.component';
 import { MarketplaceProductCardComponent } from './components/marketplace-product-card/marketplace-product-card.component';
 import { AuthFacade } from '../../auth/services/auth.facade';
+import { RegulationHttpService } from '../../../core/regulatory/regulation-http.service';
 
 @Component({
   selector: 'app-marketplace-page',
@@ -55,6 +56,7 @@ export class MarketplacePageComponent implements OnInit, AfterViewInit, OnDestro
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly fb = inject(FormBuilder);
+  private readonly regulationHttpService = inject(RegulationHttpService);
   private readonly subscriptions = new Subscription();
   private observer: IntersectionObserver | null = null;
 
@@ -166,7 +168,19 @@ export class MarketplacePageComponent implements OnInit, AfterViewInit, OnDestro
       actionName: 'Publicar residuo',
       returnUrl: APP_ROUTES.wasteSell,
       onAllowed: () => {
-        void this.router.navigateByUrl(APP_ROUTES.wasteSell);
+        this.regulationHttpService.getMe().subscribe({
+          next: (me) => {
+            if (me.currentRegulationLevel === 'level0') {
+              this.facade.showToast('Necesitas subir a Nivel 1 para publicar residuos. Completa tus requisitos de regularizacion.');
+              return;
+            }
+
+            void this.router.navigateByUrl(APP_ROUTES.wasteSell);
+          },
+          error: () => {
+            this.facade.showToast('No pudimos validar tu nivel regulatorio. Intenta nuevamente.');
+          }
+        });
       }
     });
   }

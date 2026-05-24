@@ -1,0 +1,68 @@
+<div class="flex flex-col gap-4">
+  <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <div class="min-w-0">
+      <h4 class="text-base font-semibold text-slate-950 sm:text-lg">Mapa de compradores</h4>
+      <p class="mt-1 text-sm leading-relaxed text-slate-500">
+        Visualiza oportunidades por alcance geográfico.
+      </p>
+    </div>
+
+    @if (showInternalTabs()) {
+      <div class="flex w-full sm:w-auto sm:justify-end">
+        <div class="inline-flex w-full flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50/90 p-1.5 sm:w-auto sm:flex-nowrap">
+          @for (option of scopeOptions; track option.id) {
+            <button
+              type="button"
+              (click)="selectScope(option.id)"
+              [class]="
+                isActiveScope(option.id)
+                  ? 'border border-emerald-200 bg-white text-emerald-700 shadow-sm'
+                  : 'border border-transparent text-slate-600 hover:bg-white hover:text-slate-900'
+              "
+              class="h-10 flex-1 rounded-xl px-4 text-sm font-semibold transition-all duration-200 sm:flex-none">
+              {{ option.label }}
+            </button>
+          }
+        </div>
+      </div>
+    }
+  </div>
+
+  <div
+    class="relative overflow-hidden rounded-3xl border border-slate-200/90 bg-slate-50/70 shadow-inner ring-1 ring-slate-100/70"
+    [style.height]="mapStyleHeight()">
+    <div #mapHost class="w-full h-full" [style.height]="mapStyleHeight()"></div>
+    <div #tooltipEl class="potential-buyers-map__tooltip"></div>
+
+    <div class="absolute bottom-4 left-4 z-20 flex flex-col gap-2">
+      <button
+        type="button"
+        class="potential-buyers-map__control"
+        aria-label="Acercar mapa"
+        (click)="zoomIn()">
+        +
+      </button>
+      <button
+        type="button"
+        class="potential-buyers-map__control"
+        aria-label="Alejar mapa"
+        (click)="zoomOut()">
+        -
+      </button>
+    </div>
+
+    @if (loading()) {
+      <div class="absolute inset-0 grid place-items-center bg-white/58 backdrop-blur-[1px]">
+        <div class="rounded-full border border-emerald-100 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm">
+          Cargando límites geográficos...
+        </div>
+      </div>
+    }
+
+    @if (!loading() && statusMessage()) {
+      <div class="pointer-events-none absolute inset-x-4 bottom-4 rounded-2xl border border-slate-200/90 bg-slate-950/86 px-4 py-3 text-sm leading-relaxed text-white shadow-xl md:max-w-[420px]">
+        {{ statusMessage() }}
+      </div>
+    }
+  </div>
+</div>

@@ -1,4 +1,7 @@
 using System.Net.Http.Headers;
+using System.Linq;
+using System.Text;
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ReciclaYa.Application.Media.Models;
@@ -69,6 +72,88 @@ public sealed class SupabaseStorageService(
 
             throw new InvalidOperationException("Supabase delete request failed.");
         }
+    }
+
+    public async Task<DownloadedFileResult> DownloadAsync(string bucket, string storagePath, CancellationToken cancellationToken)
+    {
+        ValidateConfiguration();
+
+        using var request = new HttpRequestMessage(
+            HttpMethod.Get,
+            $"storage/v1/object/{bucket}/{storagePath}");
+
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _supabaseOptions.ServiceRoleKey);
+        request.Headers.TryAddWithoutValidation("apikey", _supabaseOptions.ServiceRoleKey);
+
+        using var response = await httpClient.SendAsync(request, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            var body = await response.Content.ReadAsStringAsync(cancellationToken);
+            logger.LogWarning(
+                "Supabase download failed with status {StatusCode}. Response: {ResponseBody}",
+                (int)response.StatusCode,
+                body);
+
+            throw new InvalidOperationException("Supabase download request failed.");
+        }
+
+        var content = await response.Content.ReadAsByteArrayAsync(cancellationToken);
+        var contentType = response.Content.Headers.ContentType?.MediaType ?? "application/octet-stream";
+        var fileName = storagePath.Split('/').LastOrDefault() ?? "evidence";
+        return new DownloadedFileResult(fileName, contentType, content);
+    }
+
+    public async Task<string> CreateSignedUrlAsync(string bucket, string storagePath, int expiresInSeconds, CancellationToken cancellationToken)
+    {
+        ValidateConfiguration();
+        var ttl = Math.Clamp(expiresInSeconds, 60, 86400);
+        var encodedPath = Uri.EscapeDataString(storagePath).Replace("%2F", "/", StringComparison.OrdinalIgnoreCase);
+
+        using var request = new HttpRequestMessage(
+            HttpMethod.Post,
+            $"storage/v1/object/sign/{bucket}/{encodedPath}");
+
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _supabaseOptions.ServiceRoleKey);
+        request.Headers.TryAddWithoutValidation("apikey", _supabaseOptions.ServiceRoleKey);
+        request.Content = new StringContent(
+            JsonSerializer.Serialize(new { expiresIn = ttl }),
+            Encoding.UTF8,
+            "application/json");
+
+        using var response = await httpClient.SendAsync(request, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            var body = await response.Content.ReadAsStringAsync(cancellationToken);
+            logger.LogWarning(
+                "Supabase signed-url failed with status {StatusCode}. Response: {ResponseBody}",
+                (int)response.StatusCode,
+                body);
+
+            throw new InvalidOperationException("Supabase signed-url request failed.");
+        }
+
+        var json = await response.Content.ReadAsStringAsync(cancellationToken);
+        using var doc = JsonDocument.Parse(json);
+        var signedPath = doc.RootElement.TryGetProperty("signedURL", out var prop)
+            ? prop.GetString()
+            : null;
+
+        if (string.IsNullOrWhiteSpace(signedPath))
+        {
+            throw new InvalidOperationException("Supabase signed-url response invalid.");
+        }
+
+        if (signedPath.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+        {
+            return signedPath;
+        }
+
+        if (signedPath.StartsWith("/object/", StringComparison.OrdinalIgnoreCase))
+        {
+            return $"{_supabaseOptions.Url.TrimEnd('/')}/storage/v1{signedPath}";
+        }
+
+        return $"{_supabaseOptions.Url.TrimEnd('/')}{signedPath}";
     }
 
     private void ValidateConfiguration()

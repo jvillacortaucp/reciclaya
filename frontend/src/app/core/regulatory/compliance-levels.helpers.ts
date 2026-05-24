@@ -6,7 +6,7 @@ import { classifyRegulatoryLevel } from './regulatory.rules';
 const LEVEL_ORDER_DESC: readonly RegulatoryLevel[] = [4, 3, 2, 1];
 
 export function resolveCurrentComplianceLevel(state: StoredComplianceLevelsState): RegulatoryLevel {
-  let currentLevel: RegulatoryLevel = 1;
+  let currentLevel: RegulatoryLevel = 0;
 
   for (const level of COMPLIANCE_LEVEL_DEFINITIONS) {
     const requiredApproved = level.requirementsForUpload.every((requirement) => {
