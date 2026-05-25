@@ -59,7 +59,8 @@
               }
               <app-product-suggestion-cards
                 [suggestions]="message.suggestions ?? []"
-                (selected)="onProductSelected($event)" />
+                (selected)="onProductSelected($event)"
+                (legalRequested)="openLegalModal($event)" />
             </div>
           }
           @case ('quick_links') {
@@ -94,4 +95,11 @@
         (submitted)="sendMessage()" />
     </div>
   </footer>
+
+  <!-- Legal Modal Overlay -->
+  @if (legalModalSuggestion(); as legalSuggestion) {
+    <app-legal-modal
+      [suggestion]="legalSuggestion"
+      (closed)="closeLegalModal()" />
+  }
 </section>
