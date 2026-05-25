@@ -9,7 +9,7 @@ interface TabOption {
 const TAB_OPTIONS: readonly TabOption[] = [
   { key: 'process', label: 'Proceso de fabricación' },
   { key: 'explanation', label: 'Nivel de complejidad' },
-  { key: 'regularization', label: 'Niveles de regularización' },
+  { key: 'financial', label: 'Financiero' },
   { key: 'market', label: 'Análisis de mercado' }
 ];
 

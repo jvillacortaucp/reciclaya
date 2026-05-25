@@ -161,9 +161,14 @@
           [selectedStepId]="selectedStepId()"
           (stepSelected)="selectStep($event)" />
       </div>
-    } @else if (activeTab() === 'regularization') {
+    } @else if (activeTab() === 'financial') {
       <div class="mt-6">
-        <app-recommendation-regularization />
+        <app-recommendation-financial
+          [recommendation]="data"
+          [selectedCostView]="selectedCostView()"
+          [selectedChartType]="selectedChartType()"
+          (costViewChanged)="selectCostView($event)"
+          (chartTypeChanged)="selectChartType($event)" />
       </div>
     } @else if (activeTab() === 'market') {
       <div class="mt-6">
@@ -171,11 +176,7 @@
           [recommendation]="data"
           [buyers]="filteredBuyers()"
           [selectedBuyerSegment]="selectedBuyerSegment()"
-          [selectedCostView]="selectedCostView()"
-          [selectedChartType]="selectedChartType()"
-          (buyerSegmentChanged)="selectBuyerSegment($event)"
-          (costViewChanged)="selectCostView($event)"
-          (chartTypeChanged)="selectChartType($event)" />
+          (buyerSegmentChanged)="selectBuyerSegment($event)" />
       </div>
     } @else {
       <div class="mt-6">
