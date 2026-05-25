@@ -26,7 +26,6 @@ import {
 } from '@lucide/angular';
 import { PendingChangesAware } from '../../core/models/pending-changes.model';
 import { APP_ROUTES } from '../../core/constants/app.constants';
-import { ComplianceLevelsStore } from '../../core/regulatory/compliance-levels.store';
 import { canOperateComplianceLevel, resolveRequiredComplianceLevel } from '../../core/regulatory/compliance-levels.helpers';
 import { RegulatoryComplianceStore } from '../../core/regulatory/regulatory-compliance.store';
 import {
@@ -39,6 +38,7 @@ import { RegulatoryLevel } from '../../core/regulatory/regulatory.models';
 import { AuthFacade } from '../auth/services/auth.facade';
 import { Profile } from '../profile/profile.models';
 import { ProfileHttpRepository } from '../profile/profile-http.repository';
+import { RegulationHttpService } from '../../core/regulatory/regulation-http.service';
 import {
   longTextValidator,
   safeAddressValidator,
@@ -95,12 +95,13 @@ export class WasteSellPageComponent implements OnInit, OnDestroy, PendingChanges
   private readonly authFacade = inject(AuthFacade);
   private readonly profileRepository = inject(ProfileHttpRepository);
   private readonly regulatoryStore = inject(RegulatoryComplianceStore);
-  private readonly complianceLevelsStore = inject(ComplianceLevelsStore);
+  private readonly regulationHttpService = inject(RegulationHttpService);
 
   private readonly patching = signal(false);
   private readonly createdObjectUrls = new Set<string>();
   private readonly subscriptions = new Subscription();
   private readonly profile = signal<Profile | null>(null);
+  private readonly currentLevelFromApi = signal<RegulatoryLevel>(0);
   protected readonly insufficientLevelModalOpen = signal(false);
   protected readonly isEditing = signal(false);
 
@@ -144,7 +145,7 @@ export class WasteSellPageComponent implements OnInit, OnDestroy, PendingChanges
     })
   );
   protected readonly currentUserLevel = computed<RegulatoryLevel>(() =>
-    this.complianceLevelsStore.getCurrentLevel(this.profile()?.id ?? this.authFacade.user()?.id)
+    this.currentLevelFromApi()
   );
   protected readonly requiredRegulatoryLevel = computed<RegulatoryLevel>(() =>
     resolveRequiredComplianceLevel({
@@ -554,5 +555,24 @@ export class WasteSellPageComponent implements OnInit, OnDestroy, PendingChanges
       next: (profile) => this.profile.set(profile),
       error: () => this.profile.set(null)
     });
+
+    this.regulationHttpService.getMe().subscribe({
+      next: (me) => this.currentLevelFromApi.set(this.parseLevelSlug(me.currentRegulationLevel)),
+      error: () => this.currentLevelFromApi.set(0)
+    });
+  }
+
+  private parseLevelSlug(level: string | null | undefined): RegulatoryLevel {
+    const raw = (level ?? '').trim().toLowerCase();
+    if (!raw.startsWith('level')) {
+      return 0;
+    }
+
+    const parsed = Number(raw.slice(5));
+    if (Number.isNaN(parsed)) {
+      return 0;
+    }
+
+    return Math.max(0, Math.min(4, parsed)) as RegulatoryLevel;
   }
 }

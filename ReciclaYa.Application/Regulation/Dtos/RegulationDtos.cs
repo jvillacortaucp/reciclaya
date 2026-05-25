@@ -237,3 +237,9 @@ public sealed record RegulationEvidenceVerificationResultDto(
     IReadOnlyCollection<string> RiskFlags,
     bool ManualReviewRequired,
     string Message);
+
+public sealed record RegulationUserLevelRecalculationDto(
+    Guid UserId,
+    string PreviousLevel,
+    string CurrentLevel,
+    bool Changed);

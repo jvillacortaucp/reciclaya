@@ -17,7 +17,7 @@ public sealed class UserRegulationProfileConfiguration : IEntityTypeConfiguratio
 
         builder.Property(item => item.CurrentLevel)
             .HasConversion<string>()
-            .HasMaxLength(20)
+            .HasMaxLength(40)
             .IsRequired();
 
         builder.Property(item => item.CreatedAt)
@@ -25,6 +25,9 @@ public sealed class UserRegulationProfileConfiguration : IEntityTypeConfiguratio
 
         builder.Property(item => item.UpdatedAt)
             .IsRequired();
+
+        builder.Property(item => item.RowVersion)
+            .IsRowVersion();
 
         builder.HasOne(item => item.User)
             .WithOne(user => user.RegulationProfile)

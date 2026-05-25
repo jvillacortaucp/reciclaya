@@ -16,11 +16,11 @@ public sealed class RegulationOperationAuditConfiguration : IEntityTypeConfigura
             .ValueGeneratedNever();
 
         builder.Property(item => item.Actor)
-            .HasMaxLength(20)
+            .HasMaxLength(40)
             .IsRequired();
 
         builder.Property(item => item.Action)
-            .HasMaxLength(40)
+            .HasMaxLength(80)
             .IsRequired();
 
         builder.Property(item => item.BlockingReasonCode)

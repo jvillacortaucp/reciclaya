@@ -12,6 +12,7 @@ using ReciclaYa.Application.Auth.Services;
 using ReciclaYa.Application.ValueSectors.Services;
 using ReciclaYa.Application.ValorizationIdeas.Services;
 using ReciclaYa.Application.Regulation.Options;
+using ReciclaYa.Application.Regulation.Services;
 using ReciclaYa.Infrastructure.Auth;
 using ReciclaYa.Infrastructure.AI;
 using ReciclaYa.Infrastructure.BackgroundServices;
@@ -194,8 +195,27 @@ public static class DependencyInjection
                 deepSeekOptions,
                 provider.GetRequiredService<ILogger<DeepSeekValueSectorGenerator>>());
         });
+        services.AddScoped<IRegulationEvidenceAiVerifier>(provider =>
+        {
+            var regulationAiOptions = provider.GetRequiredService<IOptions<RegulationAiOptions>>();
+            var baseUrl = string.IsNullOrWhiteSpace(regulationAiOptions.Value.BaseUrl)
+                ? "https://api.deepseek.com"
+                : regulationAiOptions.Value.BaseUrl;
+
+            var client = new HttpClient
+            {
+                BaseAddress = new Uri($"{baseUrl.TrimEnd('/')}/"),
+                Timeout = TimeSpan.FromSeconds(NormalizeTimeoutSeconds(regulationAiOptions.Value.TimeoutSeconds))
+            };
+
+            return new DeepSeekRegulationEvidenceAiVerifier(
+                client,
+                regulationAiOptions,
+                provider.GetRequiredService<ILogger<DeepSeekRegulationEvidenceAiVerifier>>());
+        });
         services.AddScoped<IGoogleIdentityService, GoogleIdentityService>();
         services.AddHostedService<RegulationReviewDeadlineHostedService>();
+        services.AddHostedService<RegulationLevelConsistencyHostedService>();
 
         return services;
     }

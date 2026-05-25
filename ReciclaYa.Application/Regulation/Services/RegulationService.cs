@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ReciclaYa.Application.Abstractions.Persistence;
@@ -17,11 +17,18 @@ namespace ReciclaYa.Application.Regulation.Services;
 public sealed class RegulationService(
     IAuthDbContext dbContext,
     IStorageService storageService,
+    IRegulationEvidenceAiVerifier evidenceAiVerifier,
+    IOptions<AiEvidenceCheckOptions> aiEvidenceOptions,
     IOptions<SupabaseOptions> supabaseOptions,
     IOptions<RegulationReviewOptions> regulationReviewOptions,
     ILogger<RegulationService> logger) : IRegulationService
 {
     private const long MaxEvidenceFileSizeBytes = 10 * 1024 * 1024;
+    private const string RequirementStatusPending = "pending";
+    private const string RequirementStatusUploaded = "uploaded";
+    private const string RequirementStatusInReview = "in_review";
+    private const string RequirementStatusApproved = "approved";
+    private const string RequirementStatusRejected = "rejected";
 
     private static readonly HashSet<string> AllowedEvidenceExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -37,6 +44,7 @@ public sealed class RegulationService(
 
     private readonly SupabaseOptions _supabaseOptions = supabaseOptions.Value;
     private readonly RegulationReviewOptions _regulationReviewOptions = regulationReviewOptions.Value;
+    private readonly AiEvidenceCheckOptions _aiEvidenceOptions = aiEvidenceOptions.Value;
 
     public async Task<RegulationMeDto> GetMeAsync(Guid userId, CancellationToken cancellationToken)
     {
@@ -277,7 +285,7 @@ public sealed class RegulationService(
                 UserId = userId,
                 Level = definition.Value.LevelId,
                 RequirementCode = requirementId,
-                Status = "uploaded",
+                Status = RequirementStatusUploaded,
                 EvidenceUrl = evidenceUrl,
                 Notes = $"Archivo cargado: {command.FileName}",
                 CreatedAt = DateTime.UtcNow,
@@ -287,7 +295,7 @@ public sealed class RegulationService(
         }
         else
         {
-            current.Status = "uploaded";
+            current.Status = RequirementStatusUploaded;
             current.EvidenceUrl = evidenceUrl;
             current.Notes = $"Archivo cargado: {command.FileName}";
             current.UpdatedAt = DateTime.UtcNow;
@@ -356,7 +364,7 @@ public sealed class RegulationService(
             {
                 return definitionIfMissing.Value.Requirement with
                 {
-                    CurrentStatus = "pending",
+                    CurrentStatus = RequirementStatusPending,
                     UploadedFileName = null,
                     UploadedFileUrl = null,
                     UploadedFileKind = null,
@@ -374,7 +382,7 @@ public sealed class RegulationService(
         }
 
         record.EvidenceUrl = null;
-        record.Status = "pending";
+        record.Status = RequirementStatusPending;
         record.Notes = "Evidencia eliminada por el usuario.";
         record.UpdatedAt = DateTime.UtcNow;
         await dbContext.SaveChangesAsync(cancellationToken);
@@ -448,8 +456,10 @@ public sealed class RegulationService(
         RegulationRequirementReviewRequestDto request,
         CancellationToken cancellationToken)
     {
-        var targetStatus = (request.Status ?? string.Empty).Trim().ToLowerInvariant();
-        if (targetStatus is not ("approved" or "rejected" or "in_review"))
+        await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+
+        var targetStatus = NormalizeRequirementStatus(request.Status);
+        if (targetStatus is not (RequirementStatusApproved or RequirementStatusRejected or RequirementStatusInReview))
         {
             throw new InvalidOperationException("INVALID_REVIEW_STATUS");
         }
@@ -464,9 +474,9 @@ public sealed class RegulationService(
         var current = requirement.Status.Trim().ToLowerInvariant();
         var isTransitionAllowed = targetStatus switch
         {
-            "in_review" => current is "uploaded" or "rejected",
-            "approved" => current is "uploaded" or "in_review",
-            "rejected" => current is "uploaded" or "in_review",
+            RequirementStatusInReview => current is RequirementStatusUploaded or RequirementStatusRejected,
+            RequirementStatusApproved => current is RequirementStatusUploaded or RequirementStatusInReview,
+            RequirementStatusRejected => current is RequirementStatusUploaded or RequirementStatusInReview,
             _ => false
         };
         if (!isTransitionAllowed)
@@ -474,7 +484,7 @@ public sealed class RegulationService(
             throw new InvalidOperationException("INVALID_REVIEW_TRANSITION");
         }
 
-        if (targetStatus == "rejected" && string.IsNullOrWhiteSpace(request.Notes))
+        if (targetStatus == RequirementStatusRejected && string.IsNullOrWhiteSpace(request.Notes))
         {
             throw new InvalidOperationException("REJECT_REQUIRES_NOTES");
         }
@@ -483,7 +493,9 @@ public sealed class RegulationService(
 
         requirement.Status = targetStatus;
         requirement.Notes = normalizedNotes;
-        requirement.ExpiresAt = targetStatus == "approved" ? request.ExpiresAt : null;
+        requirement.ExpiresAt = targetStatus == RequirementStatusApproved ? request.ExpiresAt : null;
+        requirement.ReviewedByUserId = adminUserId;
+        requirement.ReviewedAt = DateTime.UtcNow;
         requirement.UpdatedAt = DateTime.UtcNow;
 
         dbContext.RegulationOperationAudits.Add(new RegulationOperationAudit
@@ -492,13 +504,13 @@ public sealed class RegulationService(
             UserId = requirement.UserId,
             Actor = "admin",
             Action = "review_requirement",
-            Allowed = targetStatus == "approved",
+            Allowed = targetStatus == RequirementStatusApproved,
             RequiredMinLevel = requirement.Level,
             ActorCurrentLevel = requirement.Level,
               BlockingReasonCode = targetStatus switch
               {
-                  "approved" => "REVIEW_APPROVED",
-                  "rejected" => "REVIEW_REJECTED",
+                  RequirementStatusApproved => "REVIEW_APPROVED",
+                  RequirementStatusRejected => "REVIEW_REJECTED",
                   _ => "REVIEW_IN_REVIEW"
               },
             ContextResidueType = requirement.RequirementCode,
@@ -511,12 +523,21 @@ public sealed class RegulationService(
             CreatedAt = DateTime.UtcNow
         });
 
-        if (targetStatus == "approved")
+        if (targetStatus == RequirementStatusApproved)
         {
             await TryAutoPromoteUserLevelAsync(requirement.UserId, "admin", cancellationToken);
         }
 
-        await dbContext.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw new InvalidOperationException("REVIEW_CONFLICT_RETRY");
+        }
 
         var definition = await FindRequirementDefinitionAsync(requirement.RequirementCode, cancellationToken);
         if (definition is null)
@@ -544,6 +565,24 @@ public sealed class RegulationService(
             UploadedFileKind = InferFileKindFromPath(ExtractFileName(requirement.EvidenceUrl)) ?? "document",
           Notes = requirement.Notes
           };
+    }
+
+    public async Task<RegulationUserLevelRecalculationDto> RecalculateUserLevelAsync(
+        Guid userId,
+        string auditActor,
+        CancellationToken cancellationToken)
+    {
+        var profile = await EnsureProfileAsync(userId, cancellationToken);
+        var previous = (int)profile.CurrentLevel;
+
+        await TryAutoPromoteUserLevelAsync(userId, string.IsNullOrWhiteSpace(auditActor) ? "admin" : auditActor, cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return new RegulationUserLevelRecalculationDto(
+            UserId: userId,
+            PreviousLevel: ToLevelSlug(previous),
+            CurrentLevel: ToLevelSlug((int)profile.CurrentLevel),
+            Changed: previous != (int)profile.CurrentLevel);
     }
 
     private async Task TryAutoPromoteUserLevelAsync(Guid userId, string auditActor, CancellationToken cancellationToken)
@@ -937,11 +976,70 @@ public sealed class RegulationService(
         RegulationEvidenceVerificationRequestDto request,
         CancellationToken cancellationToken)
     {
+        var result = await BuildEvidenceVerificationResultAsync(request, cancellationToken);
+
+        dbContext.RegulationOperationAudits.Add(new RegulationOperationAudit
+        {
+            Id = Guid.NewGuid(),
+            UserId = userId,
+            Actor = FitForDb("seller", 40) ?? "seller",
+            Action = FitForDb("ai_evidence_check", 80) ?? "ai_evidence_check",
+            Allowed = result.IsConsistent,
+            RequiredMinLevel = 0,
+            ActorCurrentLevel = 0,
+            BlockingReasonCode = FitForDb(result.ManualReviewRequired ? "AI_EVIDENCE_REVIEW_RECOMMENDED" : "AI_EVIDENCE_OK", 80),
+            ContextResidueType = FitForDb(request.ResidueType, 120),
+            ContextSector = FitForDb(request.Sector, 120),
+            ContextProductType = FitForDb(request.ProductType, 120),
+            ContextSpecificResidue = FitForDb(request.SpecificResidue, 200),
+            ContextQuantity = request.Quantity,
+            ContextUnit = FitForDb(request.Unit, 30),
+            ManualReviewRequired = result.ManualReviewRequired,
+            CreatedAt = DateTime.UtcNow
+        });
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return result;
+    }
+
+    private async Task<RegulationEvidenceVerificationResultDto> BuildEvidenceVerificationResultAsync(
+        RegulationEvidenceVerificationRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        var mediaUrls = request.MediaUrls?
+            .Where(item => !string.IsNullOrWhiteSpace(item))
+            .Select(item => item.Trim())
+            .ToArray() ?? [];
+
+        if (_aiEvidenceOptions.Enabled && mediaUrls.Length > 0)
+        {
+            try
+            {
+                var aiResult = await evidenceAiVerifier.VerifyAsync(request with { MediaUrls = mediaUrls }, cancellationToken);
+                if (aiResult is not null)
+                {
+                    return NormalizeEvidenceResult(aiResult, request.SpecificResidue);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "AI evidence verification fallback triggered.");
+            }
+        }
+
+        return await BuildHeuristicEvidenceResultAsync(request, cancellationToken);
+    }
+
+    private async Task<RegulationEvidenceVerificationResultDto> BuildHeuristicEvidenceResultAsync(
+        RegulationEvidenceVerificationRequestDto request,
+        CancellationToken cancellationToken)
+    {
         var normalized = string.Join(' ', new[] { request.SpecificResidue, request.ResidueType, request.Sector, request.ProductType }
             .Where(item => !string.IsNullOrWhiteSpace(item)))
             .ToLowerInvariant();
 
-        var riskFlags = new List<string>();
+        var riskFlags = new List<string> { "ai-fallback" };
         var confidence = 0.82m;
         var risk = "low";
         var isConsistent = true;
@@ -968,43 +1066,60 @@ public sealed class RegulationService(
             isConsistent = false;
         }
 
-        var manualReviewRequired = string.Equals(risk, "high", StringComparison.OrdinalIgnoreCase) || confidence < 0.65m;
+        var manualReviewRequired = string.Equals(risk, "high", StringComparison.OrdinalIgnoreCase) || confidence < _aiEvidenceOptions.ConfidenceThreshold;
         var message = manualReviewRequired
-            ? "Se detectaron señales de riesgo. Recomendamos revision manual."
+            ? "Se detectaron señales de riesgo. Recomendamos revisión manual."
             : "La evidencia es consistente para continuar.";
 
-        dbContext.RegulationOperationAudits.Add(new RegulationOperationAudit
-        {
-            Id = Guid.NewGuid(),
-            UserId = userId,
-            Actor = "seller",
-            Action = "ai_evidence_check",
-            Allowed = isConsistent,
-            RequiredMinLevel = 0,
-            ActorCurrentLevel = 0,
-            BlockingReasonCode = manualReviewRequired ? "AI_EVIDENCE_REVIEW_RECOMMENDED" : "AI_EVIDENCE_OK",
-            ContextResidueType = request.ResidueType,
-            ContextSector = request.Sector,
-            ContextProductType = request.ProductType,
-            ContextSpecificResidue = request.SpecificResidue,
-            ContextQuantity = request.Quantity,
-            ContextUnit = request.Unit,
-            ManualReviewRequired = manualReviewRequired,
-            CreatedAt = DateTime.UtcNow
-        });
-
-        await dbContext.SaveChangesAsync(cancellationToken);
-
-        return new RegulationEvidenceVerificationResultDto(
+        return NormalizeEvidenceResult(new RegulationEvidenceVerificationResultDto(
             IsConsistent: isConsistent,
             Confidence: confidence,
             RiskLevel: risk,
             SuggestedResidue: request.SpecificResidue,
             RiskFlags: riskFlags,
             ManualReviewRequired: manualReviewRequired,
+            Message: message), request.SpecificResidue);
+    }
+
+    private RegulationEvidenceVerificationResultDto NormalizeEvidenceResult(
+        RegulationEvidenceVerificationResultDto input,
+        string? suggestedResidueFallback)
+    {
+        var confidence = Math.Clamp(input.Confidence, 0m, 1m);
+        var risk = NormalizeRiskLevel(input.RiskLevel);
+        var riskFlags = input.RiskFlags
+            .Where(item => !string.IsNullOrWhiteSpace(item))
+            .Select(item => item.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        var manualReviewRequired = input.ManualReviewRequired
+            || string.Equals(risk, "high", StringComparison.OrdinalIgnoreCase)
+            || confidence < _aiEvidenceOptions.ConfidenceThreshold;
+
+        var message = string.IsNullOrWhiteSpace(input.Message)
+            ? (manualReviewRequired
+                ? "Se detectaron señales de riesgo. Recomendamos revisión manual."
+                : "La evidencia es consistente para continuar.")
+            : input.Message.Trim();
+
+        return new RegulationEvidenceVerificationResultDto(
+            IsConsistent: input.IsConsistent,
+            Confidence: confidence,
+            RiskLevel: risk,
+            SuggestedResidue: string.IsNullOrWhiteSpace(input.SuggestedResidue)
+                ? suggestedResidueFallback
+                : input.SuggestedResidue.Trim(),
+            RiskFlags: riskFlags,
+            ManualReviewRequired: manualReviewRequired,
             Message: message);
     }
 
+    private static string NormalizeRiskLevel(string? riskLevel)
+    {
+        var risk = riskLevel?.Trim().ToLowerInvariant() ?? string.Empty;
+        return risk is "low" or "medium" or "high" ? risk : "medium";
+    }
     private async Task<UserRegulationProfile> EnsureProfileAsync(Guid userId, CancellationToken cancellationToken)
     {
         var profile = await dbContext.UserRegulationProfiles
@@ -1228,6 +1343,17 @@ public sealed class RegulationService(
         return matched.Max();
     }
 
+    private static string NormalizeRequirementStatus(string? status)
+    {
+        var normalized = status?.Trim().ToLowerInvariant() ?? string.Empty;
+        if (normalized.Length > 40)
+        {
+            throw new InvalidOperationException("INVALID_REVIEW_STATUS");
+        }
+
+        return normalized;
+    }
+
     private async Task<bool> ContainsHighRiskResidueAsync(string normalizedContext, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(normalizedContext))
@@ -1258,18 +1384,18 @@ public sealed class RegulationService(
         {
             Id = Guid.NewGuid(),
             UserId = userId,
-            Actor = actor,
-            Action = request.Action,
+            Actor = FitForDb(actor, 40) ?? "system",
+            Action = FitForDb(request.Action, 80) ?? "unknown",
             Allowed = result.Allowed,
             RequiredMinLevel = ToLevelNumber(result.RequiredMinLevel),
             ActorCurrentLevel = ToLevelNumber(result.ActorCurrentLevel),
-            BlockingReasonCode = result.BlockingReasonCode,
-            ContextResidueType = request.ResidueType,
-            ContextSector = request.Sector,
-            ContextProductType = request.ProductType,
-            ContextSpecificResidue = request.SpecificResidue,
+            BlockingReasonCode = FitForDb(result.BlockingReasonCode, 80),
+            ContextResidueType = FitForDb(request.ResidueType, 120),
+            ContextSector = FitForDb(request.Sector, 120),
+            ContextProductType = FitForDb(request.ProductType, 120),
+            ContextSpecificResidue = FitForDb(request.SpecificResidue, 200),
             ContextQuantity = request.Quantity,
-            ContextUnit = request.Unit,
+            ContextUnit = FitForDb(request.Unit, 30),
             ManualReviewRequired = result.ManualReviewRequired,
             CreatedAt = DateTime.UtcNow
         });
@@ -1615,14 +1741,14 @@ public sealed class RegulationService(
         {
             Id = Guid.NewGuid(),
             UserId = adminUserId,
-            Actor = "admin",
-            Action = action,
+            Actor = FitForDb("admin", 40) ?? "admin",
+            Action = FitForDb(action, 80) ?? "catalog_update",
             Allowed = true,
             RequiredMinLevel = 0,
             ActorCurrentLevel = 0,
-            BlockingReasonCode = "CATALOG_UPDATED",
-            ContextResidueType = detail,
-            ContextSector = "regulation-admin",
+            BlockingReasonCode = FitForDb("CATALOG_UPDATED", 80),
+            ContextResidueType = FitForDb(detail, 120),
+            ContextSector = FitForDb("regulation-admin", 120),
             ContextProductType = null,
             ContextSpecificResidue = null,
             ContextQuantity = null,
@@ -1632,6 +1758,17 @@ public sealed class RegulationService(
         });
 
         await Task.CompletedTask;
+    }
+
+    private static string? FitForDb(string? value, int maxLength)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        var trimmed = value.Trim();
+        return trimmed.Length <= maxLength ? trimmed : trimmed[..maxLength];
     }
 
     private static RegulationAdminRequirementDto ToAdminRequirementDto(RegulationLevelRequirementCatalog entity)

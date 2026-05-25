@@ -232,6 +232,7 @@ public sealed class RegulationController(IRegulationService regulationService) :
                 "INVALID_REVIEW_STATUS" => 400,
                 "INVALID_REVIEW_TRANSITION" => 409,
                 "REJECT_REQUIRES_NOTES" => 400,
+                "REVIEW_CONFLICT_RETRY" => 409,
                 "REQUIREMENT_RECORD_NOT_FOUND" => 404,
                 _ => 400
             };
@@ -528,6 +529,25 @@ public sealed class RegulationController(IRegulationService regulationService) :
 
         await regulationService.DeleteAdminNormativeAsync(normativeId, adminUserId, cancellationToken);
         return Ok(ApiResponse<object>.Ok(new { }, "Normative deleted."));
+    }
+
+    [HttpPost("admin/users/{userId:guid}/recalculate-level")]
+    public async Task<IActionResult> RecalculateUserLevel(
+        [FromRoute] Guid userId,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetUserContext(out _, out var role))
+        {
+            return Unauthorized(ApiResponse<object>.Fail("Unauthorized.", ["INVALID_TOKEN_SUBJECT"]));
+        }
+
+        if (!string.Equals(role, "admin", StringComparison.OrdinalIgnoreCase))
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail("Forbidden.", ["FORBIDDEN"]));
+        }
+
+        var response = await regulationService.RecalculateUserLevelAsync(userId, "admin", cancellationToken);
+        return Ok(ApiResponse<RegulationUserLevelRecalculationDto>.Ok(response, "User level recalculated."));
     }
 
     private bool TryGetUserContext(out Guid userId, out string role)
