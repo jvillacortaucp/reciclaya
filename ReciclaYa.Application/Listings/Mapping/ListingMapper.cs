@@ -24,7 +24,7 @@ public static class ListingMapper
             Quantity = formValue.Volume.Quantity,
             Unit = formValue.Volume.Unit,
             GenerationFrequency = formValue.Volume.GenerationFrequency,
-            Currency = "USD",
+            Currency = "PEN",
             PricePerUnitUsd = formValue.Volume.EstimatedCostPerUnit,
             Location = formValue.Logistics.WarehouseAddress,
             MaxStorageTime = formValue.Logistics.MaxStorageTime,
@@ -144,7 +144,7 @@ public static class ListingMapper
             listing.WasteType == "organic" ? "ORGANICO" : "INORGANICO",
             listing.Sector,
             $"{listing.Quantity} {listing.Unit}",
-            $"${total:0.00} USD",
+            $"S/ {total:0.00} PEN",
             string.IsNullOrWhiteSpace(listing.Location) ? "Ubicacion pendiente" : listing.Location,
             listing.ImmediateAvailability ? "Disponible hoy" : "Disponibilidad programada",
             "BORRADOR",
@@ -221,6 +221,6 @@ public static class ListingMapper
             return "Canjeable";
         }
 
-        return $"${listing.PricePerUnitUsd:0.##} / {listing.Unit}";
+        return $"S/ {listing.PricePerUnitUsd:0.##} / {listing.Unit}";
     }
 }

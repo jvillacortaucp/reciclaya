@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ReciclaYa.Application.Abstractions.Persistence;
@@ -17,6 +17,8 @@ namespace ReciclaYa.Application.Regulation.Services;
 public sealed class RegulationService(
     IAuthDbContext dbContext,
     IStorageService storageService,
+    IRegulationEvidenceAiVerifier evidenceAiVerifier,
+    IOptions<AiEvidenceCheckOptions> aiEvidenceOptions,
     IOptions<SupabaseOptions> supabaseOptions,
     IOptions<RegulationReviewOptions> regulationReviewOptions,
     ILogger<RegulationService> logger) : IRegulationService
@@ -42,6 +44,7 @@ public sealed class RegulationService(
 
     private readonly SupabaseOptions _supabaseOptions = supabaseOptions.Value;
     private readonly RegulationReviewOptions _regulationReviewOptions = regulationReviewOptions.Value;
+    private readonly AiEvidenceCheckOptions _aiEvidenceOptions = aiEvidenceOptions.Value;
 
     public async Task<RegulationMeDto> GetMeAsync(Guid userId, CancellationToken cancellationToken)
     {
@@ -973,11 +976,70 @@ public sealed class RegulationService(
         RegulationEvidenceVerificationRequestDto request,
         CancellationToken cancellationToken)
     {
+        var result = await BuildEvidenceVerificationResultAsync(request, cancellationToken);
+
+        dbContext.RegulationOperationAudits.Add(new RegulationOperationAudit
+        {
+            Id = Guid.NewGuid(),
+            UserId = userId,
+            Actor = FitForDb("seller", 40) ?? "seller",
+            Action = FitForDb("ai_evidence_check", 80) ?? "ai_evidence_check",
+            Allowed = result.IsConsistent,
+            RequiredMinLevel = 0,
+            ActorCurrentLevel = 0,
+            BlockingReasonCode = FitForDb(result.ManualReviewRequired ? "AI_EVIDENCE_REVIEW_RECOMMENDED" : "AI_EVIDENCE_OK", 80),
+            ContextResidueType = FitForDb(request.ResidueType, 120),
+            ContextSector = FitForDb(request.Sector, 120),
+            ContextProductType = FitForDb(request.ProductType, 120),
+            ContextSpecificResidue = FitForDb(request.SpecificResidue, 200),
+            ContextQuantity = request.Quantity,
+            ContextUnit = FitForDb(request.Unit, 30),
+            ManualReviewRequired = result.ManualReviewRequired,
+            CreatedAt = DateTime.UtcNow
+        });
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return result;
+    }
+
+    private async Task<RegulationEvidenceVerificationResultDto> BuildEvidenceVerificationResultAsync(
+        RegulationEvidenceVerificationRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        var mediaUrls = request.MediaUrls?
+            .Where(item => !string.IsNullOrWhiteSpace(item))
+            .Select(item => item.Trim())
+            .ToArray() ?? [];
+
+        if (_aiEvidenceOptions.Enabled && mediaUrls.Length > 0)
+        {
+            try
+            {
+                var aiResult = await evidenceAiVerifier.VerifyAsync(request with { MediaUrls = mediaUrls }, cancellationToken);
+                if (aiResult is not null)
+                {
+                    return NormalizeEvidenceResult(aiResult, request.SpecificResidue);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "AI evidence verification fallback triggered.");
+            }
+        }
+
+        return await BuildHeuristicEvidenceResultAsync(request, cancellationToken);
+    }
+
+    private async Task<RegulationEvidenceVerificationResultDto> BuildHeuristicEvidenceResultAsync(
+        RegulationEvidenceVerificationRequestDto request,
+        CancellationToken cancellationToken)
+    {
         var normalized = string.Join(' ', new[] { request.SpecificResidue, request.ResidueType, request.Sector, request.ProductType }
             .Where(item => !string.IsNullOrWhiteSpace(item)))
             .ToLowerInvariant();
 
-        var riskFlags = new List<string>();
+        var riskFlags = new List<string> { "ai-fallback" };
         var confidence = 0.82m;
         var risk = "low";
         var isConsistent = true;
@@ -1004,43 +1066,60 @@ public sealed class RegulationService(
             isConsistent = false;
         }
 
-        var manualReviewRequired = string.Equals(risk, "high", StringComparison.OrdinalIgnoreCase) || confidence < 0.65m;
+        var manualReviewRequired = string.Equals(risk, "high", StringComparison.OrdinalIgnoreCase) || confidence < _aiEvidenceOptions.ConfidenceThreshold;
         var message = manualReviewRequired
-            ? "Se detectaron señales de riesgo. Recomendamos revision manual."
+            ? "Se detectaron señales de riesgo. Recomendamos revisión manual."
             : "La evidencia es consistente para continuar.";
 
-        dbContext.RegulationOperationAudits.Add(new RegulationOperationAudit
-        {
-            Id = Guid.NewGuid(),
-            UserId = userId,
-            Actor = FitForDb("seller", 40) ?? "seller",
-            Action = FitForDb("ai_evidence_check", 80) ?? "ai_evidence_check",
-            Allowed = isConsistent,
-            RequiredMinLevel = 0,
-            ActorCurrentLevel = 0,
-            BlockingReasonCode = FitForDb(manualReviewRequired ? "AI_EVIDENCE_REVIEW_RECOMMENDED" : "AI_EVIDENCE_OK", 80),
-            ContextResidueType = FitForDb(request.ResidueType, 120),
-            ContextSector = FitForDb(request.Sector, 120),
-            ContextProductType = FitForDb(request.ProductType, 120),
-            ContextSpecificResidue = FitForDb(request.SpecificResidue, 200),
-            ContextQuantity = request.Quantity,
-            ContextUnit = FitForDb(request.Unit, 30),
-            ManualReviewRequired = manualReviewRequired,
-            CreatedAt = DateTime.UtcNow
-        });
-
-        await dbContext.SaveChangesAsync(cancellationToken);
-
-        return new RegulationEvidenceVerificationResultDto(
+        return NormalizeEvidenceResult(new RegulationEvidenceVerificationResultDto(
             IsConsistent: isConsistent,
             Confidence: confidence,
             RiskLevel: risk,
             SuggestedResidue: request.SpecificResidue,
             RiskFlags: riskFlags,
             ManualReviewRequired: manualReviewRequired,
+            Message: message), request.SpecificResidue);
+    }
+
+    private RegulationEvidenceVerificationResultDto NormalizeEvidenceResult(
+        RegulationEvidenceVerificationResultDto input,
+        string? suggestedResidueFallback)
+    {
+        var confidence = Math.Clamp(input.Confidence, 0m, 1m);
+        var risk = NormalizeRiskLevel(input.RiskLevel);
+        var riskFlags = input.RiskFlags
+            .Where(item => !string.IsNullOrWhiteSpace(item))
+            .Select(item => item.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        var manualReviewRequired = input.ManualReviewRequired
+            || string.Equals(risk, "high", StringComparison.OrdinalIgnoreCase)
+            || confidence < _aiEvidenceOptions.ConfidenceThreshold;
+
+        var message = string.IsNullOrWhiteSpace(input.Message)
+            ? (manualReviewRequired
+                ? "Se detectaron señales de riesgo. Recomendamos revisión manual."
+                : "La evidencia es consistente para continuar.")
+            : input.Message.Trim();
+
+        return new RegulationEvidenceVerificationResultDto(
+            IsConsistent: input.IsConsistent,
+            Confidence: confidence,
+            RiskLevel: risk,
+            SuggestedResidue: string.IsNullOrWhiteSpace(input.SuggestedResidue)
+                ? suggestedResidueFallback
+                : input.SuggestedResidue.Trim(),
+            RiskFlags: riskFlags,
+            ManualReviewRequired: manualReviewRequired,
             Message: message);
     }
 
+    private static string NormalizeRiskLevel(string? riskLevel)
+    {
+        var risk = riskLevel?.Trim().ToLowerInvariant() ?? string.Empty;
+        return risk is "low" or "medium" or "high" ? risk : "medium";
+    }
     private async Task<UserRegulationProfile> EnsureProfileAsync(Guid userId, CancellationToken cancellationToken)
     {
         var profile = await dbContext.UserRegulationProfiles
