@@ -18,9 +18,15 @@ public sealed class UserRegulationRequirement
 
     public string? Notes { get; set; }
 
+    public Guid? ReviewedByUserId { get; set; }
+
+    public DateTime? ReviewedAt { get; set; }
+
     public DateTime CreatedAt { get; set; }
 
     public DateTime UpdatedAt { get; set; }
+
+    public byte[] RowVersion { get; set; } = Array.Empty<byte>();
 
     public User User { get; set; } = null!;
 }

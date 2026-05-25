@@ -104,4 +104,9 @@ public interface IRegulationService
         Guid userId,
         RegulationEvidenceVerificationRequestDto request,
         CancellationToken cancellationToken);
+
+    Task<RegulationUserLevelRecalculationDto> RecalculateUserLevelAsync(
+        Guid userId,
+        string auditActor,
+        CancellationToken cancellationToken);
 }

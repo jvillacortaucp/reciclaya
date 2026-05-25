@@ -8,7 +8,12 @@ public sealed class UserRegulationRequirementConfiguration : IEntityTypeConfigur
 {
     public void Configure(EntityTypeBuilder<UserRegulationRequirement> builder)
     {
-        builder.ToTable("user_regulation_requirements");
+        builder.ToTable("user_regulation_requirements", tableBuilder =>
+        {
+            tableBuilder.HasCheckConstraint(
+                "CK_user_regulation_requirements_status",
+                "\"Status\" IN ('pending','uploaded','in_review','approved','rejected')");
+        });
 
         builder.HasKey(item => item.Id);
 
@@ -20,7 +25,7 @@ public sealed class UserRegulationRequirementConfiguration : IEntityTypeConfigur
             .IsRequired();
 
         builder.Property(item => item.Status)
-            .HasMaxLength(20)
+            .HasMaxLength(40)
             .IsRequired();
 
         builder.Property(item => item.EvidenceUrl)
@@ -29,11 +34,18 @@ public sealed class UserRegulationRequirementConfiguration : IEntityTypeConfigur
         builder.Property(item => item.Notes)
             .HasMaxLength(500);
 
+        builder.Property(item => item.ReviewedByUserId);
+
+        builder.Property(item => item.ReviewedAt);
+
         builder.Property(item => item.CreatedAt)
             .IsRequired();
 
         builder.Property(item => item.UpdatedAt)
             .IsRequired();
+
+        builder.Property(item => item.RowVersion)
+            .IsRowVersion();
 
         builder.HasOne(item => item.User)
             .WithMany(user => user.RegulationRequirements)

@@ -14,5 +14,7 @@ public sealed class UserRegulationProfile
 
     public DateTime UpdatedAt { get; set; }
 
+    public byte[] RowVersion { get; set; } = Array.Empty<byte>();
+
     public User User { get; set; } = null!;
 }

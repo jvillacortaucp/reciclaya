@@ -196,6 +196,7 @@ public static class DependencyInjection
         });
         services.AddScoped<IGoogleIdentityService, GoogleIdentityService>();
         services.AddHostedService<RegulationReviewDeadlineHostedService>();
+        services.AddHostedService<RegulationLevelConsistencyHostedService>();
 
         return services;
     }
