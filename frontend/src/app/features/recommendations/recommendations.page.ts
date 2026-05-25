@@ -9,11 +9,15 @@ import { RecommendationsFacade } from './application/recommendations.facade';
 import { ChatbotAnalysisRequest } from './recommendations-http.repository';
 import { MarketAnalysisComponent } from './presentation/components/market-analysis/market-analysis.component';
 import { ManufacturingProcessComponent } from './presentation/components/manufacturing-process/manufacturing-process.component';
+import { RecommendationCommercialSkeletonComponent } from './presentation/components/recommendation-commercial-skeleton/recommendation-commercial-skeleton.component';
 import { RecommendationComplexityComponent } from './presentation/components/recommendation-complexity/recommendation-complexity.component';
+import { RecommendationComplexitySkeletonComponent } from './presentation/components/recommendation-complexity-skeleton/recommendation-complexity-skeleton.component';
 import { RecommendationFinancialComponent } from './presentation/components/recommendation-financial/recommendation-financial.component';
+import { RecommendationFinancialSkeletonComponent } from './presentation/components/recommendation-financial-skeleton/recommendation-financial-skeleton.component';
+import { RecommendationMarketSkeletonComponent } from './presentation/components/recommendation-market-skeleton/recommendation-market-skeleton.component';
+import { RecommendationProcessSkeletonComponent } from './presentation/components/recommendation-process-skeleton/recommendation-process-skeleton.component';
 import { RecommendationTabsComponent } from './presentation/components/recommendation-tabs/recommendation-tabs.component';
 import { BuyerScope, RecommendationTab } from './models/recommendation.model';
-import {LoaderComponent} from 'app/shared/ui/loader/loader.component'
 
 @Component({
   selector: 'app-recommendations-page',
@@ -25,11 +29,15 @@ import {LoaderComponent} from 'app/shared/ui/loader/loader.component'
     LucideLoaderCircle,
     LucideSparkles,
     RecommendationTabsComponent,
+    RecommendationCommercialSkeletonComponent,
     MarketAnalysisComponent,
     ManufacturingProcessComponent,
+    RecommendationProcessSkeletonComponent,
     RecommendationComplexityComponent,
+    RecommendationComplexitySkeletonComponent,
     RecommendationFinancialComponent,
-    LoaderComponent
+    RecommendationFinancialSkeletonComponent,
+    RecommendationMarketSkeletonComponent
   ],
   templateUrl: './recommendations.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush
