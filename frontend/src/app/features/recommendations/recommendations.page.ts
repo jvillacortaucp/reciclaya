@@ -10,6 +10,7 @@ import { ChatbotAnalysisRequest } from './recommendations-http.repository';
 import { MarketAnalysisComponent } from './presentation/components/market-analysis/market-analysis.component';
 import { ManufacturingProcessComponent } from './presentation/components/manufacturing-process/manufacturing-process.component';
 import { RecommendationComplexityComponent } from './presentation/components/recommendation-complexity/recommendation-complexity.component';
+import { RecommendationRegularizationComponent } from './presentation/components/recommendation-regularization/recommendation-regularization.component';
 import { RecommendationTabsComponent } from './presentation/components/recommendation-tabs/recommendation-tabs.component';
 import { BuyerScope, RecommendationTab } from './models/recommendation.model';
 import {LoaderComponent} from 'app/shared/ui/loader/loader.component'
@@ -27,6 +28,7 @@ import {LoaderComponent} from 'app/shared/ui/loader/loader.component'
     MarketAnalysisComponent,
     ManufacturingProcessComponent,
     RecommendationComplexityComponent,
+    RecommendationRegularizationComponent,
     LoaderComponent
   ],
   templateUrl: './recommendations.page.html',
@@ -123,7 +125,7 @@ export class RecommendationsPageComponent implements OnInit {
 
   }
 
-  protected setTab(tab: 'process' | 'explanation' | 'market'): void {
+  protected setTab(tab: RecommendationTab): void {
     if (this.usingCommercialMode()) {
       return;
     }
@@ -200,7 +202,7 @@ export class RecommendationsPageComponent implements OnInit {
     if (tab === 'complexity') {
       return 'explanation';
     }
-    if (tab === 'explanation' || tab === 'market' || tab === 'process') {
+    if (tab === 'explanation' || tab === 'regularization' || tab === 'market' || tab === 'process') {
       return tab;
     }
     return 'process';
