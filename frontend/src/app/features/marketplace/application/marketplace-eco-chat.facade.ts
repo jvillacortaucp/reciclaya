@@ -46,7 +46,7 @@ export class MarketplaceEcoChatFacade {
   readonly messages = computed(() => this.state().messages);
   readonly typing = computed(() => this.state().typing);
   readonly showGoToMainChatCta = computed(() => this.state().showGoToMainChatCta);
-  readonly disabledInput = computed(() => this.typing() || this.showGoToMainChatCta());
+  readonly disabledInput = computed(() => this.typing());
   readonly lastUserMessage = computed(() => this.state().lastUserMessage);
 
   constructor(
@@ -70,7 +70,7 @@ export class MarketplaceEcoChatFacade {
     this.setTyping(true);
 
     this.chatService
-      .sendMessage(this.sessionId, input)
+      .sendMessage(this.sessionId, input, 'Lima', 1, 'general')
       .pipe(
         finalize(() => this.setTyping(false)),
         catchError(() => {

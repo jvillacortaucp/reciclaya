@@ -1,4 +1,6 @@
 export const environment = {
   production: false,
-  apiBaseUrl: 'http://localhost:5021/api'
+  apiBaseUrl: 'http://localhost:5021/api',
+  advisorChatbotUrl: 'https://n8n-production-7f55.up.railway.app/webhook-test/ecoasis',
+  generalChatbotUrl: 'https://n8n-production-7f55.up.railway.app/webhook-test/ecoflow'
 } as const;

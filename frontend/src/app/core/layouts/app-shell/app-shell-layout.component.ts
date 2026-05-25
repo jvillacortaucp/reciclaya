@@ -33,6 +33,7 @@ export class AppShellLayoutComponent {
   protected readonly ecoTyping = this.ecoChatFacade.typing;
   protected readonly ecoShowGoToMainChatCta = this.ecoChatFacade.showGoToMainChatCta;
   protected readonly ecoDisabledInput = this.ecoChatFacade.disabledInput;
+  protected readonly isAssistantChatRoute = computed(() => this.currentUrl() === '/assistant-chat');
   protected readonly shouldHideSidebarForGuest = computed(() => {
     if (this.isAuthenticated()) {
       return false;

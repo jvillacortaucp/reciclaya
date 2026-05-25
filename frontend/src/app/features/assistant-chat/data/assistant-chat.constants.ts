@@ -68,8 +68,37 @@ export const URGENCIA_STYLES: Record<UrgenciaLevel, string> = {
 };
 
 export const URGENCIA_ICONS: Record<UrgenciaLevel, string> = {
-  baja: '📋',
-  media: '⚡',
-  alta: '🚨'
+  baja: '',
+  media: '',
+  alta: ''
 };
 
+// ── Regulation Level constants ──────────────────────────────────
+
+export const NIVEL_LABELS: Record<string, string> = {
+  verde: 'Nivel 1 — Libre',
+  amarillo: 'Nivel 2 — Controlado',
+  naranja: 'Nivel 3 — Regulado (RAEE)',
+  rojo: 'Nivel 4 — Crítico'
+};
+
+export const NIVEL_BADGE_STYLES: Record<string, string> = {
+  verde: 'bg-emerald-50 border-emerald-300 text-emerald-700',
+  amarillo: 'bg-amber-50 border-amber-300 text-amber-700',
+  naranja: 'bg-orange-50 border-orange-400 text-orange-700',
+  rojo: 'bg-red-50 border-red-400 text-red-700'
+};
+
+export const NIVEL_BORDER_STYLES: Record<string, string> = {
+  verde: 'border-l-emerald-500',
+  amarillo: 'border-l-amber-400',
+  naranja: 'border-l-orange-500',
+  rojo: 'border-l-red-500'
+};
+
+export const NIVEL_ICONS: Record<string, string> = {
+  verde: '',
+  amarillo: '',
+  naranja: '',
+  rojo: ''
+};

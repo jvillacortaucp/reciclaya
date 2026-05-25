@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, ViewChild, ElementRef, effect } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, ViewChild, ElementRef, effect, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -19,6 +19,7 @@ import { ProductSuggestionCardsComponent } from './components/product-suggestion
 import { QuickSuggestionChipsComponent } from './components/quick-suggestion-chips.component';
 import { TypingIndicatorComponent } from './components/typing-indicator.component';
 import { QuickLinksCardComponent } from './components/quick-links-card.component';
+import { LegalModalComponent } from './components/legal-modal.component';
 import { LucideTrash2, LucideVolume2, LucideVolumeOff } from '@lucide/angular';
 
 @Component({
@@ -35,7 +36,8 @@ import { LucideTrash2, LucideVolume2, LucideVolumeOff } from '@lucide/angular';
     ProductSuggestionCardsComponent,
     QuickSuggestionChipsComponent,
     ChatInputComponent,
-    QuickLinksCardComponent
+    QuickLinksCardComponent,
+    LegalModalComponent
   ],
   templateUrl: './assistant-chat.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -59,6 +61,9 @@ export class AssistantChatPageComponent {
   protected readonly isSpeaking = this.facade.isSpeaking;
   protected readonly selectedSuggestionId = this.facade.selectedSuggestionId;
   protected readonly hasSelection = this.facade.hasSelection;
+
+  /** Holds the suggestion currently shown in the legal modal (null = modal closed) */
+  protected readonly legalModalSuggestion = signal<ProductSuggestion | null>(null);
   protected readonly selectedSuggestion = computed(() => {
     const selectedId = this.selectedSuggestionId();
     if (!selectedId) return null;
@@ -115,6 +120,14 @@ export class AssistantChatPageComponent {
     this.facade.clearConversation();
     this.facade.initializeConversation();
     this.form.reset({ input: '' });
+  }
+
+  protected openLegalModal(suggestion: ProductSuggestion): void {
+    this.legalModalSuggestion.set(suggestion);
+  }
+
+  protected closeLegalModal(): void {
+    this.legalModalSuggestion.set(null);
   }
 
   protected toggleTts(): void {
