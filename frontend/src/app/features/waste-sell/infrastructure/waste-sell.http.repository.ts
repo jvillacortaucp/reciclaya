@@ -8,7 +8,7 @@ import { RegulationHttpService } from '../../../core/regulatory/regulation-http.
 import { environment } from '../../../../environments/environment';
 import { EMPTY_WASTE_SELL_STATE } from '../data/waste-sell.constants';
 import { ListingPreviewSummary, WasteSellPageState } from '../domain/waste-sell.models';
-import { WasteSellRepository } from '../domain/waste-sell.repository';
+import { WasteSellPublishResult, WasteSellRepository } from '../domain/waste-sell.repository';
 import { MyListingsRepository } from '../../my-listings/my-listings.repository';
 
 @Injectable({ providedIn: 'root' })
@@ -34,7 +34,7 @@ export class WasteSellHttpRepository implements WasteSellRepository {
       );
   }
 
-  publish(state: WasteSellPageState, listingId?: string | null): Observable<WasteSellPageState> {
+  publish(state: WasteSellPageState, listingId?: string | null): Observable<WasteSellPublishResult> {
     return this.regulationHttpService
       .validateOperation({
         action: 'publish',
@@ -52,15 +52,20 @@ export class WasteSellHttpRepository implements WasteSellRepository {
             throw new Error(validation.blockingMessage || validation.upgradeCallToAction || 'No cumples el nivel regulatorio requerido.');
           }
 
-          return this.http.post<ApiResponse<unknown>>(`${environment.apiBaseUrl}/waste-sell/publish`, this.toRequestState(state), {
+          return this.http.post<ApiResponse<{ complianceWarnings?: unknown[] }>>(`${environment.apiBaseUrl}/waste-sell/publish`, this.toRequestState(state), {
             params: listingId ? { listingId } : undefined
           });
         }),
         map((response) => {
-          unwrapApiResponse(response);
+          const payload = unwrapApiResponse(response) ?? {};
           return {
-            ...state,
-            draftSavedAt: new Date().toISOString()
+            state: {
+              ...state,
+              draftSavedAt: new Date().toISOString()
+            },
+            complianceWarnings: Array.isArray(payload.complianceWarnings)
+              ? (payload.complianceWarnings as WasteSellPublishResult['complianceWarnings'])
+              : []
           };
         }),
         catchError((error: unknown) => throwError(() => normalizeHttpError(error, 'No se pudo publicar el listado.')))

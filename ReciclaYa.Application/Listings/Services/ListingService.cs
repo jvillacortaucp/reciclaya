@@ -277,7 +277,7 @@ public sealed class ListingService(IAuthDbContext dbContext) : IListingService
         listing.Unit = model.Unit;
         listing.GenerationFrequency = model.GenerationFrequency;
         listing.PricePerUnitUsd = model.PricePerUnitUsd;
-        listing.Currency = string.IsNullOrWhiteSpace(model.Currency) ? "USD" : model.Currency;
+        listing.Currency = string.IsNullOrWhiteSpace(model.Currency) ? "PEN" : model.Currency;
         listing.Location = model.Location;
         listing.MaxStorageTime = EmptyToNull(model.MaxStorageTime);
         listing.ExchangeType = model.ExchangeType;
