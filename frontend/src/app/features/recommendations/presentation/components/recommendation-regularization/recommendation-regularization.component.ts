@@ -1,16 +1,17 @@
 import { NgClass } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { LucideChevronDown, LucideChevronUp, LucideShieldCheck, LucideWaypoints } from '@lucide/angular';
 import {
   ComplianceAcceptedFileType,
   ComplianceActorRequirementGroup,
-  ComplianceLevelDefinition,
   ComplianceRequirement,
   ComplianceRiskLevel,
   ComplianceWasteCategory
 } from '../../../../../core/regulatory/compliance-levels.models';
-import { COMPLIANCE_LEVEL_DEFINITIONS } from '../../../../../core/regulatory/compliance-levels.constants';
 import { RegulatoryLevel } from '../../../../../core/regulatory/regulatory.models';
+import { RegulationHttpService } from '../../../../../core/regulatory/regulation-http.service';
+import { RegulationLevelResponse } from '../../../../../core/regulatory/regulation-api.models';
+import { catchError, of } from 'rxjs';
 
 interface RecommendationRegularizationLevelViewModel {
   readonly id: RegulatoryLevel;
@@ -42,12 +43,23 @@ interface RecommendationRegularizationLevelViewModel {
   templateUrl: './recommendation-regularization.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class RecommendationRegularizationComponent {
+export class RecommendationRegularizationComponent implements OnInit {
+  private readonly regulationHttpService = inject(RegulationHttpService);
+  private readonly levelsFromApi = signal<readonly RegulationLevelResponse[]>([]);
   private readonly expandedLevels = signal<readonly RegulatoryLevel[]>([1]);
 
   protected readonly levels = computed<readonly RecommendationRegularizationLevelViewModel[]>(() =>
-    COMPLIANCE_LEVEL_DEFINITIONS.map((level) => this.mapLevel(level))
+    this.levelsFromApi().map((level) => this.mapLevel(level))
   );
+
+  ngOnInit(): void {
+    this.regulationHttpService
+      .getLevels()
+      .pipe(catchError(() => of([] as readonly RegulationLevelResponse[])))
+      .subscribe((levels) => {
+        this.levelsFromApi.set(levels);
+      });
+  }
 
   protected isExpanded(levelId: RegulatoryLevel): boolean {
     return this.expandedLevels().includes(levelId);
@@ -141,14 +153,14 @@ export class RecommendationRegularizationComponent {
     return value;
   }
 
-  private mapLevel(level: ComplianceLevelDefinition): RecommendationRegularizationLevelViewModel {
+  private mapLevel(level: RegulationLevelResponse): RecommendationRegularizationLevelViewModel {
     return {
-      id: level.id,
+      id: level.id as RegulatoryLevel,
       title: level.title,
       subtitle: level.subtitle,
       regularizationLabel: level.regularizationLabel,
-      riskLevel: level.riskLevel,
-      riskLabel: this.getRiskLabel(level.riskLevel),
+      riskLevel: this.normalizeRiskLevel(level.riskLevel),
+      riskLabel: this.getRiskLabel(this.normalizeRiskLevel(level.riskLevel)),
       fiscalization: level.fiscalization,
       objective: level.objective,
       traceabilityLabel: level.traceability.label,
@@ -159,11 +171,28 @@ export class RecommendationRegularizationComponent {
       allowedValidations: level.platformValidations.allowed,
       requiredValidations: level.platformValidations.required,
       restrictions: level.restrictions,
-      documentation: level.requirementsForUpload,
+      documentation: level.requirementsForUpload.map((requirement) => ({
+        ...requirement,
+        levelId: requirement.levelId as RegulatoryLevel
+      })),
       legalRiskLabel: level.legalRisks.label,
       legalRiskItems: level.legalRisks.items,
       regulations: level.regulations
     };
+  }
+
+  private normalizeRiskLevel(value: string): ComplianceRiskLevel {
+    const normalized = (value ?? '').toLowerCase();
+    if (normalized === 'high') {
+      return 'high';
+    }
+    if (normalized === 'medium_high' || normalized === 'medium-high') {
+      return 'medium_high';
+    }
+    if (normalized === 'medium') {
+      return 'medium';
+    }
+    return 'low';
   }
 
   private getRiskLabel(riskLevel: ComplianceRiskLevel): string {

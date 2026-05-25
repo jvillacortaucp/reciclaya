@@ -9,10 +9,8 @@ import {
   StoredComplianceLevelsState,
   StoredComplianceRequirementState
 } from '../../../../core/regulatory/compliance-levels.models';
-import { COMPLIANCE_INITIAL_STATE } from '../../../../core/regulatory/compliance-levels.constants';
 import { RegulationLevelResponse, RegulationMeResponse } from '../../../../core/regulatory/regulation-api.models';
 import { RegulationHttpService } from '../../../../core/regulatory/regulation-http.service';
-import { ComplianceLevelsStore } from '../../../../core/regulatory/compliance-levels.store';
 import { buildComplianceLevels, buildComplianceOverview } from '../domain/compliance-levels.utils';
 
 interface RuntimeUploadAsset {
@@ -23,10 +21,12 @@ interface RuntimeUploadAsset {
 
 @Injectable()
 export class ComplianceLevelsFacade implements OnDestroy {
-  private readonly complianceLevelsStore = inject(ComplianceLevelsStore);
   private readonly regulationHttpService = inject(RegulationHttpService);
   private readonly activeUserId = signal<string>('anonymous');
-  private readonly state = signal<StoredComplianceLevelsState>(this.cloneStoredState(COMPLIANCE_INITIAL_STATE));
+  private readonly state = signal<StoredComplianceLevelsState>({
+    updatedAt: new Date().toISOString(),
+    requirements: {}
+  });
   private readonly definitions = signal<readonly ComplianceLevelDefinition[]>([]);
   private readonly meState = signal<RegulationMeResponse | null>(null);
   private readonly dirty = signal(false);
@@ -77,30 +77,28 @@ export class ComplianceLevelsFacade implements OnDestroy {
         )
       )
       .subscribe(({ me, levels }) => {
-        const fallbackState = this.loadUserCompliance(this.activeUserId());
         this.clearRuntimeUploads();
         this.meState.set(me);
 
         if (levels.length === 0) {
           this.definitions.set([]);
-          this.state.set(fallbackState);
+          this.state.set({
+            updatedAt: new Date().toISOString(),
+            requirements: {}
+          });
           this.dirty.set(false);
           return;
         }
 
         const mappedDefinitions = levels.map((level) => this.mapApiLevel(level));
         this.definitions.set(mappedDefinitions);
-        this.state.set(this.buildStateFromApiLevels(levels, fallbackState));
+        this.state.set(this.buildStateFromApiLevels(levels));
         this.dirty.set(false);
       });
   }
 
   loadLevels(): readonly ComplianceLevel[] {
     return this.levels();
-  }
-
-  loadUserCompliance(userId: string): StoredComplianceLevelsState {
-    return this.cloneStoredState(this.complianceLevelsStore.getUserState(userId));
   }
 
   attachFile(requirementId: string, file: File): void {
@@ -259,10 +257,7 @@ export class ComplianceLevelsFacade implements OnDestroy {
     };
   }
 
-  private buildStateFromApiLevels(
-    levels: readonly RegulationLevelResponse[],
-    fallbackState: StoredComplianceLevelsState
-  ): StoredComplianceLevelsState {
+  private buildStateFromApiLevels(levels: readonly RegulationLevelResponse[]): StoredComplianceLevelsState {
     const requirements = Object.fromEntries(
       levels.flatMap((level) =>
         level.requirementsForUpload.map((requirement) => [
@@ -278,7 +273,7 @@ export class ComplianceLevelsFacade implements OnDestroy {
     );
 
     return {
-      updatedAt: fallbackState.updatedAt,
+      updatedAt: new Date().toISOString(),
       requirements
     };
   }

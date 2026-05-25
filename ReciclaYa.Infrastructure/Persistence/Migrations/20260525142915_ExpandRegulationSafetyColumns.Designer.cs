@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using ReciclaYa.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using ReciclaYa.Infrastructure.Persistence;
 namespace ReciclaYa.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(ReciclaYaDbContext))]
-    partial class ReciclaYaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260525142915_ExpandRegulationSafetyColumns")]
+    partial class ExpandRegulationSafetyColumns
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1502,12 +1505,6 @@ namespace ReciclaYa.Infrastructure.Persistence.Migrations
                         .HasMaxLength(40)
                         .HasColumnType("character varying(40)");
 
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("bytea");
-
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -1551,18 +1548,6 @@ namespace ReciclaYa.Infrastructure.Persistence.Migrations
                         .HasMaxLength(120)
                         .HasColumnType("character varying(120)");
 
-                    b.Property<DateTime?>("ReviewedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("ReviewedByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("bytea");
-
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(40)
@@ -1583,10 +1568,7 @@ namespace ReciclaYa.Infrastructure.Persistence.Migrations
                     b.HasIndex("UserId", "Level", "RequirementCode")
                         .IsUnique();
 
-                    b.ToTable("user_regulation_requirements", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_user_regulation_requirements_status", "\"Status\" IN ('pending','uploaded','in_review','approved','rejected')");
-                        });
+                    b.ToTable("user_regulation_requirements", (string)null);
                 });
 
             modelBuilder.Entity("ReciclaYa.Domain.Entities.ValorizationIdea", b =>
