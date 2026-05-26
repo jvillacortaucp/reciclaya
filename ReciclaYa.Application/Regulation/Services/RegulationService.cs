@@ -1217,7 +1217,7 @@ public sealed class RegulationService(
             var dto = Deserialize<RegulationLevelDto>(catalog.PayloadJson);
             if (dto is not null)
             {
-                restrictions.AddRange(dto.Restrictions);
+                restrictions.AddRange(dto.Restrictions ?? []);
             }
         }
 
