@@ -33,10 +33,13 @@ export class WasteSellHttpRepository implements WasteSellRepository {
       );
   }
 
-  publish(state: WasteSellPageState, listingId?: string | null): Observable<WasteSellPublishResult> {
+  publish(state: WasteSellPageState, evidenceVerified: boolean, listingId?: string | null): Observable<WasteSellPublishResult> {
     return this.http
       .post<ApiResponse<{ complianceWarnings?: unknown[] }>>(`${environment.apiBaseUrl}/waste-sell/publish`, this.toRequestState(state), {
-        params: listingId ? { listingId } : undefined
+        params: {
+          ...(listingId ? { listingId } : {}),
+          evidenceVerified: String(evidenceVerified)
+        }
       })
       .pipe(
         map((response) => {

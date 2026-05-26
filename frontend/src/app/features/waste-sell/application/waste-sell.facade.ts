@@ -105,10 +105,10 @@ export class WasteSellFacade {
     this.pendingFiles.set(id, file);
   }
 
-  publish(state: WasteSellPageState): void {
+  publish(state: WasteSellPageState, evidenceVerified: boolean): void {
     this.publishLoading.set(true);
     this.repository
-      .publish(state, this.currentListingId)
+      .publish(state, evidenceVerified, this.currentListingId)
       .pipe(
         catchError((error: unknown) => {
           this.toastMessage.set(getErrorMessage(error, 'No se pudo publicar el listado.'));

@@ -10,7 +10,7 @@ export interface WasteSellPublishResult {
 export interface WasteSellRepository {
   getInitialState(listingId?: string | null): Observable<WasteSellPageState>;
   saveDraft(state: WasteSellPageState): Observable<WasteSellPageState>;
-  publish(state: WasteSellPageState, listingId?: string | null): Observable<WasteSellPublishResult>;
+  publish(state: WasteSellPageState, evidenceVerified: boolean, listingId?: string | null): Observable<WasteSellPublishResult>;
   verifyListingEvidence(state: WasteSellPageState): Observable<RegulationEvidencePrecheckResult>;
   buildPreview(state: WasteSellPageState): Observable<ListingPreviewSummary>;
 }
