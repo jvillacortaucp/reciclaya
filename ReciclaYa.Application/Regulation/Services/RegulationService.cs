@@ -971,12 +971,50 @@ public sealed class RegulationService(
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task<RegulationEvidenceVerificationResultDto> VerifyListingEvidenceAsync(
+    public async Task<RegulationEvidencePrecheckResultDto> VerifyListingEvidenceAsync(
         Guid userId,
+        string userRole,
         RegulationEvidenceVerificationRequestDto request,
         CancellationToken cancellationToken)
     {
-        var result = await BuildEvidenceVerificationResultAsync(request, cancellationToken);
+        var regulation = await ValidateOperationAsync(
+            userId,
+            userRole,
+            new RegulationValidateOperationRequestDto(
+                Action: "publish",
+                Actor: "seller",
+                ResidueType: request.ResidueType,
+                Sector: request.Sector,
+                ProductType: request.ProductType,
+                SpecificResidue: request.SpecificResidue,
+                Quantity: request.Quantity,
+                Unit: request.Unit),
+            cancellationToken);
+
+        var requiredLevelNumber = ParseLevelNumber(regulation.RequiredMinLevel);
+        var (levelRestrictions, levelAllowedResidues) = await GetLevelEvidenceContextAsync(requiredLevelNumber, cancellationToken);
+
+        var result = await BuildEvidenceVerificationResultAsync(
+            request with
+            {
+                ContextRequiredLevel = regulation.RequiredMinLevel,
+                ContextRestrictions = levelRestrictions,
+                ContextAllowedResidues = levelAllowedResidues
+            },
+            cancellationToken);
+        var evidenceAllowed = result.IsConsistent
+            && !result.ManualReviewRequired
+            && !string.Equals(result.RiskLevel, "high", StringComparison.OrdinalIgnoreCase);
+
+        var finalAllowed = regulation.Allowed && evidenceAllowed;
+        var blockingCode = !regulation.Allowed
+            ? regulation.BlockingReasonCode ?? "REGULATION_BLOCKED"
+            : (request.MediaUrls is null || request.MediaUrls.Count == 0
+                ? "EVIDENCE_VERIFICATION_REQUIRED"
+                : "EVIDENCE_NOT_CONSISTENT");
+        var blockingMessage = !regulation.Allowed
+            ? regulation.BlockingMessage
+            : result.Message;
 
         dbContext.RegulationOperationAudits.Add(new RegulationOperationAudit
         {
@@ -984,23 +1022,30 @@ public sealed class RegulationService(
             UserId = userId,
             Actor = FitForDb("seller", 40) ?? "seller",
             Action = FitForDb("ai_evidence_check", 80) ?? "ai_evidence_check",
-            Allowed = result.IsConsistent,
-            RequiredMinLevel = 0,
-            ActorCurrentLevel = 0,
-            BlockingReasonCode = FitForDb(result.ManualReviewRequired ? "AI_EVIDENCE_REVIEW_RECOMMENDED" : "AI_EVIDENCE_OK", 80),
+            Allowed = finalAllowed,
+            RequiredMinLevel = ParseLevelNumber(regulation.RequiredMinLevel),
+            ActorCurrentLevel = ParseLevelNumber(regulation.ActorCurrentLevel),
+            BlockingReasonCode = FitForDb(finalAllowed ? "AI_EVIDENCE_OK" : blockingCode, 80),
             ContextResidueType = FitForDb(request.ResidueType, 120),
             ContextSector = FitForDb(request.Sector, 120),
             ContextProductType = FitForDb(request.ProductType, 120),
             ContextSpecificResidue = FitForDb(request.SpecificResidue, 200),
             ContextQuantity = request.Quantity,
             ContextUnit = FitForDb(request.Unit, 30),
-            ManualReviewRequired = result.ManualReviewRequired,
+            ManualReviewRequired = !evidenceAllowed,
             CreatedAt = DateTime.UtcNow
         });
 
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        return result;
+        return new RegulationEvidencePrecheckResultDto(
+            Regulation: regulation,
+            Evidence: result,
+            FinalAllowed: finalAllowed,
+            BlockingReasonCode: finalAllowed ? null : blockingCode,
+            BlockingMessage: finalAllowed
+                ? "Verificación completada. Puedes publicar."
+                : blockingMessage);
     }
 
     private async Task<RegulationEvidenceVerificationResultDto> BuildEvidenceVerificationResultAsync(
@@ -1012,7 +1057,7 @@ public sealed class RegulationService(
             .Select(item => item.Trim())
             .ToArray() ?? [];
 
-        if (_aiEvidenceOptions.Enabled && mediaUrls.Length > 0)
+        if (_aiEvidenceOptions.Enabled)
         {
             try
             {
@@ -1026,16 +1071,34 @@ public sealed class RegulationService(
             {
                 logger.LogWarning(ex, "AI evidence verification fallback triggered.");
             }
+
+            return NormalizeEvidenceResult(new RegulationEvidenceVerificationResultDto(
+                IsConsistent: false,
+                Confidence: 0.0m,
+                RiskLevel: "high",
+                SuggestedResidue: request.SpecificResidue,
+                RiskFlags: ["ai-verification-unavailable"],
+                ManualReviewRequired: true,
+                Message: "No se pudo completar la verificacion IA de evidencia. Intenta nuevamente."
+            ), request.SpecificResidue);
         }
 
-        return await BuildHeuristicEvidenceResultAsync(request, cancellationToken);
+        return NormalizeEvidenceResult(new RegulationEvidenceVerificationResultDto(
+            IsConsistent: false,
+            Confidence: 0.0m,
+            RiskLevel: "high",
+            SuggestedResidue: request.SpecificResidue,
+            RiskFlags: ["ai-verification-disabled"],
+            ManualReviewRequired: true,
+            Message: "La verificacion IA es obligatoria y no esta disponible."
+        ), request.SpecificResidue);
     }
 
     private async Task<RegulationEvidenceVerificationResultDto> BuildHeuristicEvidenceResultAsync(
         RegulationEvidenceVerificationRequestDto request,
         CancellationToken cancellationToken)
     {
-        var normalized = string.Join(' ', new[] { request.SpecificResidue, request.ResidueType, request.Sector, request.ProductType }
+        var normalized = string.Join(' ', new[] { request.SpecificResidue, request.ResidueType, request.Sector, request.ProductType, request.ShortDescription }
             .Where(item => !string.IsNullOrWhiteSpace(item)))
             .ToLowerInvariant();
 
@@ -1047,8 +1110,9 @@ public sealed class RegulationService(
         if (request.MediaUrls is null || request.MediaUrls.Count == 0)
         {
             riskFlags.Add("no-media");
-            confidence = 0.55m;
-            risk = "medium";
+            confidence = 0.30m;
+            risk = "high";
+            isConsistent = false;
         }
 
         if (await ContainsHighRiskResidueAsync(normalized, cancellationToken))
@@ -1119,6 +1183,53 @@ public sealed class RegulationService(
     {
         var risk = riskLevel?.Trim().ToLowerInvariant() ?? string.Empty;
         return risk is "low" or "medium" or "high" ? risk : "medium";
+    }
+
+    private static int ParseLevelNumber(string? levelSlug)
+    {
+        var raw = levelSlug?.Trim().ToLowerInvariant() ?? string.Empty;
+        if (!raw.StartsWith("level", StringComparison.Ordinal))
+        {
+            return 0;
+        }
+
+        return int.TryParse(raw[5..], out var parsed)
+            ? Math.Clamp(parsed, 0, 4)
+            : 0;
+    }
+
+    private async Task<(IReadOnlyCollection<string> Restrictions, IReadOnlyCollection<string> AllowedResidues)> GetLevelEvidenceContextAsync(
+        int level,
+        CancellationToken cancellationToken)
+    {
+        if (level <= 0)
+        {
+            return ([], []);
+        }
+
+        var catalog = await dbContext.RegulationLevelCatalogs
+            .AsNoTracking()
+            .FirstOrDefaultAsync(item => item.Level == level, cancellationToken);
+
+        var restrictions = new List<string>();
+        if (catalog is not null)
+        {
+            var dto = Deserialize<RegulationLevelDto>(catalog.PayloadJson);
+            if (dto is not null)
+            {
+                restrictions.AddRange(dto.Restrictions);
+            }
+        }
+
+        var allowedResidues = await dbContext.RegulationAllowedResiduesCatalog
+            .AsNoTracking()
+            .Where(item => item.Level == level && item.IsActive)
+            .OrderBy(item => item.SortOrder)
+            .Select(item => item.ResidueName)
+            .Take(25)
+            .ToListAsync(cancellationToken);
+
+        return (restrictions.Distinct(StringComparer.OrdinalIgnoreCase).ToArray(), allowedResidues);
     }
     private async Task<UserRegulationProfile> EnsureProfileAsync(Guid userId, CancellationToken cancellationToken)
     {

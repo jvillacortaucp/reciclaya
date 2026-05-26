@@ -225,9 +225,13 @@ public sealed record RegulationEvidenceVerificationRequestDto(
     string? ResidueType,
     string? Sector,
     string? ProductType,
+    string? ShortDescription,
     decimal? Quantity,
     string? Unit,
-    IReadOnlyCollection<string>? MediaUrls);
+    IReadOnlyCollection<string>? MediaUrls,
+    string? ContextRequiredLevel = null,
+    IReadOnlyCollection<string>? ContextRestrictions = null,
+    IReadOnlyCollection<string>? ContextAllowedResidues = null);
 
 public sealed record RegulationEvidenceVerificationResultDto(
     bool IsConsistent,
@@ -237,6 +241,13 @@ public sealed record RegulationEvidenceVerificationResultDto(
     IReadOnlyCollection<string> RiskFlags,
     bool ManualReviewRequired,
     string Message);
+
+public sealed record RegulationEvidencePrecheckResultDto(
+    RegulationValidationResultDto Regulation,
+    RegulationEvidenceVerificationResultDto Evidence,
+    bool FinalAllowed,
+    string? BlockingReasonCode,
+    string BlockingMessage);
 
 public sealed record RegulationUserLevelRecalculationDto(
     Guid UserId,

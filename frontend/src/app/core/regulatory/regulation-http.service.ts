@@ -31,7 +31,7 @@ import {
   RegulationValidateOperationRequest,
   RegulationValidationResult
   ,RegulationEvidenceVerificationRequest
-  ,RegulationEvidenceVerificationResult
+  ,RegulationEvidencePrecheckResult
   ,RegulationEvidenceVerifyApiResponse
 } from './regulation-api.models';
 
@@ -123,7 +123,7 @@ export class RegulationHttpService {
     });
   }
 
-  verifyListingEvidence(payload: RegulationEvidenceVerificationRequest): Observable<RegulationEvidenceVerificationResult> {
+  verifyListingEvidence(payload: RegulationEvidenceVerificationRequest): Observable<RegulationEvidencePrecheckResult> {
     return this.http
       .post<RegulationEvidenceVerifyApiResponse>(`${environment.apiBaseUrl}/regulation/verify-listing-evidence`, payload)
       .pipe(map(unwrapApiResponse));
