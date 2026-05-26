@@ -1,4 +1,4 @@
-using System.Net.Http.Headers;
+﻿using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
@@ -29,18 +29,7 @@ public sealed class DeepSeekRegulationEvidenceAiVerifier(
             return null;
         }
 
-        var mediaUrls = request.MediaUrls?
-            .Where(item => !string.IsNullOrWhiteSpace(item))
-            .Take(3)
-            .Select(item => item.Trim())
-            .ToArray() ?? [];
-
-        if (mediaUrls.Length == 0)
-        {
-            return null;
-        }
-
-        var payload = BuildPayload(settings.Model, request, mediaUrls);
+        var payload = BuildPayload(settings.Model, request);
         using var httpRequest = new HttpRequestMessage(HttpMethod.Post, "chat/completions")
         {
             Content = new StringContent(payload, Encoding.UTF8, "application/json")
@@ -81,31 +70,38 @@ public sealed class DeepSeekRegulationEvidenceAiVerifier(
             RiskFlags: parsed.RiskFlags?.Where(item => !string.IsNullOrWhiteSpace(item)).Select(item => item.Trim()).ToArray() ?? [],
             ManualReviewRequired: parsed.ManualReviewRequired ?? false,
             Message: string.IsNullOrWhiteSpace(parsed.Message)
-                ? "Validación completada por IA."
+                ? "Validacion completada por IA."
                 : parsed.Message.Trim());
     }
 
     private static string BuildPayload(
         string model,
-        RegulationEvidenceVerificationRequestDto request,
-        IReadOnlyCollection<string> mediaUrls)
+        RegulationEvidenceVerificationRequestDto request)
     {
         var context = new StringBuilder();
-        context.AppendLine("Evalúa si las imágenes corresponden al residuo declarado para publicación en marketplace.");
-        context.AppendLine($"Residuo específico: {request.SpecificResidue}");
+        context.AppendLine("Evalua si el residuo declarado es coherente con la descripcion para publicacion en marketplace.");
+        context.AppendLine($"Residuo especifico: {request.SpecificResidue}");
         context.AppendLine($"Tipo de residuo: {request.ResidueType}");
         context.AppendLine($"Sector: {request.Sector}");
         context.AppendLine($"Producto tipo: {request.ProductType}");
+        context.AppendLine($"Descripcion detallada: {request.ShortDescription}");
         context.AppendLine($"Cantidad/Unidad: {request.Quantity} {request.Unit}");
+        if (!string.IsNullOrWhiteSpace(request.ContextRequiredLevel))
+        {
+            context.AppendLine($"Nivel regulatorio requerido: {request.ContextRequiredLevel}");
+        }
+        if (request.ContextAllowedResidues is { Count: > 0 })
+        {
+            context.AppendLine($"Residuos permitidos de referencia para ese nivel: {string.Join(", ", request.ContextAllowedResidues.Take(20))}");
+        }
+        if (request.ContextRestrictions is { Count: > 0 })
+        {
+            context.AppendLine($"Restricciones clave del nivel: {string.Join(" | ", request.ContextRestrictions.Take(8))}");
+        }
         context.AppendLine();
+        context.AppendLine("Si el residuo parece pertenecer a un nivel superior al requerido, indicalo explicitamente en 'message' con formato: 'Pertenece a levelX'.");
         context.AppendLine("Responde SOLO JSON con este esquema:");
         context.AppendLine("{\"isConsistent\":bool,\"confidence\":0..1,\"riskLevel\":\"low|medium|high\",\"suggestedResidue\":string|null,\"riskFlags\":string[],\"manualReviewRequired\":bool,\"message\":string}");
-
-        var userContent = new List<object>
-        {
-            new { type = "text", text = context.ToString() }
-        };
-        userContent.AddRange(mediaUrls.Select(url => new { type = "image_url", image_url = new { url } }));
 
         var body = new
         {
@@ -116,12 +112,12 @@ public sealed class DeepSeekRegulationEvidenceAiVerifier(
                 new
                 {
                     role = "system",
-                    content = "Eres un verificador técnico de evidencia visual de residuos. No inventes información."
+                    content = "Eres un verificador tecnico de residuos. No inventes informacion. Valida coherencia texto-contexto. Si detectas que parece de nivel superior al requerido, indicalo en message como 'Pertenece a levelX' (X entre 1 y 4)."
                 },
                 new
                 {
                     role = "user",
-                    content = userContent
+                    content = context.ToString()
                 }
             }
         };
@@ -172,4 +168,3 @@ public sealed class DeepSeekRegulationEvidenceAiVerifier(
         bool? ManualReviewRequired,
         string? Message);
 }
-

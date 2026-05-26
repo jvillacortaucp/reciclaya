@@ -39,6 +39,7 @@ import { AuthFacade } from '../auth/services/auth.facade';
 import { Profile } from '../profile/profile.models';
 import { ProfileHttpRepository } from '../profile/profile-http.repository';
 import { RegulationHttpService } from '../../core/regulatory/regulation-http.service';
+import { RegulationLevelResponse, RegulationValidationResult } from '../../core/regulatory/regulation-api.models';
 import {
   longTextValidator,
   safeAddressValidator,
@@ -53,7 +54,6 @@ import {
   DELIVERY_MODE_OPTIONS,
   EXCHANGE_TYPE_OPTIONS,
   FREQUENCY_OPTIONS,
-  PRODUCT_TYPE_OPTIONS,
   RESIDUE_TYPE_OPTIONS,
   SECTOR_OPTIONS,
   STORAGE_TIME_OPTIONS,
@@ -102,6 +102,12 @@ export class WasteSellPageComponent implements OnInit, OnDestroy, PendingChanges
   private readonly subscriptions = new Subscription();
   private readonly profile = signal<Profile | null>(null);
   private readonly currentLevelFromApi = signal<RegulatoryLevel>(0);
+  protected readonly operationValidation = signal<RegulationValidationResult | null>(null);
+  private readonly regulationLevels = signal<readonly RegulationLevelResponse[]>([]);
+  protected readonly productVerificationLoading = signal(false);
+  protected readonly productVerificationPassed = signal(false);
+  protected readonly productVerificationMessage = signal<string | null>(null);
+  protected readonly showRegulationResult = signal(false);
   protected readonly insufficientLevelModalOpen = signal(false);
   protected readonly isEditing = signal(false);
 
@@ -110,7 +116,6 @@ export class WasteSellPageComponent implements OnInit, OnDestroy, PendingChanges
 
   protected readonly residueTypes = RESIDUE_TYPE_OPTIONS;
   protected readonly sectors = SECTOR_OPTIONS;
-  protected readonly productTypes = PRODUCT_TYPE_OPTIONS;
   protected readonly unitOptions = UNIT_OPTIONS;
   protected readonly frequencyOptions = FREQUENCY_OPTIONS;
   protected readonly exchangeTypeOptions = EXCHANGE_TYPE_OPTIONS;
@@ -160,7 +165,10 @@ export class WasteSellPageComponent implements OnInit, OnDestroy, PendingChanges
     })
   );
   protected readonly canPublishByLevel = computed(() =>
-    canOperateComplianceLevel(this.currentUserLevel(), this.requiredRegulatoryLevel())
+    canOperateComplianceLevel(this.currentUserLevel(), this.selectedRegulationLevel())
+  );
+  protected readonly canPublish = computed(() =>
+    !this.publishLoading() && !this.loading() && this.productVerificationPassed()
   );
   protected readonly hasLevelClassificationData = computed(() => {
     const snapshot = this.formSnapshot();
@@ -169,13 +177,26 @@ export class WasteSellPageComponent implements OnInit, OnDestroy, PendingChanges
     );
   });
   protected readonly insufficientLevelReason = computed(() => {
-    if (!this.hasLevelClassificationData() || this.canPublishByLevel()) {
+    if (!this.showRegulationResult() || !this.hasLevelClassificationData() || this.canPublishByLevel()) {
       return null;
     }
 
     return `Tu nivel actual es Nivel ${this.currentUserLevel()} y este residuo requiere al menos Nivel ${this.requiredRegulatoryLevel()}.`;
   });
-  protected readonly regulatoryRule = computed(() => getRegulatoryRule(this.regulatoryLevel()));
+  protected readonly requiredRegulationFromApi = computed<RegulatoryLevel>(() => {
+    const slug = this.operationValidation()?.requiredMinLevel ?? '';
+    return this.parseLevelSlug(slug);
+  });
+  protected readonly selectedRegulationLevel = computed<RegulatoryLevel>(() => {
+    const levelFromApi = this.requiredRegulationFromApi();
+    return levelFromApi > 0 ? levelFromApi : this.requiredRegulatoryLevel();
+  });
+  protected readonly selectedRegulationData = computed<RegulationLevelResponse | null>(() => {
+    const level = this.selectedRegulationLevel();
+    return this.regulationLevels().find((item) => item.id === level) ?? null;
+  });
+  protected readonly missingRequirementsFromApi = computed(() => this.operationValidation()?.missingRequirements ?? []);
+  protected readonly regulatoryRule = computed(() => getRegulatoryRule(this.selectedRegulationLevel()));
   protected readonly sellerComplianceEvaluation = computed(() =>
     evaluateSellerCompliance(this.regulatoryLevel(), this.profile(), this.regulatoryStore.getRecord(this.profile()?.id ?? this.authFacade.user()?.id).seller, {
       quantity: this.formSnapshot().quantity,
@@ -292,10 +313,8 @@ export class WasteSellPageComponent implements OnInit, OnDestroy, PendingChanges
       return;
     }
 
-    if (!this.sellerComplianceEvaluation().eligible) {
-      this.facade.toastMessage.set(
-        `Faltan requisitos obligatorios para publicar este residuo nivel ${this.regulatoryLevel()}: ${this.sellerComplianceEvaluation().missingRequired.map((item) => item.label).join(', ')}.`
-      );
+    if (!this.productVerificationPassed()) {
+      this.facade.toastMessage.set('Primero verifica el producto con IA antes de publicar.');
       return;
     }
 
@@ -311,6 +330,56 @@ export class WasteSellPageComponent implements OnInit, OnDestroy, PendingChanges
 
     this.facade.publish(nextState);
     this.form.markAsPristine();
+  }
+
+  protected verifyProduct(): void {
+    this.form.controls.productType.markAsTouched();
+    this.form.controls.specificResidue.markAsTouched();
+    this.form.controls.shortDescription.markAsTouched();
+
+    const missingVerificationFields = this.getMissingVerificationFields();
+    if (missingVerificationFields.length > 0) {
+      this.productVerificationPassed.set(false);
+      this.productVerificationMessage.set(`Completa antes de verificar: ${missingVerificationFields.join(', ')}.`);
+      this.showRegulationResult.set(false);
+      return;
+    }
+
+    const nextState = this.state();
+    if (!nextState) {
+      this.productVerificationPassed.set(false);
+      this.productVerificationMessage.set('No se pudo preparar el formulario para verificación.');
+      this.showRegulationResult.set(false);
+      return;
+    }
+
+    this.productVerificationLoading.set(true);
+    this.regulationHttpService.verifyListingEvidence({
+      specificResidue: nextState.formValue.specificResidue,
+      productType: nextState.formValue.productType,
+      shortDescription: nextState.formValue.shortDescription
+    }).subscribe({
+      next: (result) => {
+        this.operationValidation.set(result.regulation);
+        const passed = result.finalAllowed;
+        this.productVerificationPassed.set(passed);
+        this.showRegulationResult.set(true);
+        this.productVerificationMessage.set(
+          result.blockingMessage || (passed
+            ? 'Verificación aprobada. Puedes publicar.'
+            : 'Verificación no aprobada. Revisa la evidencia.')
+        );
+        this.facade.toastMessage.set(this.productVerificationMessage());
+        this.productVerificationLoading.set(false);
+      },
+      error: () => {
+        this.productVerificationPassed.set(false);
+        this.showRegulationResult.set(true);
+        this.productVerificationMessage.set('No se pudo validar evidencia con IA. Intenta nuevamente.');
+        this.facade.toastMessage.set('No se pudo validar evidencia con IA. Intenta nuevamente.');
+        this.productVerificationLoading.set(false);
+      }
+    });
   }
 
   protected previewNow(): void {
@@ -339,11 +408,11 @@ export class WasteSellPageComponent implements OnInit, OnDestroy, PendingChanges
 
   protected valorizationInfoMessage(): string {
     if (this.valorizationIdeasStale()) {
-      return 'Los datos cambiaron. Actualiza las ideas para obtener recomendaciones mas precisas.';
+      return 'Los datos cambiaron. Actualiza las ideas para obtener recomendaciones más precisas.';
     }
 
     if (this.valorizationIdeasGenerated()) {
-      return 'Ideas generadas segun los datos actuales del formulario.';
+      return 'Ideas generadas según los datos actuales del formulario.';
     }
 
     return 'Completa los datos principales y analiza oportunidades antes de publicar.';
@@ -523,6 +592,9 @@ export class WasteSellPageComponent implements OnInit, OnDestroy, PendingChanges
     };
 
     this.facade.updateState(nextState);
+    this.productVerificationPassed.set(false);
+    this.productVerificationMessage.set(null);
+    this.showRegulationResult.set(false);
   }
 
   private getMissingValorizationFields(): string[] {
@@ -531,8 +603,8 @@ export class WasteSellPageComponent implements OnInit, OnDestroy, PendingChanges
     return [
       { value: raw.residueType, label: 'tipo de residuo' },
       { value: raw.productType, label: 'producto relacionado' },
-      { value: raw.specificResidue, label: 'residuo especifico' },
-      { value: raw.shortDescription, label: 'descripcion detallada' }
+      { value: raw.specificResidue, label: 'residuo específico' },
+      { value: raw.shortDescription, label: 'descripción detallada' }
     ]
       .filter((field) => !field.value || !field.value.toString().trim())
       .map((field) => field.label);
@@ -540,11 +612,11 @@ export class WasteSellPageComponent implements OnInit, OnDestroy, PendingChanges
 
   private validateMediaFile(file: File): string | null {
     if (file.size > 5 * 1024 * 1024) {
-      return 'Cada imagen debe pesar como maximo 5 MB.';
+      return 'Cada imagen debe pesar como máximo 5 MB.';
     }
 
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
-      return 'Solo se permiten imagenes JPG, PNG o WEBP.';
+      return 'Solo se permiten imágenes JPG, PNG o WEBP.';
     }
 
     return null;
@@ -560,7 +632,32 @@ export class WasteSellPageComponent implements OnInit, OnDestroy, PendingChanges
       next: (me) => this.currentLevelFromApi.set(this.parseLevelSlug(me.currentRegulationLevel)),
       error: () => this.currentLevelFromApi.set(0)
     });
+
+    this.regulationHttpService.getLevels().subscribe({
+      next: (levels) => this.regulationLevels.set(levels),
+      error: () => this.regulationLevels.set([])
+    });
   }
+
+  private getMissingVerificationFields(): string[] {
+    const raw = this.form.getRawValue();
+    const missing: string[] = [];
+
+    if (!raw.productType?.trim()) {
+      missing.push('Producto relacionado');
+    }
+
+    if (!raw.specificResidue?.trim()) {
+      missing.push('Residuo especifico');
+    }
+
+    if (!raw.shortDescription?.trim()) {
+      missing.push('Descripcion detallada');
+    }
+
+    return missing;
+  }
+
 
   private parseLevelSlug(level: string | null | undefined): RegulatoryLevel {
     const raw = (level ?? '').trim().toLowerCase();

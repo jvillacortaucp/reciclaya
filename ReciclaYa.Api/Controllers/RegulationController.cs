@@ -68,13 +68,13 @@ public sealed class RegulationController(IRegulationService regulationService) :
         [FromBody] RegulationEvidenceVerificationRequestDto request,
         CancellationToken cancellationToken)
     {
-        if (!TryGetUserContext(out var userId, out _))
+        if (!TryGetUserContext(out var userId, out var role))
         {
             return Unauthorized(ApiResponse<object>.Fail("Unauthorized.", ["INVALID_TOKEN_SUBJECT"]));
         }
 
-        var response = await regulationService.VerifyListingEvidenceAsync(userId, request, cancellationToken);
-        return Ok(ApiResponse<RegulationEvidenceVerificationResultDto>.Ok(response));
+        var response = await regulationService.VerifyListingEvidenceAsync(userId, role, request, cancellationToken);
+        return Ok(ApiResponse<RegulationEvidencePrecheckResultDto>.Ok(response));
     }
 
     [HttpPost("requirements/{requirementId}/evidence")]

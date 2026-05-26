@@ -1,4 +1,4 @@
-import {
+﻿import {
   DeliveryMode,
   ExchangeType,
   ProductCategory,
@@ -10,28 +10,28 @@ import { SelectOption, WasteSellPageState } from '../domain/waste-sell.models';
 export const WASTE_SELL_COPY = {
   title: 'Registrar residuo para venta',
   subtitle:
-    'Publique residuos o subproductos disponibles para valorizacion, intercambio o recogida.',
+    'Publique residuos o subproductos disponibles para valorización, intercambio o recojo.',
   publish: 'Publicar',
   statusReady: 'LISTO PARA PUBLICAR',
-  helperAi: 'Proximamente: sugerencias de uso basadas en IA para mejorar valorizacion.'
+  helperAi: 'Próximamente: sugerencias de uso basadas en IA para mejorar valorización.'
 } as const;
 
 export const RESIDUE_TYPE_OPTIONS: readonly SelectOption<ResidueType>[] = [
-  { value: ResidueType.Organic, label: 'Organico' },
-  { value: ResidueType.Inorganic, label: 'Inorganico' }
+  { value: ResidueType.Organic, label: 'Orgánico' },
+  { value: ResidueType.Inorganic, label: 'Inorgánico' }
 ];
 
 export const SECTOR_OPTIONS: readonly SelectOption<SectorType>[] = [
   { value: SectorType.Agriculture, label: 'Agricultura' },
   { value: SectorType.Agroindustry, label: 'Agroindustrial' },
-  { value: SectorType.Metallurgical, label: 'Metalurgico' },
+  { value: SectorType.Metallurgical, label: 'Metalúrgico' },
   { value: SectorType.Food, label: 'Alimentos' },
   { value: SectorType.Industrial, label: 'Industrial' }
 ];
 
 export const PRODUCT_TYPE_OPTIONS: readonly SelectOption<ProductCategory>[] = [
   { value: ProductCategory.Mango, label: 'Mango' },
-  { value: ProductCategory.Coffee, label: 'Cafe' },
+  { value: ProductCategory.Coffee, label: 'Café' },
   { value: ProductCategory.Cacao, label: 'Cacao' },
   { value: ProductCategory.Grape, label: 'Uva' }
 ];
@@ -39,11 +39,11 @@ export const PRODUCT_TYPE_OPTIONS: readonly SelectOption<ProductCategory>[] = [
 export const UNIT_OPTIONS: readonly SelectOption<'tons' | 'kg' | 'm3'>[] = [
   { value: 'tons', label: 'Toneladas (tons)' },
   { value: 'kg', label: 'Kilogramos (kg)' },
-  { value: 'm3', label: 'Metros cubicos (m3)' }
+  { value: 'm3', label: 'Metros cúbicos (m3)' }
 ];
 
 export const FREQUENCY_OPTIONS: readonly SelectOption<string>[] = [
-  { value: 'single', label: 'Pago unico (Lote)' },
+  { value: 'single', label: 'Pago único (Lote)' },
   { value: 'weekly', label: 'Semanal' },
   { value: 'biweekly', label: 'Quincenal' },
   { value: 'monthly', label: 'Mensual' }
@@ -62,23 +62,23 @@ export const DELIVERY_MODE_OPTIONS: readonly SelectOption<DeliveryMode>[] = [
 ];
 
 export const STORAGE_TIME_OPTIONS: readonly SelectOption<string>[] = [
-  { value: '24h', label: '24 Horas' },
-  { value: '48h', label: '48 Horas' },
-  { value: '72h', label: '72 Horas' },
-  { value: '1w', label: '1 Semana' }
+  { value: '24h', label: '24 horas' },
+  { value: '48h', label: '48 horas' },
+  { value: '72h', label: '72 horas' },
+  { value: '1w', label: '1 semana' }
 ];
 
 export const CONDITION_OPTIONS: readonly SelectOption<'fresh' | 'dry' | 'wet' | 'processed'>[] = [
   { value: 'fresh', label: 'Fresco' },
   { value: 'dry', label: 'Seco' },
-  { value: 'wet', label: 'Humedo' },
+  { value: 'wet', label: 'Húmedo' },
   { value: 'processed', label: 'Procesado' }
 ];
 
 export const WASTE_FORM_MESSAGES = {
   required: 'Este campo es obligatorio.',
-  positiveNumber: 'Ingrese un valor numerico mayor a cero.',
-  mediaLimit: 'Maximo 5 fotos permitidas.',
+  positiveNumber: 'Ingrese un valor numérico mayor a cero.',
+  mediaLimit: 'Máximo 5 fotos permitidas.',
   maxLength: 'Se superó el límite permitido para este campo.',
   invalidText: 'El contenido ingresado contiene caracteres o formato no permitido.'
 } as const;

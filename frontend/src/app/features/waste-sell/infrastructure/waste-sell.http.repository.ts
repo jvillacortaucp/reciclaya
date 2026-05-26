@@ -1,7 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { catchError, map, Observable, of, throwError } from 'rxjs';
-import { switchMap } from 'rxjs/operators';
 import { normalizeHttpError, unwrapApiResponse } from '../../../core/http/api-response.helpers';
 import { ApiResponse } from '../../../core/models/app.models';
 import { RegulationHttpService } from '../../../core/regulatory/regulation-http.service';
@@ -35,27 +34,11 @@ export class WasteSellHttpRepository implements WasteSellRepository {
   }
 
   publish(state: WasteSellPageState, listingId?: string | null): Observable<WasteSellPublishResult> {
-    return this.regulationHttpService
-      .validateOperation({
-        action: 'publish',
-        actor: 'seller',
-        residueType: state.formValue.residueType,
-        sector: state.formValue.sector,
-        productType: state.formValue.productType,
-        specificResidue: state.formValue.specificResidue,
-        quantity: state.formValue.volume.quantity,
-        unit: state.formValue.volume.unit
+    return this.http
+      .post<ApiResponse<{ complianceWarnings?: unknown[] }>>(`${environment.apiBaseUrl}/waste-sell/publish`, this.toRequestState(state), {
+        params: listingId ? { listingId } : undefined
       })
       .pipe(
-        switchMap((validation) => {
-          if (!validation.allowed) {
-            throw new Error(validation.blockingMessage || validation.upgradeCallToAction || 'No cumples el nivel regulatorio requerido.');
-          }
-
-          return this.http.post<ApiResponse<{ complianceWarnings?: unknown[] }>>(`${environment.apiBaseUrl}/waste-sell/publish`, this.toRequestState(state), {
-            params: listingId ? { listingId } : undefined
-          });
-        }),
         map((response) => {
           const payload = unwrapApiResponse(response) ?? {};
           return {
