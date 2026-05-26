@@ -37,7 +37,7 @@
     "@panzoom/panzoom": "^4.6.2",
     "@tailwindcss/postcss": "^4.2.4",
     "apexcharts": "^5.10.6",
-    "elkjs": "^0.11.1",
+    "elkjs": "^0.8.2",
     "flowbite": "^4.0.1",
     "ng-apexcharts": "^2.4.0",
     "notyf": "^3.10.0",
