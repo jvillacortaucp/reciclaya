@@ -83,6 +83,14 @@ body {
   animation: fadeOut 140ms ease-in;
 }
 
+.skeleton-block {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(90deg, #edf2f7 0%, #f8fafc 50%, #edf2f7 100%);
+  background-size: 200% 100%;
+  animation: app-skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
 @keyframes pageEnter {
   from {
     opacity: 0;
@@ -134,6 +142,16 @@ body {
 
   to {
     opacity: 0;
+  }
+}
+
+@keyframes app-skeleton-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
   }
 }
 

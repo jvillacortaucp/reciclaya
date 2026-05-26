@@ -1,4 +1,4 @@
-export type RecommendationTab = 'process' | 'explanation' | 'regularization' | 'market';
+export type RecommendationTab = 'process' | 'explanation' | 'financial' | 'market';
 export type CostView = 'percent' | 'usd';
 export type ChartType = 'donut' | 'bar';
 export type BuyerScope = 'nacional' | 'internacional';

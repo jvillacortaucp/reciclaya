@@ -10,14 +10,6 @@
   animation: mobile-sheet-enter 240ms ease-out;
 }
 
-.skeleton-block {
-  position: relative;
-  overflow: hidden;
-  background: linear-gradient(90deg, #edf2f7 0%, #f8fafc 50%, #edf2f7 100%);
-  background-size: 200% 100%;
-  animation: value-sector-skeleton-shimmer 1.4s ease-in-out infinite;
-}
-
 @keyframes panel-enter {
   from {
     opacity: 0;
@@ -51,15 +43,5 @@
   to {
     opacity: 1;
     transform: translateY(0);
-  }
-}
-
-@keyframes value-sector-skeleton-shimmer {
-  0% {
-    background-position: 200% 0;
-  }
-
-  100% {
-    background-position: -200% 0;
   }
 }
