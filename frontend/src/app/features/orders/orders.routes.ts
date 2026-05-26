@@ -5,6 +5,9 @@ export const ORDERS_ROUTES: Route[] = [
     path: '',
     loadComponent: () => import('./orders.page').then((m) => m.OrdersPageComponent),
     data: {
+      reuseView: true,
+      reuseKey: 'orders',
+      cacheTtlMs: 180000,
       meta: {
         title: 'Ordenes',
         breadcrumb: 'Ordenes',

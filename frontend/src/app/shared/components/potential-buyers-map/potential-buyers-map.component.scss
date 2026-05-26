@@ -1,0 +1,190 @@
+:host {
+  display: block;
+}
+
+.potential-buyers-map__tooltip {
+  display: none;
+  pointer-events: none;
+}
+
+.potential-buyers-map__tooltip-card {
+  position: relative;
+  min-width: 248px;
+  max-width: 320px;
+  border: 1px solid #e5e7eb;
+  border-radius: 20px;
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.18);
+  padding: 1rem 1rem 0.95rem;
+}
+
+.potential-buyers-map__tooltip-card::after {
+  content: '';
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  background: #ffffff;
+  transform: rotate(45deg);
+}
+
+.potential-buyers-map__tooltip--top .potential-buyers-map__tooltip-card::after {
+  left: 50%;
+  bottom: -7px;
+  border-right: 1px solid #e5e7eb;
+  border-bottom: 1px solid #e5e7eb;
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.potential-buyers-map__tooltip--bottom .potential-buyers-map__tooltip-card::after {
+  left: 50%;
+  top: -7px;
+  border-left: 1px solid #e5e7eb;
+  border-top: 1px solid #e5e7eb;
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.potential-buyers-map__tooltip--left .potential-buyers-map__tooltip-card::after {
+  right: -7px;
+  top: 50%;
+  border-right: 1px solid #e5e7eb;
+  border-top: 1px solid #e5e7eb;
+  transform: translateY(-50%) rotate(45deg);
+}
+
+.potential-buyers-map__tooltip--right .potential-buyers-map__tooltip-card::after {
+  left: -7px;
+  top: 50%;
+  border-left: 1px solid #e5e7eb;
+  border-bottom: 1px solid #e5e7eb;
+  transform: translateY(-50%) rotate(45deg);
+}
+
+.potential-buyers-map__tooltip-eyebrow {
+  display: inline-flex;
+  margin-bottom: 0.55rem;
+  color: #047857;
+  font-size: 0.67rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.potential-buyers-map__tooltip-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.potential-buyers-map__tooltip-title {
+  color: #0f172a;
+  flex: 1;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.35rem;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.potential-buyers-map__tooltip-match {
+  flex-shrink: 0;
+  border: 1px solid #a7f3d0;
+  border-radius: 9999px;
+  background: #ecfdf5;
+  color: #047857;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0.36rem 0.62rem;
+}
+
+.potential-buyers-map__tooltip-type {
+  color: #475569;
+  font-size: 0.82rem;
+  line-height: 1.25rem;
+  margin: 0.45rem 0 0;
+  overflow-wrap: anywhere;
+}
+
+.potential-buyers-map__tooltip-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+  margin-top: 0.9rem;
+}
+
+.potential-buyers-map__tooltip-metric {
+  min-width: 0;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #f8fafc;
+  padding: 0.7rem 0.75rem;
+}
+
+.potential-buyers-map__tooltip-label {
+  color: #64748b;
+  display: block;
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.potential-buyers-map__tooltip-value {
+  color: #0f172a;
+  display: block;
+  font-size: 0.84rem;
+  font-weight: 700;
+  line-height: 1.22rem;
+  margin-top: 0.35rem;
+  overflow-wrap: anywhere;
+}
+
+.potential-buyers-map__tooltip-location-block {
+  margin-top: 0.85rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.potential-buyers-map__tooltip-location {
+  color: #334155;
+  font-size: 0.8rem;
+  font-weight: 500;
+  line-height: 1.28rem;
+  margin: 0.35rem 0 0;
+  overflow-wrap: anywhere;
+}
+
+.potential-buyers-map__control {
+  display: inline-flex;
+  height: 2.5rem;
+  width: 2.5rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.95);
+  color: #0f172a;
+  font-size: 1.25rem;
+  font-weight: 700;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.16);
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.potential-buyers-map__control:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.18);
+}
+
+@media (max-width: 640px) {
+  .potential-buyers-map__tooltip-card {
+    min-width: 220px;
+    max-width: 260px;
+    padding: 0.9rem 0.9rem 0.85rem;
+  }
+
+  .potential-buyers-map__tooltip-grid {
+    grid-template-columns: 1fr;
+  }
+}

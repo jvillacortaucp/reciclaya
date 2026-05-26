@@ -6,6 +6,9 @@ export const ASSISTANT_CHAT_ROUTES: Route[] = [
     loadComponent: () =>
       import('./presentation/assistant-chat.page').then((m) => m.AssistantChatPageComponent),
     data: {
+      reuseView: true,
+      reuseKey: 'assistant-chat',
+      cacheTtlMs: 180000,
       meta: {
         title: 'Asistente ReciclaIA',
         breadcrumb: 'Asistente ReciclaIA',

@@ -69,7 +69,7 @@ export class CompanyRegisterFormComponent {
   protected readonly showConfirmPassword = signal(false);
 
   protected readonly companyForm = this.fb.nonNullable.group({
-    ruc: ['', [Validators.required, Validators.pattern(/^\d{12}$/)]],
+    ruc: ['', [Validators.required, Validators.pattern(/^\d{11}$/)]],
     businessName: ['', [Validators.required, Validators.maxLength(120), safeBusinessNameValidator]],
     mobilePhone: ['', [Validators.required, Validators.pattern(/^\d{9}$/)]],
     address: ['', [Validators.required, Validators.maxLength(180), safeAddressValidator]],

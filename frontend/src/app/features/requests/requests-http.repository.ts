@@ -1,14 +1,19 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { catchError, map, Observable, throwError } from 'rxjs';
+import { switchMap } from 'rxjs/operators';
 import { normalizeHttpError, unwrapApiResponse } from '../../core/http/api-response.helpers';
 import { ApiResponse } from '../../core/models/app.models';
 import { environment } from '../../../environments/environment';
+import { RegulationHttpService } from '../../core/regulatory/regulation-http.service';
+import { ListingDetailHttpRepository } from '../listing-detail/infrastructure/listing-detail.http.repository';
 import { CreateCommercialRequestPayload, CommercialRequestItem } from './domain/requests.models';
 
 @Injectable({ providedIn: 'root' })
 export class RequestsHttpRepository {
   private readonly http = inject(HttpClient);
+  private readonly regulationHttpService = inject(RegulationHttpService);
+  private readonly listingDetailRepository = inject(ListingDetailHttpRepository);
 
   list(): Observable<readonly CommercialRequestItem[]> {
     return this.http
@@ -29,9 +34,28 @@ export class RequestsHttpRepository {
   }
 
   create(payload: CreateCommercialRequestPayload): Observable<CommercialRequestItem> {
-    return this.http
-      .post<ApiResponse<CommercialRequestItem>>(`${environment.apiBaseUrl}/requests`, payload)
+    return this.listingDetailRepository
+      .getById(payload.listingId)
       .pipe(
+        switchMap((listing) =>
+          this.regulationHttpService.validateOperation({
+            action: 'negotiate',
+            actor: 'buyer',
+            residueType: listing?.wasteType ?? null,
+            sector: listing?.sector ?? null,
+            productType: listing?.productType ?? null,
+            specificResidue: listing?.specificResidueType ?? null,
+            quantity: listing?.volume.amount ?? null,
+            unit: listing?.volume.unit ?? null
+          })
+        ),
+        switchMap((validation) => {
+          if (!validation.allowed) {
+            throw new Error(validation.blockingMessage || validation.upgradeCallToAction || 'No cumples el nivel regulatorio requerido.');
+          }
+
+          return this.http.post<ApiResponse<CommercialRequestItem>>(`${environment.apiBaseUrl}/requests`, payload);
+        }),
         map(unwrapApiResponse),
         catchError((error: unknown) => this.handleHttpError(error, 'No se pudo crear la solicitud.'))
       );

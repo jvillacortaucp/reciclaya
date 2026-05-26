@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, EventEmitter, HostListener, Input, Output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, HostListener, Input, Output, signal, ViewChild, ElementRef, AfterViewChecked, OnChanges } from '@angular/core';
 import { LucideSendHorizontal } from '@lucide/angular';
 import { FormsModule } from '@angular/forms';
 
@@ -21,15 +21,15 @@ export interface DefaultChatBubbleMessage {
           [class.opacity-0]="!isOpen()"
           [class.opacity-100]="isOpen()">
           <div class="rounded-t-2xl bg-emerald-700 p-4 text-white">
-            <h3 class="text-2xl font-semibold leading-tight text-white">{{ title }}</h3>
-            @if (message) {
+            <h3 class="text-base font-semibold leading-tight text-white">{{ message }}</h3>
+            <!-- @if (message) {
               <p class="mt-1 text-base leading-relaxed text-emerald-100">{{ message }}</p>
-            }
+            } -->
           </div>
 
           <div class="space-y-3 border-x rounded-b-2xl border-slate-200 bg-white px-3 pt-3 pb-3">
             @if (messages.length > 0 || typing) {
-              <div class="max-h-52 space-y-2 overflow-y-auto rounded-xl border border-slate-100 bg-slate-50 p-2">
+              <div #scrollContainer class="max-h-52 space-y-2 overflow-y-auto rounded-xl border border-slate-100 bg-slate-50 p-2">
                 @for (chatMessage of messages; track chatMessage.id) {
                   <div class="flex" [class.justify-end]="chatMessage.role === 'user'">
                     <p
@@ -93,7 +93,7 @@ export interface DefaultChatBubbleMessage {
   `,
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class DefaultChatBubbleComponent {
+export class DefaultChatBubbleComponent implements AfterViewChecked, OnChanges {
   @Input() title = 'Chatea con nosotros';
   @Input() message = '';
   @Input() imageUrl =
@@ -113,12 +113,23 @@ export class DefaultChatBubbleComponent {
   @Output() readonly messageSubmit = new EventEmitter<string>();
   @Output() readonly goToMainChatClick = new EventEmitter<void>();
 
+  @ViewChild('scrollContainer') private readonly scrollContainer?: ElementRef<HTMLDivElement>;
+
   protected readonly isOpen = signal(false);
   protected draftMessage = '';
+  private shouldScroll = false;
 
   ngOnChanges(): void {
     if (typeof this.opened === 'boolean') {
       this.isOpen.set(this.opened);
+    }
+    this.shouldScroll = true;
+  }
+
+  ngAfterViewChecked(): void {
+    if (this.shouldScroll) {
+      this.scrollToBottom();
+      this.shouldScroll = false;
     }
   }
 
@@ -132,6 +143,9 @@ export class DefaultChatBubbleComponent {
   protected toggleOpen(): void {
     this.isOpen.update((open) => !open);
     this.bubbleClick.emit();
+    if (this.isOpen()) {
+      this.shouldScroll = true;
+    }
   }
 
   protected triggerQuickAction(): void {
@@ -151,4 +165,12 @@ export class DefaultChatBubbleComponent {
     this.messageSubmit.emit(message);
     this.draftMessage = '';
   }
+
+  private scrollToBottom(): void {
+    if (this.scrollContainer?.nativeElement) {
+      const el = this.scrollContainer.nativeElement;
+      el.scrollTop = el.scrollHeight;
+    }
+  }
 }
+

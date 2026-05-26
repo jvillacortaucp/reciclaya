@@ -1,0 +1,76 @@
+<div class="relative w-full pointer-events-none" [style]="wrapperStyles()">
+  <svg class="pointer-events-none absolute inset-0 h-full w-full" [attr.viewBox]="viewBox()" fill="none" preserveAspectRatio="xMidYMid meet">
+    @for (route of visibleRoutes(); track route.id; let i = $index) {
+      <line
+        [attr.x1]="routeSlots()[i].startX"
+        [attr.y1]="routeSlots()[i].startY"
+        [attr.x2]="routeSlots()[i].endX"
+        [attr.y2]="routeSlots()[i].endY"
+        stroke="url(#routeLine)"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-dasharray="5 5" />
+    }
+    <defs>
+      <linearGradient id="routeLine" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#10b981" stop-opacity="0.7" />
+        <stop offset="100%" stop-color="#0f766e" stop-opacity="0.18" />
+      </linearGradient>
+    </defs>
+  </svg>
+
+  @for (route of visibleRoutes(); track route.id; let i = $index) {
+    <button
+      type="button"
+      data-panzoom-ignore
+      [attr.data-focus-id]="'route:' + route.id"
+      class="pointer-events-auto absolute -translate-x-1/2 -translate-y-1/2 rounded-3xl border bg-white text-center shadow-sm transition-all duration-300 hover:scale-[1.02] hover:shadow-lg"
+      [attr.data-route-card-id]="route.id"
+      [style.left.px]="routeSlots()[i].x"
+      [style.top.px]="routeSlots()[i].y"
+      [style.width.px]="routeCardWidth()"
+      [style.padding.px]="routeCardPadding()"
+      [class.border-emerald-400]="selectedRouteId() === route.id"
+      [class.ring-2]="selectedRouteId() === route.id"
+      [class.ring-emerald-100]="selectedRouteId() === route.id"
+      [class.border-slate-200]="selectedRouteId() !== route.id"
+      (click)="onSelect(route.id)">
+      <span
+        class="mx-auto inline-flex items-center justify-center rounded-2xl"
+        [style.height.px]="routeIconBoxSize()"
+        [style.width.px]="routeIconBoxSize()"
+        [class]="iconBgClass(route)">
+        @switch (route.iconName) {
+          @case ('utensils') { <svg lucideUtensils [style.height.px]="routeIconSize()" [style.width.px]="routeIconSize()"></svg> }
+          @case ('sparkles') { <svg lucideSparkles [style.height.px]="routeIconSize()" [style.width.px]="routeIconSize()"></svg> }
+          @case ('pill') { <svg lucidePill [style.height.px]="routeIconSize()" [style.width.px]="routeIconSize()"></svg> }
+          @case ('sprout') { <svg lucideSprout [style.height.px]="routeIconSize()" [style.width.px]="routeIconSize()"></svg> }
+          @case ('flame') { <svg lucideFlame [style.height.px]="routeIconSize()" [style.width.px]="routeIconSize()"></svg> }
+          @default { <svg lucidePackage [style.height.px]="routeIconSize()" [style.width.px]="routeIconSize()"></svg> }
+        }
+      </span>
+      <p class="mt-2 font-semibold text-slate-700" [style.font-size.px]="routeTitleFontSize()">{{ route.routeName }}</p>
+      <div class="mx-auto mt-2 h-px bg-slate-200" [style.width.px]="compactMode() ? 52 : 80"></div>
+      <p class="mt-2 text-[9px] font-semibold uppercase tracking-[0.14em] text-slate-400">Match score</p>
+      <p class="font-bold text-emerald-600" [style.font-size.px]="routeScoreFontSize()">{{ matchPercent(route) }}%</p>
+    </button>
+  }
+
+  <div
+    data-panzoom-ignore
+    data-focus-id="map-center"
+    class="pointer-events-auto absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-[999px] border-2 border-emerald-500/70 bg-white text-center shadow-lg"
+    [style.left.px]="centerPoint().x"
+    [style.top.px]="centerPoint().y"
+    [style.height.px]="centerNodeSize()"
+    [style.width.px]="centerNodeSize()"
+    [style.padding.px]="centerPadding()">
+    <div
+      class="mx-auto inline-flex items-center justify-center rounded-2xl bg-emerald-700 text-white shadow-md"
+      [style.height.px]="centerIconBoxSize()"
+      [style.width.px]="centerIconBoxSize()">
+      <svg lucideSprout [style.height.px]="centerIconSize()" [style.width.px]="centerIconSize()"></svg>
+    </div>
+    <p class="mt-2 font-semibold text-slate-800" [style.font-size.px]="centerTitleFontSize()">{{ residueLabel() }}</p>
+  </div>
+</div>

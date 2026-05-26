@@ -11,8 +11,11 @@ using ReciclaYa.Application.Auth.Models;
 using ReciclaYa.Application.Auth.Services;
 using ReciclaYa.Application.ValueSectors.Services;
 using ReciclaYa.Application.ValorizationIdeas.Services;
+using ReciclaYa.Application.Regulation.Options;
+using ReciclaYa.Application.Regulation.Services;
 using ReciclaYa.Infrastructure.Auth;
 using ReciclaYa.Infrastructure.AI;
+using ReciclaYa.Infrastructure.BackgroundServices;
 using ReciclaYa.Infrastructure.Options;
 using ReciclaYa.Infrastructure.Persistence;
 using ReciclaYa.Infrastructure.Storage;
@@ -25,6 +28,48 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
+        services.AddSingleton<IOptions<RegulationReviewOptions>>(_ =>
+        {
+            var section = configuration.GetSection(RegulationReviewOptions.SectionName);
+            var options = new RegulationReviewOptions
+            {
+                PendingReviewDeadlineHours = int.TryParse(section["PendingReviewDeadlineHours"], out var deadlineHours)
+                    ? deadlineHours
+                    : 72,
+                SweepIntervalMinutes = int.TryParse(section["SweepIntervalMinutes"], out var sweepMinutes)
+                    ? sweepMinutes
+                    : 15
+            };
+
+            return Microsoft.Extensions.Options.Options.Create(options);
+        });
+        services.AddSingleton<IOptions<AiEvidenceCheckOptions>>(_ =>
+        {
+            var section = configuration.GetSection(AiEvidenceCheckOptions.SectionName);
+            var options = new AiEvidenceCheckOptions
+            {
+                Enabled = !string.Equals(section["Enabled"], "false", StringComparison.OrdinalIgnoreCase),
+                ConfidenceThreshold = decimal.TryParse(section["ConfidenceThreshold"], out var threshold)
+                    ? Math.Clamp(threshold, 0.1m, 0.95m)
+                    : 0.65m,
+                Mode = string.IsNullOrWhiteSpace(section["Mode"]) ? "soft" : section["Mode"]!.Trim().ToLowerInvariant()
+            };
+
+            return Microsoft.Extensions.Options.Options.Create(options);
+        });
+        services.AddSingleton<IOptions<RegulationAiOptions>>(_ =>
+        {
+            var section = configuration.GetSection("DeepSeek");
+            var options = new RegulationAiOptions
+            {
+                ApiKey = section["ApiKey"] ?? string.Empty,
+                BaseUrl = section["BaseUrl"] ?? "https://api.deepseek.com",
+                Model = section["Model"] ?? "deepseek-chat",
+                TimeoutSeconds = ParseTimeoutSeconds(section["TimeoutSeconds"])
+            };
+            return Microsoft.Extensions.Options.Options.Create(options);
+        });
+
         var connectionString = configuration.GetConnectionString("DefaultConnection");
 
         if (string.IsNullOrWhiteSpace(connectionString))
@@ -150,7 +195,27 @@ public static class DependencyInjection
                 deepSeekOptions,
                 provider.GetRequiredService<ILogger<DeepSeekValueSectorGenerator>>());
         });
+        services.AddScoped<IRegulationEvidenceAiVerifier>(provider =>
+        {
+            var regulationAiOptions = provider.GetRequiredService<IOptions<RegulationAiOptions>>();
+            var baseUrl = string.IsNullOrWhiteSpace(regulationAiOptions.Value.BaseUrl)
+                ? "https://api.deepseek.com"
+                : regulationAiOptions.Value.BaseUrl;
+
+            var client = new HttpClient
+            {
+                BaseAddress = new Uri($"{baseUrl.TrimEnd('/')}/"),
+                Timeout = TimeSpan.FromSeconds(NormalizeTimeoutSeconds(regulationAiOptions.Value.TimeoutSeconds))
+            };
+
+            return new DeepSeekRegulationEvidenceAiVerifier(
+                client,
+                regulationAiOptions,
+                provider.GetRequiredService<ILogger<DeepSeekRegulationEvidenceAiVerifier>>());
+        });
         services.AddScoped<IGoogleIdentityService, GoogleIdentityService>();
+        services.AddHostedService<RegulationReviewDeadlineHostedService>();
+        services.AddHostedService<RegulationLevelConsistencyHostedService>();
 
         return services;
     }

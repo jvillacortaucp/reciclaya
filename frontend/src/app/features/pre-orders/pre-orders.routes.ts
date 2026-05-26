@@ -5,6 +5,9 @@ export const PRE_ORDERS_ROUTES: Route[] = [
     path: '',
     loadComponent: () => import('./pre-orders.page').then((m) => m.PreOrdersPageComponent),
     data: {
+      reuseView: true,
+      reuseKey: 'pre-orders',
+      cacheTtlMs: 180000,
       meta: {
         title: 'Pre-ordenes',
         breadcrumb: 'Pre-ordenes',

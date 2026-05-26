@@ -161,6 +161,10 @@
           [selectedStepId]="selectedStepId()"
           (stepSelected)="selectStep($event)" />
       </div>
+    } @else if (activeTab() === 'regularization') {
+      <div class="mt-6">
+        <app-recommendation-regularization />
+      </div>
     } @else if (activeTab() === 'market') {
       <div class="mt-6">
         <app-market-analysis

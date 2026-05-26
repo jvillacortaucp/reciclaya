@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { environment } from '../../../../environments/environment';
 import { ProductSuggestion, QuickLinks, UrgenciaLevel, ChatMode } from '../models/assistant-chat.model';
 
 export interface AssistantChatResponse {
@@ -16,13 +17,14 @@ export interface AssistantChatResponse {
 @Injectable()
 export class AssistantChatHttpService {
   private readonly http = inject(HttpClient);
-  private readonly webhookUrl = 'https://n8n-production-7f55.up.railway.app/webhook/ecobot'
-  //https://n8n-production-7f55.up.railway.app/webhook-test/botdotcom
-  //https://n8n-production-7f55.up.railway.app/webhook/botdotcom;
-  // https://n8n-production-7f55.up.railway.app/webhook/recicla-ia';
-  // url test n8n https://n8n-production-7f55.up.railway.app/webhook-test/recicla-ia';
 
-  sendMessage(sessionId: string, residueInput: string, region = 'Lima', messageCount = 1): Observable<AssistantChatResponse> {
+  sendMessage(
+    sessionId: string,
+    residueInput: string,
+    region = 'Lima',
+    messageCount = 1,
+    chatbotType: 'advisor' | 'general' = 'advisor'
+  ): Observable<AssistantChatResponse> {
     const headers = new HttpHeaders({
       'x-session-id': sessionId
     });
@@ -33,7 +35,11 @@ export class AssistantChatHttpService {
       messageCount
     };
 
-    return this.http.post<any>(this.webhookUrl, body, { headers }).pipe(
+    const url = chatbotType === 'general'
+      ? environment.generalChatbotUrl
+      : environment.advisorChatbotUrl;
+
+    return this.http.post<any>(url, body, { headers }).pipe(
       map((res) => {
         // Fallback por si n8n envia directamente la salida del agente LangChain
         if (Array.isArray(res) && res.length > 0 && res[0].output) {
@@ -140,7 +146,21 @@ export class AssistantChatHttpService {
       minQuantity: this.readStringAny(item, 'minQuantity', 'min_quantity', 'cantidadMinima') ?? 'n/a',
       nextStep: this.readStringAny(item, 'nextStep', 'next_step', 'siguientePaso') ?? '',
       difficulty: this.readStringAny(item, 'difficulty', 'dificultad') ?? '',
-      action: this.readStringAny(item, 'action', 'accion') ?? ''
+      action: this.readStringAny(item, 'action', 'accion') ?? '',
+
+      // Legal / Regulation fields (n8n v3)
+      nivelRegulatorio: typeof item['nivelRegulatorio'] === 'number' ? item['nivelRegulatorio'] as number
+        : (typeof item['nivel_regulatorio'] === 'number' ? item['nivel_regulatorio'] as number : undefined),
+      colorNivel: (this.readStringAny(item, 'colorNivel', 'color_nivel') as any) ?? undefined,
+      leyPrincipal: this.readStringAny(item, 'leyPrincipal', 'ley_principal') ?? undefined,
+      documentosVendedor: Array.isArray(item['documentosVendedor']) ? item['documentosVendedor'] as string[]
+        : (Array.isArray(item['documentos_vendedor']) ? item['documentos_vendedor'] as string[] : undefined),
+      documentosComprador: Array.isArray(item['documentosComprador']) ? item['documentosComprador'] as string[]
+        : (Array.isArray(item['documentos_comprador']) ? item['documentos_comprador'] as string[] : undefined),
+      multaMaximaReferencial: this.readStringAny(item, 'multaMaximaReferencial', 'multa_maxima_referencial', 'multa_maxima') ?? undefined,
+      entidadesFiscalizadoras: Array.isArray(item['entidadesFiscalizadoras']) ? item['entidadesFiscalizadoras'] as string[]
+        : (Array.isArray(item['entidades_fiscalizadoras']) ? item['entidades_fiscalizadoras'] as string[] : undefined),
+      riesgoLegal: this.readStringAny(item, 'riesgoLegal', 'riesgo_legal') ?? undefined
     };
   }
 

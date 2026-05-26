@@ -6,6 +6,9 @@ export const RECOMMENDATIONS_ROUTES: Route[] = [
     loadComponent: () =>
       import('./presentation/pages/recommendations-history.page').then((m) => m.RecommendationsHistoryPageComponent),
     data: {
+      reuseView: true,
+      reuseKey: 'recommendations-history',
+      cacheTtlMs: 180000,
       meta: {
         title: 'Ideas guardadas',
         breadcrumb: 'Ideas guardadas',

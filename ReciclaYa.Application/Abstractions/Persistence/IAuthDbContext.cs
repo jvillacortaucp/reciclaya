@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using ReciclaYa.Domain.Entities;
 
 namespace ReciclaYa.Application.Abstractions.Persistence;
@@ -38,6 +39,26 @@ public interface IAuthDbContext
     DbSet<RecommendationAnalysis> RecommendationAnalyses { get; }
 
     DbSet<MediaAsset> MediaAssets { get; }
+
+    DbSet<UserRegulationProfile> UserRegulationProfiles { get; }
+
+    DbSet<UserRegulationRequirement> UserRegulationRequirements { get; }
+
+    DbSet<RegulationOperationAudit> RegulationOperationAudits { get; }
+
+    DbSet<RegulationLevelCatalog> RegulationLevelCatalogs { get; }
+
+    DbSet<RegulationCatalogVersion> RegulationCatalogVersions { get; }
+
+    DbSet<RegulationLevelRequirementCatalog> RegulationLevelRequirementsCatalog { get; }
+
+    DbSet<RegulationAllowedResidueCatalog> RegulationAllowedResiduesCatalog { get; }
+
+    DbSet<RegulationLevelRuleCatalog> RegulationLevelRulesCatalog { get; }
+
+    DbSet<RegulationNormativeReferenceCatalog> RegulationNormativeReferencesCatalog { get; }
+
+    DatabaseFacade Database { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

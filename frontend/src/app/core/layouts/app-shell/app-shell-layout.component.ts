@@ -2,6 +2,10 @@ import { ChangeDetectionStrategy, Component, computed, effect, HostListener, inj
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
 import { AuthFacade } from '../../../features/auth/services/auth.facade';
+import { APP_ROUTES } from '../../constants/app.constants';
+import { AssistantChatHttpService } from '../../../features/assistant-chat/infrastructure/assistant-chat.http.service';
+import { MarketplaceEcoChatFacade } from '../../../features/marketplace/application/marketplace-eco-chat.facade';
+import { DefaultChatBubbleComponent } from '../../../shared/ui/default-chat-bubble/default-chat-bubble.component';
 import { SidebarComponent } from './sidebar/sidebar.component';
 import { TopbarComponent } from './topbar/topbar.component';
 
@@ -11,17 +15,25 @@ import { TopbarComponent } from './topbar/topbar.component';
   imports: [
     RouterOutlet,
     SidebarComponent,
-    TopbarComponent
+    TopbarComponent,
+    DefaultChatBubbleComponent
   ],
+  providers: [AssistantChatHttpService, MarketplaceEcoChatFacade],
   templateUrl: './app-shell-layout.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class AppShellLayoutComponent {
   protected readonly isSidebarOpen = signal(false);
   private readonly authFacade = inject(AuthFacade);
+  private readonly ecoChatFacade = inject(MarketplaceEcoChatFacade);
   private readonly router = inject(Router);
   private readonly currentUrl = signal(this.normalizeUrl(this.router.url));
   protected readonly isAuthenticated = this.authFacade.isAuthenticated;
+  protected readonly ecoMessages = this.ecoChatFacade.messages;
+  protected readonly ecoTyping = this.ecoChatFacade.typing;
+  protected readonly ecoShowGoToMainChatCta = this.ecoChatFacade.showGoToMainChatCta;
+  protected readonly ecoDisabledInput = this.ecoChatFacade.disabledInput;
+  protected readonly isAssistantChatRoute = computed(() => this.currentUrl() === '/assistant-chat');
   protected readonly shouldHideSidebarForGuest = computed(() => {
     if (this.isAuthenticated()) {
       return false;
@@ -68,6 +80,27 @@ export class AppShellLayoutComponent {
 
   protected closeSidebar(): void {
     this.isSidebarOpen.set(false);
+  }
+
+  protected openEcoChat(): void {
+    void this.router.navigateByUrl(APP_ROUTES.assistantChat);
+  }
+
+  protected openEcoChatWithMessage(message: string): void {
+    const trimmed = message.trim();
+    if (!trimmed) {
+      void this.router.navigateByUrl(APP_ROUTES.assistantChat);
+      return;
+    }
+
+    this.ecoChatFacade.submitMessage(trimmed);
+  }
+
+  protected goToMainEcoChat(): void {
+    const draft = this.ecoChatFacade.lastUserMessage().trim();
+    void this.router.navigate([APP_ROUTES.assistantChat], {
+      queryParams: draft ? { draft } : undefined
+    });
   }
 
   private normalizeUrl(url: string): string {

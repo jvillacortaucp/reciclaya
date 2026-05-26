@@ -1102,6 +1102,338 @@ namespace ReciclaYa.Infrastructure.Persistence.Migrations
                     b.ToTable("refresh_tokens", (string)null);
                 });
 
+            modelBuilder.Entity("ReciclaYa.Domain.Entities.RegulationAllowedResidueCatalog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CategoryId")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<string>("CategoryTitle")
+                        .IsRequired()
+                        .HasMaxLength(180)
+                        .HasColumnType("character varying(180)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("Level")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal?>("QuantityMax")
+                        .HasColumnType("numeric(18,3)");
+
+                    b.Property<decimal?>("QuantityMin")
+                        .HasColumnType("numeric(18,3)");
+
+                    b.Property<string>("ResidueName")
+                        .IsRequired()
+                        .HasMaxLength(180)
+                        .HasColumnType("character varying(180)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Unit")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("VersionId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VersionId", "ResidueName");
+
+                    b.HasIndex("VersionId", "Level", "IsActive");
+
+                    b.ToTable("regulation_allowed_residues_catalog", (string)null);
+                });
+
+            modelBuilder.Entity("ReciclaYa.Domain.Entities.RegulationCatalogVersion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("VersionNumber")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsActive");
+
+                    b.HasIndex("VersionNumber")
+                        .IsUnique();
+
+                    b.ToTable("regulation_catalog_versions", (string)null);
+                });
+
+            modelBuilder.Entity("ReciclaYa.Domain.Entities.RegulationLevelCatalog", b =>
+                {
+                    b.Property<int>("Level")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("PayloadJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Level");
+
+                    b.ToTable("regulation_level_catalogs", (string)null);
+                });
+
+            modelBuilder.Entity("ReciclaYa.Domain.Entities.RegulationLevelRequirementCatalog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AcceptedFileTypesJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ActorType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsRequired")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("Level")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("RequirementCode")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("VersionId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VersionId", "RequirementCode")
+                        .IsUnique();
+
+                    b.HasIndex("VersionId", "Level", "IsActive");
+
+                    b.ToTable("regulation_level_requirements_catalog", (string)null);
+                });
+
+            modelBuilder.Entity("ReciclaYa.Domain.Entities.RegulationLevelRuleCatalog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("ItemText")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<int>("Level")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("RuleGroup")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("VersionId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VersionId", "Level", "RuleGroup", "IsActive");
+
+                    b.ToTable("regulation_level_rules_catalog", (string)null);
+                });
+
+            modelBuilder.Entity("ReciclaYa.Domain.Entities.RegulationNormativeReferenceCatalog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Article")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("Level")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ReferenceUrl")
+                        .HasMaxLength(1200)
+                        .HasColumnType("character varying(1200)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("VersionId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VersionId", "Level", "IsActive");
+
+                    b.ToTable("regulation_normative_references_catalog", (string)null);
+                });
+
+            modelBuilder.Entity("ReciclaYa.Domain.Entities.RegulationOperationAudit", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<string>("Actor")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<int>("ActorCurrentLevel")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("Allowed")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("BlockingReasonCode")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<string>("ContextProductType")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<decimal?>("ContextQuantity")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("ContextResidueType")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("ContextSector")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("ContextSpecificResidue")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("ContextUnit")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("ManualReviewRequired")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("RequiredMinLevel")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Allowed");
+
+                    b.HasIndex("Action", "CreatedAt");
+
+                    b.HasIndex("UserId", "CreatedAt");
+
+                    b.ToTable("regulation_operation_audits", (string)null);
+                });
+
             modelBuilder.Entity("ReciclaYa.Domain.Entities.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1155,6 +1487,106 @@ namespace ReciclaYa.Infrastructure.Persistence.Migrations
                     b.HasIndex("Status");
 
                     b.ToTable("users", (string)null);
+                });
+
+            modelBuilder.Entity("ReciclaYa.Domain.Entities.UserRegulationProfile", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CurrentLevel")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("bytea");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CurrentLevel");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("user_regulation_profiles", (string)null);
+                });
+
+            modelBuilder.Entity("ReciclaYa.Domain.Entities.UserRegulationRequirement", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("EvidenceUrl")
+                        .HasMaxLength(1200)
+                        .HasColumnType("character varying(1200)");
+
+                    b.Property<DateTime?>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Level")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("RequirementCode")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<DateTime?>("ReviewedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ReviewedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("bytea");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("UserId", "Level");
+
+                    b.HasIndex("UserId", "Level", "RequirementCode")
+                        .IsUnique();
+
+                    b.ToTable("user_regulation_requirements", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_user_regulation_requirements_status", "\"Status\" IN ('pending','uploaded','in_review','approved','rejected')");
+                        });
                 });
 
             modelBuilder.Entity("ReciclaYa.Domain.Entities.ValorizationIdea", b =>
@@ -1505,6 +1937,83 @@ namespace ReciclaYa.Infrastructure.Persistence.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("ReciclaYa.Domain.Entities.RegulationAllowedResidueCatalog", b =>
+                {
+                    b.HasOne("ReciclaYa.Domain.Entities.RegulationCatalogVersion", "Version")
+                        .WithMany("AllowedResidues")
+                        .HasForeignKey("VersionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Version");
+                });
+
+            modelBuilder.Entity("ReciclaYa.Domain.Entities.RegulationLevelRequirementCatalog", b =>
+                {
+                    b.HasOne("ReciclaYa.Domain.Entities.RegulationCatalogVersion", "Version")
+                        .WithMany("Requirements")
+                        .HasForeignKey("VersionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Version");
+                });
+
+            modelBuilder.Entity("ReciclaYa.Domain.Entities.RegulationLevelRuleCatalog", b =>
+                {
+                    b.HasOne("ReciclaYa.Domain.Entities.RegulationCatalogVersion", "Version")
+                        .WithMany("Rules")
+                        .HasForeignKey("VersionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Version");
+                });
+
+            modelBuilder.Entity("ReciclaYa.Domain.Entities.RegulationNormativeReferenceCatalog", b =>
+                {
+                    b.HasOne("ReciclaYa.Domain.Entities.RegulationCatalogVersion", "Version")
+                        .WithMany("NormativeReferences")
+                        .HasForeignKey("VersionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Version");
+                });
+
+            modelBuilder.Entity("ReciclaYa.Domain.Entities.RegulationOperationAudit", b =>
+                {
+                    b.HasOne("ReciclaYa.Domain.Entities.User", "User")
+                        .WithMany("RegulationOperationAudits")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("ReciclaYa.Domain.Entities.UserRegulationProfile", b =>
+                {
+                    b.HasOne("ReciclaYa.Domain.Entities.User", "User")
+                        .WithOne("RegulationProfile")
+                        .HasForeignKey("ReciclaYa.Domain.Entities.UserRegulationProfile", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("ReciclaYa.Domain.Entities.UserRegulationRequirement", b =>
+                {
+                    b.HasOne("ReciclaYa.Domain.Entities.User", "User")
+                        .WithMany("RegulationRequirements")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("ReciclaYa.Domain.Entities.ValorizationIdea", b =>
                 {
                     b.HasOne("ReciclaYa.Domain.Entities.Listing", "Listing")
@@ -1555,6 +2064,17 @@ namespace ReciclaYa.Infrastructure.Persistence.Migrations
                     b.Navigation("PaymentTransactions");
                 });
 
+            modelBuilder.Entity("ReciclaYa.Domain.Entities.RegulationCatalogVersion", b =>
+                {
+                    b.Navigation("AllowedResidues");
+
+                    b.Navigation("NormativeReferences");
+
+                    b.Navigation("Requirements");
+
+                    b.Navigation("Rules");
+                });
+
             modelBuilder.Entity("ReciclaYa.Domain.Entities.User", b =>
                 {
                     b.Navigation("BuyerCommercialRequests");
@@ -1578,6 +2098,12 @@ namespace ReciclaYa.Infrastructure.Persistence.Migrations
                     b.Navigation("PurchasePreferences");
 
                     b.Navigation("RefreshTokens");
+
+                    b.Navigation("RegulationOperationAudits");
+
+                    b.Navigation("RegulationProfile");
+
+                    b.Navigation("RegulationRequirements");
 
                     b.Navigation("SellerCommercialRequests");
 

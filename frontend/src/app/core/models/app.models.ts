@@ -12,6 +12,9 @@ export interface RouteMeta {
 export interface AppRoute extends Route {
   readonly data?: {
     readonly meta?: RouteMeta;
+    readonly reuseView?: boolean;
+    readonly reuseKey?: string;
+    readonly cacheTtlMs?: number;
   };
 }
 

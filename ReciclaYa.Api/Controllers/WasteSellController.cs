@@ -4,13 +4,17 @@ using Microsoft.AspNetCore.Mvc;
 using ReciclaYa.Api.Responses;
 using ReciclaYa.Application.Listings.Dtos;
 using ReciclaYa.Application.Listings.Services;
+using ReciclaYa.Application.Regulation.Dtos;
+using ReciclaYa.Application.Regulation.Services;
 
 namespace ReciclaYa.Api.Controllers;
 
 [ApiController]
 [Authorize]
 [Route("api/waste-sell")]
-public sealed class WasteSellController(IListingService listingService) : ControllerBase
+public sealed class WasteSellController(
+    IListingService listingService,
+    IRegulationService regulationService) : ControllerBase
 {
     [HttpPut("draft")]
     public async Task<IActionResult> SaveDraft(
@@ -48,9 +52,42 @@ public sealed class WasteSellController(IListingService listingService) : Contro
             return InvalidToken();
         }
 
+        var evidencePrecheck = await regulationService.VerifyListingEvidenceAsync(
+            userId,
+            User.FindFirst("role")?.Value ?? string.Empty,
+            new RegulationEvidenceVerificationRequestDto(
+                SpecificResidue: request.FormValue.SpecificResidue,
+                ResidueType: request.FormValue.ResidueType,
+                Sector: request.FormValue.Sector,
+                ProductType: request.FormValue.ProductType,
+                ShortDescription: request.FormValue.ShortDescription,
+                Quantity: request.FormValue.Volume.Quantity,
+                Unit: request.FormValue.Volume.Unit,
+                MediaUrls: request.FormValue.MediaUploads
+                    .Select(item => item.PreviewUrl)
+                    .Where(item => !string.IsNullOrWhiteSpace(item))
+                    .ToArray()),
+            cancellationToken);
+
+        if (!evidencePrecheck.FinalAllowed)
+        {
+            var code = evidencePrecheck.BlockingReasonCode ?? "EVIDENCE_NOT_CONSISTENT";
+            return StatusCode(StatusCodes.Status403Forbidden, new
+            {
+                success = false,
+                data = evidencePrecheck,
+                message = evidencePrecheck.BlockingMessage,
+                errors = new[] { code }
+            });
+        }
+
         await listingService.PublishAsync(userId, request, listingId, cancellationToken);
 
-        return Ok(ApiResponse<object>.Ok(new { published = true }, "Listing published."));
+        return Ok(ApiResponse<object>.Ok(new
+        {
+            published = true,
+            complianceWarnings = Array.Empty<RegulationEvidenceVerificationResultDto>()
+        }, "Listing published."));
     }
 
     [HttpPost("preview")]
@@ -92,4 +129,5 @@ public sealed class WasteSellController(IListingService listingService) : Contro
             StatusCodes.Status403Forbidden,
             ApiResponse<object>.Fail("Forbidden.", ["FORBIDDEN"]));
     }
+
 }

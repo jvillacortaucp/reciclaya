@@ -22,24 +22,6 @@
   </div>
 </header>
 
-<div class="relative button-0">
-  <app-default-chat-bubble
-    title="Chatea con nosotros"
-    message="Hola, soy Eco, ¿Qué reciclaremos hoy?"
-    ariaLabel="Abrir chat con Eco"
-    quickActionLabel="Seguir mi pedido"
-    placeholder="Escribe un mensaje"
-    [messages]="ecoMessages()"
-    [typing]="ecoTyping()"
-    [disabledInput]="ecoDisabledInput()"
-    [showGoToMainChatCta]="ecoShowGoToMainChatCta()"
-    goToMainChatLabel="Ir al chat principal"
-    (quickActionClick)="openEcoChat()"
-    (messageSubmit)="openEcoChatWithMessage($event)"
-    (goToMainChatClick)="goToMainEcoChat()" />
-</div>
-
-
 @if (toastMessage()) {
 <div
   class="mb-4 inline-flex cursor-pointer items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700"

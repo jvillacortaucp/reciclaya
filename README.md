@@ -67,5 +67,20 @@ ng serve
 ```
 *Accede a: `http://localhost:4200`*
 
+### Recuperación de errores `Outdated Optimize Dep` (Rete/Angular)
+Si en consola del navegador ves errores como `504 (Outdated Optimize Dep)` o `Failed to fetch dynamically imported module`:
+
+```bash
+cd frontend
+npm run recover:dev
+```
+
+Este flujo:
+1. Limpia caché local de dev (`.angular/cache` y `node_modules/.vite`).
+2. Reinstala dependencias del frontend.
+3. Reinicia `ng serve`.
+
+Después de reiniciar, haz una recarga completa del navegador (`Ctrl+F5`) para evitar chunks stale en memoria/cache.
+
 ---
 **Revalora IA** - *Innovación Circular para el Campo.*

@@ -1,20 +1,38 @@
-import { ChangeDetectionStrategy, Component, inject, OnDestroy, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { FALLBACK_IMAGE_URL } from '../../core/constants/media.constants';
+import { APP_ROUTES } from '../../core/constants/app.constants';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { catchError, EMPTY, finalize } from 'rxjs';
 import { getErrorMessage } from '../../core/http/api-response.helpers';
 import { MediaHttpRepository } from '../../core/media/media-http.repository';
+import { RegulatoryComplianceStore } from '../../core/regulatory/regulatory-compliance.store';
+import {
+  evaluateBuyerCompliance,
+  evaluateSellerCompliance,
+  getLevelBadgeClasses,
+  getMaxEligibleBuyerLevel,
+  getMaxEligibleSellerLevel
+} from '../../core/regulatory/regulatory.rules';
+import { SellerComplianceFlags } from '../../core/regulatory/regulatory.models';
 import { CardComponent } from '../../shared/ui/card/card.component';
 import { SectionHeaderComponent } from '../../shared/ui/section-header/section-header.component';
+import { RouterLink } from '@angular/router';
 import { AuthFacade } from '../auth/services/auth.facade';
 import { Profile, UpdateProfilePayload } from './profile.models';
 import { ProfileHttpRepository } from './profile-http.repository';
 
 @Component({
   selector: 'app-profile-page',
-  imports: [ReactiveFormsModule, SectionHeaderComponent, CardComponent],
+  imports: [ReactiveFormsModule, SectionHeaderComponent, CardComponent, RouterLink],
   template: `
-    <ui-section-header title="Perfil" subtitle="Gestiona tus datos de empresa y verificacion" />
+    <ui-section-header title="Perfil" subtitle="Gestiona tus datos de empresa y verificacion">
+      <a
+        [routerLink]="complianceLevelsRoute"
+        class="inline-flex items-center rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100"
+      >
+        Gestionar regularización por niveles
+      </a>
+    </ui-section-header>
 
     @if (toastMessage()) {
       <div class="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
@@ -80,37 +98,22 @@ import { ProfileHttpRepository } from './profile-http.repository';
           <section class="grid gap-4 md:grid-cols-2">
             <label class="block">
               <span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Nombre visible</span>
-              <input
-                class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
-                formControlName="fullName"
-              />
+              <input class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100" formControlName="fullName" />
             </label>
 
             <label class="block">
               <span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Email</span>
-              <input
-                class="w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-500"
-                [value]="profile()!.email"
-                disabled
-              />
+              <input class="w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-500" [value]="profile()!.email" disabled />
             </label>
 
             <label class="block">
               <span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Rol</span>
-              <input
-                class="w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-500"
-                [value]="profile()!.role"
-                disabled
-              />
+              <input class="w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-500" [value]="profile()!.role" disabled />
             </label>
 
             <label class="block">
               <span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Tipo de perfil</span>
-              <input
-                class="w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-500"
-                [value]="profile()!.profileType"
-                disabled
-              />
+              <input class="w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-500" [value]="profile()!.profileType" disabled />
             </label>
           </section>
 
@@ -210,13 +213,8 @@ import { ProfileHttpRepository } from './profile-http.repository';
               </div>
             </section>
           }
-
           <div class="flex justify-end border-t border-slate-100 pt-5">
-            <button
-              type="submit"
-              class="rounded-xl bg-emerald-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
-              [disabled]="saving()"
-            >
+            <button type="submit" class="rounded-xl bg-emerald-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60" [disabled]="saving()">
               {{ saving() ? 'Guardando...' : 'Guardar cambios' }}
             </button>
           </div>
@@ -229,10 +227,12 @@ import { ProfileHttpRepository } from './profile-http.repository';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ProfilePageComponent implements OnInit, OnDestroy {
+  protected readonly complianceLevelsRoute = APP_ROUTES.profileComplianceLevels;
   private readonly fb = inject(FormBuilder);
   private readonly repository = inject(ProfileHttpRepository);
   private readonly mediaRepository = inject(MediaHttpRepository);
   private readonly authFacade = inject(AuthFacade);
+  private readonly regulatoryStore = inject(RegulatoryComplianceStore);
   private avatarPreviewObjectUrl: string | null = null;
   private logoPreviewObjectUrl: string | null = null;
 
@@ -245,6 +245,28 @@ export class ProfilePageComponent implements OnInit, OnDestroy {
   protected readonly logoPreviewUrl = signal<string | null>(null);
   protected readonly avatarUploading = signal(false);
   protected readonly logoUploading = signal(false);
+  protected readonly statusClasses = getLevelBadgeClasses;
+  protected readonly regulatoryNotes: Record<string, string> = {
+    municipalLicense: 'Licencia municipal o permiso local vigente.',
+    sanitaryPermit: 'Permiso sanitario aplicable a la operación.',
+    storageAuthorization: 'Autorización del espacio de almacenamiento.',
+    originDeclaration: 'Declaración documentada del origen del residuo.',
+    wasteClassification: 'Clasificación técnica o comercial del residuo.',
+    commercialRegistration: 'Constancia o formalidad comercial activa.',
+    internalInventory: 'Control interno de lotes, inventario o trazabilidad.',
+    manifest: 'Manifiestos de traslado o control documental.',
+    managementPlan: 'Plan de manejo o gestión del residuo.',
+    safetyProtocols: 'Protocolos y medidas de seguridad operativa.'
+  };
+
+  protected readonly complianceRecord = computed(() => this.regulatoryStore.getRecord(this.profile()?.id ?? this.authFacade.user()?.id));
+  protected readonly sellerEvaluation = computed(() => evaluateSellerCompliance(4, this.profile(), this.complianceRecord().seller));
+  protected readonly buyerEvaluation = computed(() => evaluateBuyerCompliance(4, this.profile(), this.complianceRecord().buyer));
+  protected readonly maxSellerLevel = computed(() => getMaxEligibleSellerLevel(this.profile(), this.complianceRecord().seller));
+  protected readonly maxBuyerLevel = computed(() => getMaxEligibleBuyerLevel(this.profile(), this.complianceRecord().buyer));
+  protected readonly sellerRequirementsView = computed(() =>
+    this.sellerEvaluation().allRequirements.filter((item) => !['identity_or_ruc', 'address', 'company_ruc', 'commercial_ruc_if_volume'].includes(item.code))
+  );
 
   protected readonly form = this.fb.nonNullable.group({
     fullName: ['', [Validators.required]],
@@ -408,6 +430,20 @@ export class ProfilePageComponent implements OnInit, OnDestroy {
         this.logoPreviewUrl.set(asset.url);
         this.toastMessage.set('Logo de empresa actualizado correctamente.');
       });
+  }
+
+  protected toggleSellerCompliance(key: string, checked: boolean): void {
+    const userId = this.profile()?.id ?? this.authFacade.user()?.id;
+    this.regulatoryStore.saveSeller(userId, { [key]: checked } as Partial<SellerComplianceFlags>);
+    this.toastMessage.set('Estado de regularización seller actualizado.');
+  }
+
+  protected sellerFlagValue(key: string): boolean {
+    return Boolean(this.complianceRecord().seller[key as keyof SellerComplianceFlags]);
+  }
+
+  protected regulatoryNote(code: string): string {
+    return this.regulatoryNotes[code] ?? 'Requisito regulatorio según el nivel del residuo.';
   }
 
   private loadProfile(): void {
