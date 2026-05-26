@@ -92,7 +92,7 @@ export class AuthFacade {
         finalize(() => this.socialLoginLoading.set(false))
       )
       .subscribe(() => {
-        this.navigateAfterAuth();
+        this.queueNavigationAfterAuth();
       });
   }
 
@@ -271,7 +271,7 @@ export class AuthFacade {
 
   private mapGoogleError(errorCode: string | null): string {
     if (!errorCode) {
-      return 'No se pudo completar la autenticacion con Google.';
+      return 'No se pudo iniciar sesión con Google. Inténtalo de nuevo.';
     }
 
     switch (errorCode) {
@@ -283,8 +283,12 @@ export class AuthFacade {
         return 'Google no devolvio un perfil completo.';
       case 'GOOGLE_OAUTH_FAILED':
         return 'Fallo la autenticacion con Google. Reintenta en unos minutos.';
+      case 'ACCESS_DENIED':
+        return 'Acceso denegado. No se concedieron los permisos necesarios.';
+      case 'SOCIAL_DISABLED':
+        return LOGIN_VALIDATION_MESSAGES.socialDisabled;
       default:
-        return 'No se pudo completar la autenticacion con Google.';
+        return 'No se pudo iniciar sesión con Google. Inténtalo de nuevo.';
     }
   }
 

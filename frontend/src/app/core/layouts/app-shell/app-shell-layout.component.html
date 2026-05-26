@@ -29,20 +29,22 @@
     ></div>
   }
 
-  <div class="relative button-0">
-    <app-default-chat-bubble
-      title="Chatea con nosotros"
-      message="Hola, soy Eco, ¿Qué reciclaremos hoy?"
-      ariaLabel="Abrir chat con Eco"
-      quickActionLabel="Seguir mi pedido"
-      placeholder="Escribe un mensaje"
-      [messages]="ecoMessages()"
-      [typing]="ecoTyping()"
-      [disabledInput]="ecoDisabledInput()"
-      [showGoToMainChatCta]="ecoShowGoToMainChatCta()"
-      goToMainChatLabel="Ir al chat principal"
-      (quickActionClick)="openEcoChat()"
-      (messageSubmit)="openEcoChatWithMessage($event)"
-      (goToMainChatClick)="goToMainEcoChat()" />
-  </div>
+  @if (!isAssistantChatRoute()) {
+    <div class="relative button-0">
+      <app-default-chat-bubble
+        title="Chatea con nosotros"
+        message="Hola, soy Eco, ¿Qué reciclaremos hoy?"
+        ariaLabel="Abrir chat con Eco"
+        quickActionLabel="Seguir mi pedido"
+        placeholder="Escribe un mensaje"
+        [messages]="ecoMessages()"
+        [typing]="ecoTyping()"
+        [disabledInput]="ecoDisabledInput()"
+        [showGoToMainChatCta]="ecoShowGoToMainChatCta()"
+        goToMainChatLabel="Ir al chat principal"
+        (quickActionClick)="openEcoChat()"
+        (messageSubmit)="openEcoChatWithMessage($event)"
+        (goToMainChatClick)="goToMainEcoChat()" />
+    </div>
+  }
 </div>
