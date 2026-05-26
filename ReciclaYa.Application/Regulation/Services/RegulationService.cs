@@ -1519,8 +1519,9 @@ public sealed class RegulationService(
         IReadOnlyCollection<UserRegulationRequirement> requirementStates,
         CancellationToken cancellationToken)
     {
-        var requirements = new List<RegulationRequirementDto>(dto.RequirementsForUpload.Count);
-        foreach (var req in dto.RequirementsForUpload)
+        var sourceRequirements = dto.RequirementsForUpload ?? [];
+        var requirements = new List<RegulationRequirementDto>(sourceRequirements.Count);
+        foreach (var req in sourceRequirements)
         {
             var persisted = requirementStates.FirstOrDefault(item =>
                 item.Level == req.LevelId
@@ -1565,7 +1566,7 @@ public sealed class RegulationService(
         var levels = await GetLevelsAsync(Guid.Empty, cancellationToken);
         foreach (var level in levels)
         {
-            var requirement = level.RequirementsForUpload
+            var requirement = (level.RequirementsForUpload ?? [])
                 .FirstOrDefault(item => string.Equals(item.Id, requirementId, StringComparison.OrdinalIgnoreCase));
             if (requirement is not null)
             {
