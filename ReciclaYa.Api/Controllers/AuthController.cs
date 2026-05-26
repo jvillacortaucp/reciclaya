@@ -26,6 +26,16 @@ public sealed class AuthController(
         [FromBody] LoginRequest request,
         CancellationToken cancellationToken)
     {
+        if (request is null)
+        {
+            return BadRequest(ApiResponse<object>.Fail("Invalid request body.", ["INVALID_LOGIN_REQUEST"]));
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Password))
+        {
+            return BadRequest(ApiResponse<object>.Fail("Email and password are required.", ["INVALID_LOGIN_REQUEST"]));
+        }
+
         var result = await authService.LoginAsync(request, cancellationToken);
 
         return ToActionResult(result);
