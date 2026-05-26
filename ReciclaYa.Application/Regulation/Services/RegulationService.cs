@@ -1002,6 +1002,7 @@ public sealed class RegulationService(
                 ContextAllowedResidues = levelAllowedResidues
             },
             cancellationToken);
+        result = HarmonizeEvidenceWithRegulation(result, regulation);
         var evidenceAllowed = result.IsConsistent
             && !result.ManualReviewRequired
             && !string.Equals(result.RiskLevel, "high", StringComparison.OrdinalIgnoreCase);
@@ -1046,6 +1047,67 @@ public sealed class RegulationService(
             BlockingMessage: finalAllowed
                 ? "Verificación completada. Puedes publicar."
                 : blockingMessage);
+    }
+
+    private static RegulationEvidenceVerificationResultDto HarmonizeEvidenceWithRegulation(
+        RegulationEvidenceVerificationResultDto evidence,
+        RegulationValidationResultDto regulation)
+    {
+        if (!regulation.Allowed)
+        {
+            return evidence;
+        }
+
+        var levelFlags = evidence.RiskFlags
+            .Where(IsLevelConflictFlag)
+            .ToArray();
+
+        var nonLevelFlags = evidence.RiskFlags
+            .Where(flag => !IsLevelConflictFlag(flag))
+            .ToArray();
+
+        var mentionsLevelConflict = !string.IsNullOrWhiteSpace(evidence.Message)
+            && evidence.Message.Contains("pertenece a level", StringComparison.OrdinalIgnoreCase);
+
+        if (levelFlags.Length == 0 && !mentionsLevelConflict)
+        {
+            return evidence;
+        }
+
+        // La clasificación legal del nivel la define el catálogo regulatorio, no la IA.
+        if (nonLevelFlags.Length == 0)
+        {
+            return evidence with
+            {
+                IsConsistent = true,
+                Confidence = Math.Max(evidence.Confidence, 0.85m),
+                RiskLevel = "low",
+                RiskFlags = [],
+                ManualReviewRequired = false,
+                Message = "La evidencia es coherente con la información declarada para el nivel regulatorio validado por catálogo."
+            };
+        }
+
+        var sanitizedMessage = mentionsLevelConflict
+            ? "La evidencia presenta observaciones no regulatorias y requiere revisión."
+            : evidence.Message;
+
+        return evidence with
+        {
+            RiskFlags = nonLevelFlags,
+            Message = sanitizedMessage
+        };
+    }
+
+    private static bool IsLevelConflictFlag(string? flag)
+    {
+        if (string.IsNullOrWhiteSpace(flag))
+        {
+            return false;
+        }
+
+        return flag.Contains("level", StringComparison.OrdinalIgnoreCase)
+            || flag.Contains("nivel", StringComparison.OrdinalIgnoreCase);
     }
 
     private async Task<RegulationEvidenceVerificationResultDto> BuildEvidenceVerificationResultAsync(
