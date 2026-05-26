@@ -1,0 +1,30 @@
+@if (recommendation(); as recommendationData) {
+  @if (recommendationData.marketAnalysis; as market) {
+    <div class="space-y-6">
+      <div class="grid min-w-0 grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
+        <div class="flex flex-col min-w-0 space-y-6">
+          <app-finished-product-card [product]="market.finishedProduct" />
+          <app-market-kpi-cards [kpis]="market.marketKpis" />
+          <div data-tour="financial-costs">
+            <app-cost-profit-analysis
+              [costStructure]="market.costStructure"
+              [grossMarginPercent]="market.estimatedGrossMarginPercent"
+              [suggestedPricePerKg]="market.suggestedPricePerKg"
+              [totalCostPerKg]="market.totalCostPerKg"
+              [chartLabels]="market.chartLabels"
+              [chartSeries]="market.chartSeries"
+              [selectedCostView]="selectedCostView()"
+              [selectedChartType]="selectedChartType()"
+              (costViewChanged)="costViewChanged.emit($event)"
+              (chartTypeChanged)="chartTypeChanged.emit($event)" />
+          </div>
+          <app-competition-insight-card [insight]="market.competitionInsight" />
+        </div>
+
+        <div class="min-w-0">
+          <app-market-opportunity-summary [summary]="market.opportunitySummary" />
+        </div>
+      </div>
+    </div>
+  }
+}
