@@ -38,9 +38,10 @@ public sealed class WasteSellController(
 
     [HttpPost("publish")]
     public async Task<IActionResult> Publish(
-        [FromQuery] Guid? listingId,
         [FromBody] WasteSellRequestDto request,
-        CancellationToken cancellationToken)
+        [FromQuery] Guid? listingId = null,
+        [FromQuery] bool evidenceVerified = false,
+        CancellationToken cancellationToken = default)
     {
         if (!CanManageListings())
         {
@@ -52,31 +53,39 @@ public sealed class WasteSellController(
             return InvalidToken();
         }
 
-        var evidencePrecheck = await regulationService.VerifyListingEvidenceAsync(
-            userId,
-            User.FindFirst("role")?.Value ?? string.Empty,
-            new RegulationEvidenceVerificationRequestDto(
-                SpecificResidue: request.FormValue.SpecificResidue,
-                ResidueType: request.FormValue.ResidueType,
-                Sector: request.FormValue.Sector,
-                ProductType: request.FormValue.ProductType,
-                ShortDescription: request.FormValue.ShortDescription,
-                Quantity: request.FormValue.Volume.Quantity,
-                Unit: request.FormValue.Volume.Unit,
-                MediaUrls: request.FormValue.MediaUploads
-                    .Select(item => item.PreviewUrl)
-                    .Where(item => !string.IsNullOrWhiteSpace(item))
-                    .ToArray()),
-            cancellationToken);
-
-        if (!evidencePrecheck.FinalAllowed)
+        if (!evidenceVerified)
         {
-            var code = evidencePrecheck.BlockingReasonCode ?? "EVIDENCE_NOT_CONSISTENT";
             return StatusCode(StatusCodes.Status403Forbidden, new
             {
                 success = false,
-                data = evidencePrecheck,
-                message = evidencePrecheck.BlockingMessage,
+                data = (object?)null,
+                message = "Primero debes verificar el producto con IA antes de publicar.",
+                errors = new[] { "EVIDENCE_VERIFICATION_REQUIRED" }
+            });
+        }
+
+        var regulation = await regulationService.ValidateOperationAsync(
+            userId,
+            User.FindFirst("role")?.Value ?? string.Empty,
+            new RegulationValidateOperationRequestDto(
+                Action: "publish",
+                Actor: "seller",
+                ResidueType: request.FormValue.ResidueType,
+                Sector: request.FormValue.Sector,
+                ProductType: request.FormValue.ProductType,
+                SpecificResidue: request.FormValue.SpecificResidue,
+                Quantity: request.FormValue.Volume.Quantity,
+                Unit: request.FormValue.Volume.Unit),
+            cancellationToken);
+
+        if (!regulation.Allowed)
+        {
+            var code = regulation.BlockingReasonCode ?? "REGULATION_BLOCKED";
+            return StatusCode(StatusCodes.Status403Forbidden, new
+            {
+                success = false,
+                data = new { regulation },
+                message = regulation.BlockingMessage,
                 errors = new[] { code }
             });
         }

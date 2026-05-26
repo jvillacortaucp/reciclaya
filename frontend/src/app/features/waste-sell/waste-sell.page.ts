@@ -328,7 +328,7 @@ export class WasteSellPageComponent implements OnInit, OnDestroy, PendingChanges
       return;
     }
 
-    this.facade.publish(nextState);
+    this.facade.publish(nextState, this.productVerificationPassed());
     this.form.markAsPristine();
   }
 
