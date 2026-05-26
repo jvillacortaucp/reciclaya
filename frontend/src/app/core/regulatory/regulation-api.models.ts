@@ -145,6 +145,7 @@ export interface RegulationEvidenceVerificationRequest {
   residueType?: string | null;
   sector?: string | null;
   productType?: string | null;
+  shortDescription?: string | null;
   quantity?: number | null;
   unit?: string | null;
   mediaUrls?: readonly string[] | null;
@@ -160,10 +161,18 @@ export interface RegulationEvidenceVerificationResult {
   message: string;
 }
 
+export interface RegulationEvidencePrecheckResult {
+  regulation: RegulationValidationResult;
+  evidence: RegulationEvidenceVerificationResult;
+  finalAllowed: boolean;
+  blockingReasonCode: string | null;
+  blockingMessage: string;
+}
+
 export type RegulationMeApiResponse = ApiResponse<RegulationMeResponse>;
 export type RegulationLevelsApiResponse = ApiResponse<RegulationLevelResponse[]>;
 export type RegulationValidateApiResponse = ApiResponse<RegulationValidationResult>;
-export type RegulationEvidenceVerifyApiResponse = ApiResponse<RegulationEvidenceVerificationResult>;
+export type RegulationEvidenceVerifyApiResponse = ApiResponse<RegulationEvidencePrecheckResult>;
 export type RegulationUploadRequirementApiResponse = ApiResponse<RegulationRequirementUploadResult>;
 export type RegulationReviewPageApiResponse = ApiResponse<RegulationRequirementReviewPageResponse>;
 

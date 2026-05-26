@@ -52,32 +52,15 @@ public sealed class WasteSellController(
             return InvalidToken();
         }
 
-        var validation = await regulationService.ValidateOperationAsync(
+        var evidencePrecheck = await regulationService.VerifyListingEvidenceAsync(
             userId,
             User.FindFirst("role")?.Value ?? string.Empty,
-            new RegulationValidateOperationRequestDto(
-                Action: "publish",
-                Actor: "seller",
-                ResidueType: request.FormValue.ResidueType,
-                Sector: request.FormValue.Sector,
-                ProductType: request.FormValue.ProductType,
-                SpecificResidue: request.FormValue.SpecificResidue,
-                Quantity: request.FormValue.Volume.Quantity,
-                Unit: request.FormValue.Volume.Unit),
-            cancellationToken);
-
-        if (!validation.Allowed)
-        {
-            return RegulatoryBlocked(validation);
-        }
-
-        var evidenceCheck = await regulationService.VerifyListingEvidenceAsync(
-            userId,
             new RegulationEvidenceVerificationRequestDto(
                 SpecificResidue: request.FormValue.SpecificResidue,
                 ResidueType: request.FormValue.ResidueType,
                 Sector: request.FormValue.Sector,
                 ProductType: request.FormValue.ProductType,
+                ShortDescription: request.FormValue.ShortDescription,
                 Quantity: request.FormValue.Volume.Quantity,
                 Unit: request.FormValue.Volume.Unit,
                 MediaUrls: request.FormValue.MediaUploads
@@ -86,14 +69,24 @@ public sealed class WasteSellController(
                     .ToArray()),
             cancellationToken);
 
+        if (!evidencePrecheck.FinalAllowed)
+        {
+            var code = evidencePrecheck.BlockingReasonCode ?? "EVIDENCE_NOT_CONSISTENT";
+            return StatusCode(StatusCodes.Status403Forbidden, new
+            {
+                success = false,
+                data = evidencePrecheck,
+                message = evidencePrecheck.BlockingMessage,
+                errors = new[] { code }
+            });
+        }
+
         await listingService.PublishAsync(userId, request, listingId, cancellationToken);
 
         return Ok(ApiResponse<object>.Ok(new
         {
             published = true,
-            complianceWarnings = evidenceCheck.ManualReviewRequired || evidenceCheck.RiskLevel == "high"
-                ? new[] { evidenceCheck }
-                : Array.Empty<RegulationEvidenceVerificationResultDto>()
+            complianceWarnings = Array.Empty<RegulationEvidenceVerificationResultDto>()
         }, "Listing published."));
     }
 
@@ -137,14 +130,4 @@ public sealed class WasteSellController(
             ApiResponse<object>.Fail("Forbidden.", ["FORBIDDEN"]));
     }
 
-    private IActionResult RegulatoryBlocked(RegulationValidationResultDto validation)
-    {
-        return StatusCode(StatusCodes.Status403Forbidden, new
-        {
-            success = false,
-            data = validation,
-            message = validation.BlockingMessage,
-            errors = new[] { validation.BlockingReasonCode ?? "REGULATION_BLOCKED" }
-        });
-    }
 }

@@ -100,8 +100,9 @@ public interface IRegulationService
 
     Task DeleteAdminNormativeAsync(Guid normativeId, Guid adminUserId, CancellationToken cancellationToken);
 
-    Task<RegulationEvidenceVerificationResultDto> VerifyListingEvidenceAsync(
+    Task<RegulationEvidencePrecheckResultDto> VerifyListingEvidenceAsync(
         Guid userId,
+        string userRole,
         RegulationEvidenceVerificationRequestDto request,
         CancellationToken cancellationToken);
 
